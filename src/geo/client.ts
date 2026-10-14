@@ -26,6 +26,8 @@ import { type Region, nearestCounty } from "./regions.ts";
 export interface AddressSearchOptions {
   /** ISO 3166-1 alpha-2 country, or `null` for anywhere. Default `"SE"`. */
   country?: string | null;
+  /** At most this many suggestions (1–20). Default: all that were found (at most 12). */
+  limit?: number;
   signal?: AbortSignal;
 }
 
@@ -35,6 +37,8 @@ export interface PlaceSearchOptions {
   country?: string | null;
   /** Also search points of interest (parks, nature reserves, venues …), not only cities. Default `false`. */
   pointsOfInterest?: boolean;
+  /** At most this many places (1–20). Default: all that were found (at most 12). */
+  limit?: number;
   signal?: AbortSignal;
 }
 
@@ -69,6 +73,12 @@ function checkCountry(country: string | null | undefined, fallback: string | nul
   const upper = c.toUpperCase();
   if (!/^[A-Z]{2}$/.test(upper)) throw new RangeError(`country must be an ISO 3166-1 alpha-2 code: ${c}`);
   return upper;
+}
+
+function checkLimit(limit: number | undefined): number {
+  if (limit === undefined) return 20;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 20) throw new RangeError("limit must be an integer 1–20");
+  return limit;
 }
 
 const uniqueByLabel = (list: AddressSuggestion[]): AddressSuggestion[] => [...new Map(list.map((p) => [p.label, p])).values()];
@@ -170,14 +180,17 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
     async addresses(query, options = {}) {
       const q = checkQuery(query, 200);
       const country = checkCountry(options.country, "SE");
-      return ctx.cache.get(`address:${country ?? ""}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, () => searchAddresses(q, country, options.signal));
+      const limit = checkLimit(options.limit);
+      const all = await ctx.cache.get(`address:${country ?? ""}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, () => searchAddresses(q, country, options.signal));
+      return all.slice(0, limit);
     },
 
     async places(query, options = {}) {
       const q = checkQuery(query, 200);
       const country = checkCountry(options.country, null);
       const poi = !!options.pointsOfInterest;
-      return ctx.cache.get(`places:${country ?? ""}:${poi ? 1 : 0}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, async () => {
+      const limit = checkLimit(options.limit);
+      const found = await ctx.cache.get(`places:${country ?? ""}:${poi ? 1 : 0}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, async () => {
         const url = new URL(ctx.endpoints.geocoding);
         url.searchParams.set("name", q);
         url.searchParams.set("language", "sv");
@@ -196,6 +209,7 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
         }
         return results;
       });
+      return found.slice(0, limit);
     },
 
     async region(position, options = {}) {

@@ -3,8 +3,9 @@
  *
  * @module
  */
-import { createMemoryCache, type MemoryCache, type PersistentStore } from "./cache.ts";
+import { type CacheEvent, createMemoryCache, type MemoryCache, type PersistentStore } from "./cache.ts";
 import { createHttp, type Http, type HttpOptions } from "./http.ts";
+import { createStats, type StatsCollector } from "./stats.ts";
 
 /** Supported languages for generated texts (weather descriptions, warning titles). */
 export type Locale = "sv" | "en";
@@ -70,7 +71,19 @@ export interface ClientOptions extends HttpOptions {
    * In-memory caching. `true` (default) uses {@link DEFAULT_TTL}; `false` disables it (concurrent identical requests
    * are still shared); an object tunes it.
    */
-  cache?: boolean | { maxEntries?: number; ttl?: Partial<CacheTtl> };
+  cache?: boolean | {
+    /** Maximum number of cached results. Default `500`. */
+    maxEntries?: number;
+    /** Lifetimes per kind of data. */
+    ttl?: Partial<CacheTtl>;
+    /**
+     * Keep serving the last good result for this long after it expired when the source fails, instead of an error.
+     * Default `0`. A dashboard might use a few hours; results carry `fetchedAt`, so you can show their age.
+     */
+    staleIfErrorMs?: number;
+  };
+  /** Called for every cache hit, miss and stale answer. Must not throw. */
+  onCacheEvent?: (event: CacheEvent) => void;
   /** Durable storage for immutable data (complete historical spot-price days). */
   store?: PersistentStore;
   /** Override individual upstream URLs. */
@@ -99,6 +112,7 @@ export interface Context {
   precision: number;
   now: () => number;
   locale: Locale;
+  stats: StatsCollector;
 }
 
 const CONTEXT = Symbol.for("sweden-open-data.context");
@@ -123,16 +137,33 @@ export function createContext(options: ClientOptions | Context = {}): Context {
     throw new RangeError("coordinatePrecision must be an integer 0–6");
   }
   const now = o.now ?? Date.now;
+  const stats = createStats(now);
   const context: Context & { [CONTEXT]: true } = {
     [CONTEXT]: true,
-    http: createHttp(o),
-    cache: createMemoryCache({ maxEntries: tuning.maxEntries, now, enabled: cache !== false }),
+    http: createHttp({
+      ...o,
+      onRequest: (event) => {
+        stats.request(event);
+        o.onRequest?.(event);
+      },
+    }),
+    cache: createMemoryCache({
+      maxEntries: tuning.maxEntries,
+      now,
+      enabled: cache !== false,
+      staleIfErrorMs: tuning.staleIfErrorMs,
+      onEvent: (event) => {
+        stats.cache(event);
+        o.onCacheEvent?.(event);
+      },
+    }),
     ttl: { ...DEFAULT_TTL, ...tuning.ttl },
     store: o.store,
     endpoints: { ...DEFAULT_ENDPOINTS, ...o.endpoints },
     precision,
     now,
     locale: o.locale === "en" ? "en" : "sv",
+    stats,
   };
   return context;
 }

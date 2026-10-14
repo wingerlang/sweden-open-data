@@ -18,10 +18,15 @@ Thanks for helping! Issues and pull requests are welcome.
 ## Workflow
 
 ```sh
+npm run dev         # dev board – try your change against real or fake sources
 npm test            # run the tests (Node ≥ 22.18)
 npm run coverage    # tests with coverage thresholds
 npm run typecheck   # strict TypeScript, no slow types
+npm run test:live   # contract tests against the real sources
 ```
+
+A new source or field needs three things: a parser with offline tests, a fake in `src/testing.ts`, and a check in
+`live/live.test.ts`.
 
 Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org) style
 (`feat(spot): …`, `fix(geo): …`) and add a line to `CHANGELOG.md` under *Unreleased*.

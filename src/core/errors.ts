@@ -35,6 +35,8 @@ export interface SourceErrorOptions {
   url?: string;
   /** The underlying error, if any. */
   cause?: unknown;
+  /** How long the source asked us to wait (`Retry-After`), in milliseconds. */
+  retryAfterMs?: number;
 }
 
 /**
@@ -60,6 +62,8 @@ export class SourceError extends Error {
   readonly status: number | undefined;
   /** The URL that was requested. */
   readonly url: string | undefined;
+  /** How long the source asked us to wait before trying again (`Retry-After`), in milliseconds. */
+  readonly retryAfterMs: number | undefined;
 
   constructor(message: string, options: SourceErrorOptions) {
     super(message, options.cause === undefined ? undefined : { cause: options.cause });
@@ -68,6 +72,7 @@ export class SourceError extends Error {
     this.source = options.source;
     this.status = options.status;
     this.url = options.url;
+    this.retryAfterMs = options.retryAfterMs;
   }
 
   /** `true` when the same request may well succeed later (timeouts, network errors, 429 and 5xx). */

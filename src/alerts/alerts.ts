@@ -252,6 +252,13 @@ export interface RelevanceOptions extends MatchOptions {
   now?: number;
   /** Drop alerts published more than this many days ago (1–30). Default `7`. */
   days?: number;
+  /** Only these kinds, for example `["vma", "warning"]`. Default: all. */
+  kinds?: AlertKind[];
+  /**
+   * Only alerts at least this severe, for example `"orange"` for orange and red warnings. Applies to alerts that have
+   * a level (VMA are always `"red"`); news have no level and are kept – use {@link RelevanceOptions.kinds} to drop them.
+   */
+  minLevel?: AlertLevel;
 }
 
 const KIND_ORDER: Record<AlertKind, number> = { vma: 0, warning: 1, news: 2 };
@@ -273,6 +280,8 @@ export function relevantAlerts(alerts: Alert[], places: Region[], options: Relev
     if (!Number.isFinite(stamp) || now - stamp > maxAge) return [];
     if (alert.end && Date.parse(alert.end) < now) return [];
     if (alert.kind === "warning" && alert.level === "message" && !alert.polygons?.length && !alert.areas.length) return [];
+    if (options.kinds && !options.kinds.includes(alert.kind)) return [];
+    if (options.minLevel && alert.level && LEVEL_ORDER[alert.level] > LEVEL_ORDER[options.minLevel]) return [];
     const match = alertPlaces(alert, places, options);
     if (!match.places.length) return [];
     const { polygons: _polygons, areas, ...rest } = alert;

@@ -154,7 +154,7 @@ test("address search: shared and cached lookups, errors surface, Photon without 
   const fetch = fakeFetch(() => (fail ? new Response("", { status: 503 }) : json([araslov])));
   const geo = createGeoClient({ fetch, ...quick });
   const [a, b] = await Promise.all([geo.addresses("Åraslöv 1105"), geo.addresses("åraslöv 1105")]);
-  assert.equal(a, b);
+  assert.deepEqual(a, b);
   assert.equal(fetch.calls.length, 1);
   fail = true;
   await assert.rejects(geo.addresses("Åraslöv gata"), (e: SourceError) => e.status === 503);

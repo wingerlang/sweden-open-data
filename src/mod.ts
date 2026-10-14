@@ -27,6 +27,7 @@ import { type AlertsClient, createAlertsClient } from "./alerts/client.ts";
 import { type GeoClient, createGeoClient } from "./geo/client.ts";
 import { type SpotClient, createSpotClient } from "./spot/client.ts";
 import { type WeatherClient, createWeatherClient } from "./weather/client.ts";
+import type { ClientStats } from "./core/stats.ts";
 
 /** All clients, sharing one cache and one network configuration. */
 export interface SwedenOpenData {
@@ -40,6 +41,10 @@ export interface SwedenOpenData {
   readonly geo: GeoClient;
   /** Empties the in-memory cache. */
   clearCache(): void;
+  /** Requests, failures, retries and cache use since the client was created (or since {@link SwedenOpenData.resetStats}). */
+  stats(): ClientStats;
+  /** Starts counting from zero. */
+  resetStats(): void;
 }
 
 /**
@@ -71,6 +76,8 @@ export function createClient(options: ClientOptions = {}): SwedenOpenData {
     alerts: createAlertsClient(ctx),
     geo: createGeoClient(ctx),
     clearCache: () => ctx.cache.clear(),
+    stats: () => ctx.stats.snapshot(),
+    resetStats: () => ctx.stats.reset(),
   });
 }
 
@@ -85,8 +92,17 @@ export {
   type Endpoints,
   type Locale,
 } from "./core/context.ts";
-export { type MemoryCache, memoryStore, type PersistentStore } from "./core/cache.ts";
-export type { HttpOptions, RequestEvent } from "./core/http.ts";
+export {
+  type CacheEvent,
+  createMemoryCache,
+  type MemoryCache,
+  type MemoryCacheOptions,
+  memoryStore,
+  type PersistentStore,
+  type Ttl,
+} from "./core/cache.ts";
+export { type HttpOptions, parseRetryAfter, type RequestEvent } from "./core/http.ts";
+export type { ClientStats, SourceStats } from "./core/stats.ts";
 export * from "./core/geo.ts";
 export * from "./core/time.ts";
 export * from "./spot/mod.ts";

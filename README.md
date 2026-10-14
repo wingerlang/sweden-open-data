@@ -53,6 +53,7 @@ console.log(`Cheapest 3 h: ${stockholmClock(s!.cheapest!.start)}–${stockholmCl
 
 | Function | Purpose |
 |---|---|
+| `spot.overview(area, { windowHours })` | The price now plus summaries of today and tomorrow – what a widget needs |
 | `spot.prices(area)` | Today and tomorrow in one call |
 | `spot.day(area, date)` | One Swedish calendar day, or `null` if not published |
 | `spot.history(area, from, to)` | A range of days; days that could not be fetched are listed in `missing` |
@@ -107,6 +108,13 @@ county or municipality, or within 40 km of a point the authority gave. `neighbor
 bordering counties. Results are sorted VMA first, then warnings by severity, then newest. Each feed fails on its own –
 `sources` tells you which ones answered.
 
+Narrow it down when you only want what matters:
+
+```ts
+await alerts.near(places, { kinds: ["vma", "warning"], minLevel: "orange" }); // VMA and orange/red warnings only
+await alerts.near(places, { feeds: ["smhi"] });                                // only ask SMHI
+```
+
 The pure functions (`parseKrisinformation`, `parseSmhiWarnings`, `relevantAlerts`, `freshAlerts`, `alertPlaces`) work
 on data you already have.
 
@@ -124,6 +132,8 @@ await geo.region({ latitude: 56.1, longitude: 13.91 });
 // { county: "Skåne län", municipality: "Hässleholms kommun", locality: "Vinslöv", … }
 ```
 
+Both searches take `{ limit }`, and `addresses` takes `{ country }` (default `"SE"`, `null` for anywhere).
+
 Many Swedish rural addresses are missing from OpenStreetMap. Instead of returning a wrong address – another house
 number or a similarly named street – the search offers *the address as you typed it*, positioned at the village or town
 it found nearby, and marks it `approximate: true`. Nothing is invented.
@@ -136,13 +146,19 @@ const se = createClient({
   timeoutMs: 8000,           // per attempt (default 10000)
   retries: 2,                // extra attempts for timeouts, network errors, 429 and 5xx (default 1)
   retryDelayMs: 500,         // doubled per retry (default 500)
-  cache: { maxEntries: 1000, ttl: { weather: 10 * 60_000 } },   // or false
+  maxRetryDelayMs: 10_000,   // a longer Retry-After from a source is reported, not slept through
+  cache: {                   // or false
+    maxEntries: 1000,
+    ttl: { weather: 10 * 60_000 },
+    staleIfErrorMs: 6 * 3_600_000,  // keep serving the last good result for 6 h if a source goes down
+  },
   store: fileStore("./.cache"),                 // durable storage for immutable data
   endpoints: { weather: "https://my-mirror/v1/forecast" },
   coordinatePrecision: 2,    // decimals sent to sources (default 2 ≈ 1 km)
   locale: "en",              // generated texts such as warning titles (default "sv")
   fetch: myFetch,            // proxies, instrumentation, tests
   onRequest: (e) => log(e.source, e.status, e.ms, e.attempt),
+  onCacheEvent: (e) => log(e.type, e.key),        // hit, miss or stale
 });
 ```
 
@@ -150,6 +166,25 @@ Default cache lifetimes (`DEFAULT_TTL`): published spot day 12 h, unpublished da
 5 min, region 30 days, searches 1 h. Failures are never cached.
 
 Every method also accepts `{ signal }` to cancel.
+
+### Staying up when a source is down
+
+With `cache.staleIfErrorMs`, an expired result is served again when refreshing it fails, for as long as you allow. The
+failing source is then asked at most once a minute. Every result that changes over time carries `fetchedAt`, so you
+can show "updated 2 h ago" instead of an error. A `429` or `503` with a `Retry-After` is honoured when it is short and
+reported (`error.retryAfterMs`) when it is longer than `maxRetryDelayMs`.
+
+### Health and metrics
+
+```ts
+se.stats();
+// { requests: 42, failures: 1, cache: { hits: 30, misses: 12, stale: 0 },
+//   sources: { "open-meteo": { requests: 5, failures: 0, retries: 0, averageMs: 210, lastStatus: 200, … }, … } }
+se.resetStats();
+```
+
+`onRequest` sees every attempt (with status, duration, attempt number and error), `onCacheEvent` every cache
+decision – enough for logging, Prometheus counters or OpenTelemetry spans.
 
 ## Errors
 
@@ -178,6 +213,27 @@ try {
 | `@wingerlang/sweden-open-data/alerts` | Alerts |
 | `@wingerlang/sweden-open-data/geo` | Geocoding and regions |
 | `@wingerlang/sweden-open-data/node` | `fileStore` (needs a file system) |
+| `@wingerlang/sweden-open-data/testing` | Fakes of every source and fault injection, for your own tests |
+
+## Testing your code
+
+You should not need the network – or this package's internals – to test code that uses it:
+
+```ts
+import { createClient } from "@wingerlang/sweden-open-data";
+import { createFakeSources } from "@wingerlang/sweden-open-data/testing";
+
+const fake = createFakeSources({ now: () => Date.parse("2026-10-14T10:00:00+02:00") });
+const se = createClient({ fetch: fake.fetch, now: () => Date.parse("2026-10-14T10:00:00+02:00"), retries: 0 });
+
+await se.spot.overview("SE3");             // realistic, deterministic prices; tomorrow appears after 13:00
+fake.setFault("smhi", { status: 503 });    // …or { offline }, { hang }, { delayMs }, { invalidJson }, { rate: 0.5 }
+fake.calls;                                 // every URL that was requested
+```
+
+`withFaults(fetch)` adds the same fault switches to any `fetch` – including the real one – and `fakeSpotDay`,
+`fakeForecast`, `fakeKrisinformation` and `fakeSmhiWarnings` give you the raw source formats. The generated data is for
+tests and demos only.
 
 ## Runtimes
 
@@ -206,11 +262,19 @@ som standard.
 ## Development
 
 ```sh
+npm run dev         # the dev board: http://localhost:5174 (add -- --fake for generated data, no network)
 npm test            # node --test (Node ≥ 22.18 runs the TypeScript sources directly)
-npm run smoke       # live requests against every source: node examples/dashboard.ts [lat] [lon]
 npm run coverage    # with coverage thresholds
 npm run typecheck   # strict, isolatedDeclarations (= JSR "no slow types")
+npm run test:live   # contract tests against the real sources (also run weekly in CI)
+npm run smoke       # a small terminal dashboard: node examples/dashboard.ts [lat] [lon]
 ```
+
+The **dev board** runs every call of the package from a browser page – spot prices with a chart, weather, alerts,
+address and place search, regions and history – against the real sources or the fakes. It shows the equivalent code
+and the raw result for each call, a live log of every request and cache decision, per-source statistics, and lets you
+switch faults on per source (slow, hang, offline, 503, 429 with Retry-After, invalid JSON, flaky) while you change the
+timeout, retries and stale-if-error, so you can watch the client cope. *Run all* is a one-click smoke test.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Releases are published to JSR from GitHub Actions with provenance.
 

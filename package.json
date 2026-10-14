@@ -1,6 +1,6 @@
 {
   "name": "@wingerlang/sweden-open-data",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather, VMA/crisis information and SMHI warnings, and geocoding that understands Swedish addresses.",
   "license": "MIT",
   "author": "Johannes Winger-Lang",
@@ -13,7 +13,8 @@
     "./weather": "./src/weather/mod.ts",
     "./alerts": "./src/alerts/mod.ts",
     "./geo": "./src/geo/mod.ts",
-    "./node": "./src/node.ts"
+    "./node": "./src/node.ts",
+    "./testing": "./src/testing.ts"
   },
   "files": [
     "src",
@@ -37,6 +38,8 @@
   ],
   "scripts": {
     "test": "node --test \"test/**/*.test.ts\"",
+    "dev": "node dev/server.ts",
+    "test:live": "node --test \"live/*.test.ts\"",
     "coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-lines=95 --test-coverage-branches=85 --test-coverage-functions=95 \"test/**/*.test.ts\"",
     "typecheck": "tsc -p .",
     "check": "npm run typecheck && npm run coverage",

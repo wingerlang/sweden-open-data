@@ -3,6 +3,23 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.2.0 – 2026-10-14
+
+Added – all backwards compatible:
+
+- **Stale-if-error:** `cache.staleIfErrorMs` keeps serving the last good result while a source is down (and asks it
+  again at most once a minute).
+- **Retry-After:** honoured for 429/503 up to `maxRetryDelayMs`; longer waits are reported as `SourceError.retryAfterMs`.
+- **Statistics:** `client.stats()` / `resetStats()` with per-source requests, failures, retries and timings plus cache
+  hits, misses and stale answers; `onCacheEvent` hook.
+- **`spot.overview(area)`:** the price now plus summaries of today and tomorrow in one call.
+- **Alerts:** filter by `kinds` and `minLevel`, choose `feeds`; feed status now has an `id`.
+- **Geo:** `limit` for address and place searches.
+- **`/testing` entry point:** fakes of every source (`createFakeSources`), fault injection for any `fetch`
+  (`withFaults`), and generators for the raw source formats.
+- `createMemoryCache` is exported.
+- **Dev board** (`npm run dev`) and weekly **live contract tests** (`npm run test:live`) – not part of the package.
+
 ## 0.1.0 – 2026-10-14
 
 First release.

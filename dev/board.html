@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sweden-open-data · dev board</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6ea;--text:#16191d;--muted:#6b7380;--accent:#2f6fde;--ok:#1f9d55;--warn:#c97a00;--bad:#d1363a;--low:#2f9e6e;--mid:#8a94a3;--high:#d9534f;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#101215;--panel:#181b20;--line:#2a2f37;--text:#e8eaee;--muted:#8d95a3;--accent:#6c9cff;--mid:#5c6573;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0 8px 0 0}header h1 small{color:var(--muted);font-weight:400}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{border:0;border-radius:0}.seg button.on{background:var(--accent);color:#fff}
+label.inline{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}
+input,select,button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
+input[type=number]{width:68px}#sources select{width:100%;max-width:170px}#sources td:last-child{width:45%}button{cursor:pointer}button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button:disabled{opacity:.5}
+main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;padding:16px 20px}
+@media (max-width:1100px){main{grid-template-columns:1fr}}
+@media (max-width:700px){header{position:static}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;align-content:start}
+@media (max-width:520px){.grid{grid-template-columns:1fr}main{padding:12px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.card h2{font-size:14px;margin:0 0 10px;display:flex;gap:8px;align-items:center}.card h2 .badge{margin-left:auto}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.badge{font:600 11px var(--mono);padding:2px 7px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
+.badge.ok{color:var(--ok)}.badge.bad{color:var(--bad)}.badge.warn{color:var(--warn)}
+.muted{color:var(--muted)}.mono{font-family:var(--mono);font-size:12px}
+.err{border-left:3px solid var(--bad);padding:6px 10px;background:color-mix(in srgb,var(--bad) 8%,transparent);border-radius:6px;font-size:13px}
+details{margin-top:10px}summary{cursor:pointer;color:var(--muted);font-size:12px}
+pre{margin:6px 0 0;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;font:12px/1.4 var(--mono)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0}
+.big{font-size:26px;font-weight:650}
+svg{display:block;width:100%;height:auto}
+.alert{border-left:3px solid var(--mid);padding:6px 10px;margin:6px 0;border-radius:4px;background:var(--bg)}
+.alert.red{border-color:var(--bad)}.alert.orange{border-color:#e8833a}.alert.yellow{border-color:#e5c000}
+.alert b{display:block}.alert small{color:var(--muted)}
+ul.plain{list-style:none;margin:0;padding:0}ul.plain li{padding:5px 0;border-bottom:1px solid var(--line)}ul.plain li:last-child{border:0}
+aside{display:flex;flex-direction:column;gap:16px;min-width:0}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:500}
+td.num{text-align:right;font-family:var(--mono)}
+#log{max-height:420px;overflow:auto;font:11.5px/1.5 var(--mono)}#log div{display:grid;grid-template-columns:58px 118px minmax(0,1fr) auto;gap:6px;padding:2px 0;border-bottom:1px dashed var(--line)}#log span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#log .cache{color:var(--muted)}#log .fail{color:var(--bad)}#log span:last-child{text-align:right}
+.smoke li{display:flex;gap:8px;align-items:center}.smoke li .mono{margin-left:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>sweden-open-data <small>dev board</small></h1>
+  <div class="seg" id="mode"><button data-mode="live">Live sources</button><button data-mode="fake">Fake sources</button></div>
+  <label class="inline">timeout <input type="number" id="timeoutMs" min="100" step="500"> ms</label>
+  <label class="inline">retries <input type="number" id="retries" min="0" max="5"></label>
+  <label class="inline">stale-if-error <input type="number" id="staleIfErrorMs" min="0" step="60000"> ms</label>
+  <label class="inline"><input type="checkbox" id="cache"> cache</label>
+  <label class="inline">locale <select id="locale"><option>sv</option><option>en</option></select></label>
+  <span style="flex:1"></span>
+  <button id="runAll" class="primary">Run all</button>
+  <button id="clearCache">Clear cache</button>
+  <button id="resetStats">Reset stats</button>
+</header>
+<main>
+<section class="grid">
+  <div class="card" id="smokeCard" hidden><h2>Run all <span class="badge" id="smokeBadge"></span></h2><ul class="plain smoke" id="smoke"></ul></div>
+
+  <div class="card" data-call="spot.overview">
+    <h2>Spot prices <span class="badge"></span></h2>
+    <div class="row">
+      <select name="area"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select>
+      <label class="inline">window <input type="number" name="windowHours" value="3" min="1" max="12"> h</label>
+      <label class="inline"><input type="checkbox" id="vat" checked> incl. VAT</label>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div><div class="extra"></div>
+  </div>
+
+  <div class="card" data-call="weather.forecast">
+    <h2>Weather <span class="badge"></span></h2>
+    <div class="row">
+      <select class="preset"><option value="59.33,18.07">Stockholm</option><option value="57.71,11.97">Göteborg</option><option value="55.60,13.00">Malmö</option><option value="56.10,13.91">Vinslöv</option><option value="67.86,20.23">Kiruna</option></select>
+      <input name="lat" value="59.33" size="6"><input name="lon" value="18.07" size="6">
+      <label class="inline">days <input type="number" name="days" value="7" min="1" max="16"></label>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="alerts.near">
+    <h2>Alerts <span class="badge"></span></h2>
+    <div class="row">
+      <input name="p" value="56.10,13.91;59.33,18.07" size="22" title="lat,lon;lat,lon">
+      <label class="inline">days <input type="number" name="days" value="7" min="1" max="30"></label>
+      <label class="inline"><input type="checkbox" name="neighbors" value="1"> neighbours</label>
+      <select name="minLevel"><option value="">any level</option><option value="yellow">≥ yellow</option><option value="orange">≥ orange</option><option value="red">red</option></select>
+      <select name="kinds"><option value="">all kinds</option><option value="vma">VMA</option><option value="warning">warnings</option><option value="news">news</option><option value="vma,warning">VMA + warnings</option></select>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="geo.addresses">
+    <h2>Address search <span class="badge"></span></h2>
+    <div class="row">
+      <input name="q" value="Åraslöv 1105, 28890 Vinslöv" size="28">
+      <select name="country"><option value="SE">SE</option><option value="">anywhere</option></select>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="geo.places">
+    <h2>Place search <span class="badge"></span></h2>
+    <div class="row">
+      <input name="q" value="Kebnekaise" size="20">
+      <label class="inline"><input type="checkbox" name="poi" value="1" checked> points of interest</label>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="geo.region">
+    <h2>Region for a position <span class="badge"></span></h2>
+    <div class="row"><input name="lat" value="56.10" size="6"><input name="lon" value="13.91" size="6"><button class="primary run">Run</button></div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="spot.history">
+    <h2>Price history <span class="badge"></span></h2>
+    <div class="row">
+      <select name="area"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select>
+      <input type="date" name="from"><input type="date" name="to">
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+</section>
+
+<aside>
+  <div class="card"><h2>Sources &amp; faults</h2><table id="sources"></table>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">A fault applies to every request to that source until you switch it off – try <i>hang</i> with a short timeout, or <i>offline</i> with stale-if-error on.</p></div>
+  <div class="card"><h2>Cache <span class="badge" id="cacheBadge"></span></h2><div id="cacheStats" class="mono"></div></div>
+  <div class="card"><h2>Live log <span class="badge" id="logCount">0</span></h2><div id="log"></div></div>
+</aside>
+</main>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const h = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) k === "class" ? e.className = v : k.startsWith("on") ? e[k] = v : e.setAttribute(k, v); for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k))); return e; };
+const NS = "http://www.w3.org/2000/svg";
+const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+const clock = (iso) => new Date(iso).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Stockholm" });
+const ore = (sek) => `${(sek * 100).toFixed(Math.abs(sek) < 0.1 ? 1 : 0).replace(".", ",")} öre`;
+const deg = (c) => c == null ? "–" : `${Math.round(c)}°`;
+const FAULTS = { none: null, "slow 2 s": { delayMs: 2000 }, hang: { hang: true }, offline: { offline: true }, "HTTP 503": { status: 503 }, "429 + Retry-After 30": { status: 429, retryAfter: 30 }, "invalid JSON": { invalidJson: true }, "flaky 50 %": { offline: true, rate: 0.5 } };
+let state = null;
+
+async function api(path, init) { const r = await fetch(path, init); return r.json(); }
+const post = (path, body) => api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
+
+function params(card) {
+  const q = new URLSearchParams();
+  for (const el of $$("[name]", card)) {
+    if (el.type === "checkbox") { if (el.checked) q.set(el.name, el.value || "1"); }
+    else if (el.value !== "") q.set(el.name, el.value);
+  }
+  return q;
+}
+
+async function run(card) {
+  const call = card.dataset.call, badge = $("h2 .badge", card), view = $(".view", card);
+  badge.className = "badge"; badge.textContent = "…";
+  const res = await api(`/api/call/${call}?${params(card)}`);
+  badge.className = `badge ${res.ok ? "ok" : "bad"}`; badge.textContent = `${res.ok ? "ok" : res.error.code ?? res.error.name} · ${res.ms} ms`;
+  view.replaceChildren();
+  if (res.ok) view.append(RENDER[call](res.annotations ? { ...res.result, ...res.annotations } : res.result, card)); else view.append(h("div", { class: "err" }, h("b", {}, res.error.name, res.error.code ? ` · ${res.error.code}` : ""), " ", res.error.message, res.error.transient ? " (transient – worth retrying)" : "", res.error.retryAfterMs ? ` · Retry-After ${res.error.retryAfterMs / 1000} s` : ""));
+  view.append(h("details", {}, h("summary", {}, "code & raw result"), h("pre", {}, res.code), h("pre", {}, JSON.stringify(res.ok ? res.result : res.error, null, 2))));
+  refresh();
+  return res;
+}
+
+const RENDER = {
+  "spot.overview"(r, card) {
+    const vat = $("#vat").checked ? 1.25 : 1, box = h("div");
+    if (!r.today) return h("p", { class: "muted" }, "No prices for today.");
+    box.append(h("div", { class: "row" }, h("span", { class: "big" }, r.current ? ore(r.current.sek * vat) : "–"), h("span", { class: "muted" }, "/kWh now"), r.today.level && h("span", { class: `badge ${r.today.level === "low" ? "ok" : r.today.level === "high" ? "bad" : ""}` }, r.today.level)));
+    box.append(h("dl", { class: "kv" },
+      h("dt", {}, "Today min–max"), h("dd", {}, `${ore(r.today.min.sek * vat)} – ${ore(r.today.max.sek * vat)} · avg ${ore(r.today.average * vat)}`),
+      h("dt", {}, "Cheapest window"), h("dd", {}, r.today.cheapest ? `${clock(r.today.cheapest.start)}–${clock(r.today.cheapest.end)} · ${ore(r.today.cheapest.average * vat)}` : "–"),
+      h("dt", {}, "Tomorrow"), h("dd", {}, r.tomorrow ? `avg ${ore(r.tomorrow.average * vat)} · cheapest ${clock(r.tomorrow.cheapest.start)}` : "not published yet (≈ 13:00)")));
+    // chart: today and tomorrow hourly, from the full prices call
+    api(`/api/call/spot.prices?area=${r.area}`).then((p) => { if (p.ok) $(".extra", card).replaceChildren(chart([...(p.result.today?.points ?? []), ...(p.result.tomorrow?.points ?? [])], r, vat)); });
+    return box;
+  },
+  "weather.forecast"(w) {
+    const box = h("div");
+    box.append(h("div", { class: "row" }, h("span", { class: "big" }, deg(w.current.temperature)), h("span", {}, w.labels?.[w.current.code] ?? `code ${w.current.code}`), w.currentIsForecast && h("span", { class: "badge warn" }, "forecast"), h("span", { class: "muted" }, `wind ${w.current.wind ?? "–"} m/s · ${w.current.precipitation ?? 0} mm`)));
+    const hours = w.hours.slice(0, 48), W = 400, H = 70, t = hours.map((x) => x.temperature), min = Math.min(...t), max = Math.max(...t);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H + 14}`, role: "img", "aria-label": "Temperature, next 48 hours" });
+    svg.append(s("path", { d: hours.map((x, i) => `${i ? "L" : "M"}${(i / (hours.length - 1)) * W},${H - ((x.temperature - min) / ((max - min) || 1)) * (H - 8) - 4}`).join(""), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+    for (const [i, x] of hours.entries()) if (i % 12 === 0) { const tx = s("text", { x: (i / (hours.length - 1)) * W, y: H + 12, "font-size": 10, fill: "var(--muted)" }); tx.textContent = clock(x.time); svg.append(tx); }
+    box.append(svg);
+    box.append(h("ul", { class: "plain" }, w.days.map((d) => h("li", {}, h("b", {}, d.date), ` ${deg(d.min)} – ${deg(d.max)} · ${w.labels?.[d.code] ?? `code ${d.code}`}`, d.precipitation ? ` · ${d.precipitation} mm` : ""))));
+    return box;
+  },
+  "alerts.near"(r) {
+    const box = h("div");
+    box.append(h("p", { class: "muted" }, r.places.map((p, i) => `#${i} ${p.locality ?? p.municipality ?? ""} ${p.county ?? ""}${p.guessed ? " (guessed)" : ""}`).join(" · ")));
+    box.append(h("p", {}, r.sources.map((s) => h("span", { class: `badge ${s.ok ? "ok" : "bad"}`, style: "margin-right:6px" }, `${s.id} ${s.ok ? "✓" : "✗"}`))));
+    if (!r.alerts.length) box.append(h("p", { class: "muted" }, "Nothing that concerns these places."));
+    for (const a of r.alerts) box.append(h("div", { class: `alert ${a.level ?? ""}` }, h("b", {}, a.title), h("small", {}, `${a.kind}${a.national ? " · national" : ""} · places ${a.places.join(", ")} · ${new Date(a.published).toLocaleString("sv-SE")}`), a.summary && h("div", {}, a.summary)));
+    return box;
+  },
+  "geo.addresses"(list) {
+    if (!list.length) return h("p", { class: "muted" }, "No matches.");
+    return h("ul", { class: "plain" }, list.map((a) => h("li", {}, h("b", {}, a.label), " ", a.approximate ? h("span", { class: "badge warn" }, `approximate · near ${a.near}`) : h("span", { class: "badge" }, a.precision), h("div", { class: "muted mono" }, `${a.latitude}, ${a.longitude}`))));
+  },
+  "geo.places"(list) {
+    if (!list.length) return h("p", { class: "muted" }, "No matches.");
+    return h("ul", { class: "plain" }, list.map((p) => h("li", {}, h("b", {}, p.name), ` ${p.region} · ${p.countryCode}`, h("div", { class: "muted mono" }, `${p.latitude}, ${p.longitude} · ${p.source}`))));
+  },
+  "geo.region"(r) {
+    return h("dl", { class: "kv" }, ...["locality", "municipality", "county", "guessed", "latitude", "longitude"].flatMap((k) => r[k] === undefined ? [] : [h("dt", {}, k), h("dd", {}, String(r[k]))]));
+  },
+  "spot.history"(r) {
+    const box = h("div"), avg = r.days.map((d) => ({ date: d.date, v: d.points.reduce((a, p) => a + p.sek, 0) / d.points.length }));
+    if (avg.length) {
+      const W = 400, H = 90, max = Math.max(...avg.map((d) => d.v), 0.01), bw = W / avg.length;
+      const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Average price per day" });
+      avg.forEach((d, i) => { const bh = Math.max(1, (d.v / max) * (H - 4)); const r = s("rect", { x: i * bw + 1, y: H - bh, width: Math.max(1, bw - 2), height: bh, rx: 2, fill: "var(--accent)" }); const t = s("title"); t.textContent = `${d.date}: ${ore(d.v)}`; r.append(t); svg.append(r); });
+      box.append(svg);
+    }
+    box.append(h("p", { class: "muted" }, `${r.days.length} complete days`, r.missing.length ? ` · missing: ${r.missing.map((m) => `${m.date} (${m.reason})`).join(", ")}` : ""));
+    return box;
+  },
+};
+
+function chart(points, overview, vat) {
+  const hourly = [], byHour = new Map();
+  for (const p of points) { const k = Math.floor(Date.parse(p.start) / 3.6e6); (byHour.get(k) ?? byHour.set(k, []).get(k)).push(p); }
+  for (const [k, g] of byHour) hourly.push({ t: k * 3.6e6, sek: g.reduce((a, p) => a + p.sek, 0) / g.length });
+  const W = 420, H = 110, max = Math.max(...hourly.map((p) => p.sek), 0.01), min = Math.min(0, ...hourly.map((p) => p.sek)), bw = W / hourly.length;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H + 14}`, role: "img", "aria-label": "Hourly prices" });
+  const cheap = overview.today?.cheapest, now = Date.now();
+  if (cheap) svg.append(s("rect", { x: hourly.findIndex((p) => p.t >= Date.parse(cheap.start)) * bw, y: 0, width: ((Date.parse(cheap.end) - Date.parse(cheap.start)) / 3.6e6) * bw, height: H, fill: "var(--low)", opacity: 0.12 }));
+  const lo = overview.today ? overview.today.min.sek + (overview.today.max.sek - overview.today.min.sek) / 3 : 0, hi = overview.today ? overview.today.max.sek - (overview.today.max.sek - overview.today.min.sek) / 3 : 0;
+  hourly.forEach((p, i) => {
+    const y0 = H - ((0 - min) / (max - min)) * H, y = H - ((p.sek - min) / (max - min)) * H;
+    const r = s("rect", { x: i * bw + 0.5, y: Math.min(y, y0), width: Math.max(1, bw - 1), height: Math.max(1, Math.abs(y0 - y)), fill: p.sek <= lo ? "var(--low)" : p.sek >= hi ? "var(--high)" : "var(--mid)", opacity: p.t + 3.6e6 < now ? 0.45 : 1 });
+    if (p.t <= now && now < p.t + 3.6e6) { r.setAttribute("stroke", "var(--text)"); r.setAttribute("stroke-width", "1.5"); }
+    const t = s("title"); t.textContent = `${new Date(p.t).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })}: ${ore(p.sek * vat)}`; r.append(t); svg.append(r);
+    if (i % 6 === 0) { const tx = s("text", { x: i * bw, y: H + 12, "font-size": 10, fill: "var(--muted)" }); tx.textContent = clock(new Date(p.t).toISOString()); svg.append(tx); }
+  });
+  return svg;
+}
+
+function renderState() {
+  for (const b of $$("#mode button")) b.classList.toggle("on", b.dataset.mode === state.config.mode);
+  for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) if (document.activeElement !== $(`#${k}`)) $(`#${k}`).value = state.config[k];
+  $("#cache").checked = state.config.cache; $("#locale").value = state.config.locale;
+  const rows = state.sources.map((id) => {
+    const st = state.stats.sources[id], current = state.faults[id], sel = h("select", { onchange: (e) => post("/api/fault", { source: id, fault: FAULTS[e.target.value] }).then(refresh) });
+    for (const name of Object.keys(FAULTS)) { const o = h("option", {}, name); if (JSON.stringify(FAULTS[name]) === JSON.stringify(current ?? null)) o.selected = true; sel.append(o); }
+    return h("tr", {}, h("td", {}, id), h("td", { class: "num" }, st?.requests ?? 0), h("td", { class: "num", style: st?.failures ? "color:var(--bad)" : "" }, st?.failures ?? 0), h("td", { class: "num" }, st ? `${st.averageMs} ms` : "–"), h("td", {}, sel));
+  });
+  $("#sources").replaceChildren(h("tr", {}, h("th", {}, "source"), h("th", {}, "req"), h("th", {}, "fail"), h("th", {}, "avg"), h("th", {}, "fault")), ...rows);
+  const c = state.stats.cache, total = c.hits + c.misses;
+  $("#cacheBadge").textContent = total ? `${Math.round((c.hits / total) * 100)} % hits` : "–";
+  $("#cacheStats").textContent = `hits ${c.hits} · misses ${c.misses} · stale served ${c.stale} · since ${new Date(state.stats.since).toLocaleTimeString("sv-SE")}`;
+}
+async function refresh() { state = await api("/api/state"); renderState(); }
+
+function logLine(e) {
+  const el = h("div", { class: e.kind === "cache" ? "cache" : e.error ? "fail" : "" });
+  const time = new Date(e.at).toLocaleTimeString("sv-SE");
+  if (e.kind === "cache") el.append(h("span", {}, time), h("span", {}, `cache ${e.type}`), h("span", { title: e.key }, e.key), h("span", {}, ""));
+  else el.append(h("span", {}, time), h("span", {}, `${e.source}${e.attempt > 1 ? ` #${e.attempt}` : ""}`), h("span", { title: e.url }, e.error ? `${e.error.code}: ${e.error.message}` : (() => { const u = new URL(e.url); return u.pathname.split("/").filter(Boolean).slice(-1)[0] + u.search; })()), h("span", {}, `${e.status ?? "–"} ${e.ms} ms`));
+  const box = $("#log"); box.prepend(el); while (box.children.length > 300) box.lastChild.remove();
+  $("#logCount").textContent = box.children.length;
+}
+const events = new EventSource("/api/events");
+let pending = null;
+events.onmessage = (m) => { const e = JSON.parse(m.data); if (e.kind === "hello") e.log.forEach(logLine); else logLine(e); clearTimeout(pending); pending = setTimeout(refresh, 300); };
+
+async function runAll() {
+  const card = $("#smokeCard"), list = $("#smoke"); card.hidden = false; list.replaceChildren(); $("#smokeBadge").textContent = "…";
+  let ok = 0, n = 0;
+  for (const c of $$("[data-call]")) {
+    const li = h("li", {}, h("span", {}, "…"), h("b", {}, c.dataset.call)); list.append(li);
+    const r = await run(c); n++; if (r.ok) ok++;
+    li.replaceChildren(h("span", { class: r.ok ? "badge ok" : "badge bad" }, r.ok ? "✓" : "✗"), h("b", {}, c.dataset.call), r.ok ? "" : h("span", { class: "muted" }, ` ${r.error.code ?? r.error.name}: ${r.error.message}`), h("span", { class: "mono" }, `${r.ms} ms`));
+  }
+  $("#smokeBadge").className = `badge ${ok === n ? "ok" : "bad"}`; $("#smokeBadge").textContent = `${ok}/${n}`;
+}
+
+for (const card of $$("[data-call]")) $(".run", card).onclick = () => run(card);
+$(".preset").onchange = (e) => { const [lat, lon] = e.target.value.split(","); const card = e.target.closest(".card"); $("[name=lat]", card).value = lat; $("[name=lon]", card).value = lon; run(card); };
+$("#vat").onchange = () => run($("[data-call='spot.overview']"));
+for (const b of $$("#mode button")) b.onclick = () => post("/api/config", { mode: b.dataset.mode }).then(refresh);
+for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) $(`#${k}`).onchange = (e) => post("/api/config", { [k]: Number(e.target.value) }).then(refresh);
+$("#cache").onchange = (e) => post("/api/config", { cache: e.target.checked }).then(refresh);
+$("#locale").onchange = (e) => post("/api/config", { locale: e.target.value }).then(refresh);
+$("#clearCache").onclick = () => post("/api/cache/clear").then(refresh);
+$("#resetStats").onclick = () => post("/api/stats/reset").then(() => { $("#log").replaceChildren(); refresh(); });
+$("#runAll").onclick = runAll;
+const today = new Date(), iso = (d) => d.toISOString().slice(0, 10);
+$("[data-call='spot.history'] [name=to]").value = iso(new Date(today - 86400000));
+$("[data-call='spot.history'] [name=from]").value = iso(new Date(today - 14 * 86400000));
+refresh().then(() => run($("[data-call='spot.overview']")));
+</script>
+</body>
+</html>

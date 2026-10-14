@@ -11,8 +11,22 @@ import { createGeoClient } from "../geo/client.ts";
 import type { Region } from "../geo/regions.ts";
 import { type Alert, type RelevanceOptions, type RelevantAlert, parseKrisinformation, parseSmhiWarnings, relevantAlerts } from "./alerts.ts";
 
+/** The three feeds: VMA and news from Krisinformation.se, weather warnings from SMHI. */
+export type AlertFeedId = "vma" | "news" | "smhi";
+
+/** All feeds, in the order they are reported. */
+export const ALERT_FEEDS: readonly AlertFeedId[] = Object.freeze(["vma", "news", "smhi"] as const);
+
+/** Options for {@link AlertsClient.feed}. */
+export interface FeedOptions {
+  /** Read only these feeds. Default: all. */
+  feeds?: AlertFeedId[];
+  signal?: AbortSignal;
+}
+
 /** A feed and whether it could be read. */
 export interface FeedStatus {
+  id: AlertFeedId;
   name: string;
   url: string;
   ok: boolean;
@@ -38,6 +52,8 @@ export interface NearbyAlerts {
 
 /** Options for {@link AlertsClient.near}. */
 export interface NearOptions extends Omit<RelevanceOptions, "now"> {
+  /** Read only these feeds. Default: all. */
+  feeds?: AlertFeedId[];
   signal?: AbortSignal;
 }
 
@@ -47,7 +63,7 @@ export interface AlertsClient {
    * Every current alert from every feed. Feeds fail independently.
    * @throws {SourceError} only when every feed fails.
    */
-  feed(options?: { signal?: AbortSignal }): Promise<AlertFeed>;
+  feed(options?: FeedOptions): Promise<AlertFeed>;
   /**
    * Alerts that concern any of `places`. Plain coordinates are resolved to county and municipality first;
    * pass {@link Region}s with `county` set to skip that lookup. At most 20 places.
@@ -69,28 +85,35 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
   const ctx = createContext(options);
   const locale = ctx.locale;
   const geo = createGeoClient(ctx);
-  const feeds: { name: string; url: string; load: (signal?: AbortSignal) => Promise<Alert[]> }[] = [
+  const feeds: { id: AlertFeedId; name: string; url: string; load: (signal?: AbortSignal) => Promise<Alert[]> }[] = [
     {
+      id: "vma",
       name: "Krisinformation.se · VMA",
       url: "https://www.krisinformation.se",
       load: async (signal) => parseKrisinformation(await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/vmas`, { signal }), "vma"),
     },
     {
+      id: "news",
       name: "Krisinformation.se · nyheter",
       url: "https://www.krisinformation.se",
       load: async (signal) =>
         parseKrisinformation(await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/news?days=30`, { signal }), "news"),
     },
     {
+      id: "smhi",
       name: "SMHI · varningar",
       url: "https://www.smhi.se/vader/varningar-och-brandrisk",
       load: async (signal) => parseSmhiWarnings(await ctx.http.json("smhi", ctx.endpoints.smhiWarnings, { signal }), { now: ctx.now(), locale }),
     },
   ];
 
-  async function feed(options: { signal?: AbortSignal } = {}): Promise<AlertFeed> {
-    const results = await Promise.all(feeds.map((f) =>
-      ctx.cache.get(`alerts:${f.name}:${locale}`, ctx.ttl.alerts, () => f.load(options.signal)).then(
+  async function feed(options: FeedOptions = {}): Promise<AlertFeed> {
+    if (options.feeds && (!options.feeds.length || options.feeds.some((id) => !ALERT_FEEDS.includes(id)))) {
+      throw new RangeError(`feeds must be a non-empty list of ${ALERT_FEEDS.join(", ")}`);
+    }
+    const chosen = options.feeds ? feeds.filter((f) => options.feeds?.includes(f.id)) : feeds;
+    const results = await Promise.all(chosen.map((f) =>
+      ctx.cache.get(`alerts:${f.id}:${locale}`, ctx.ttl.alerts, () => f.load(options.signal)).then(
         (alerts) => ({ ok: true, alerts }),
         (error: unknown) => ({ ok: false, alerts: [] as Alert[], error }),
       )
@@ -103,7 +126,7 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
     }
     return {
       alerts: results.flatMap((r) => r.alerts),
-      sources: feeds.map((f, i) => ({ name: f.name, url: f.url, ok: results[i].ok })),
+      sources: chosen.map((f, i) => ({ id: f.id, name: f.name, url: f.url, ok: results[i].ok })),
       fetchedAt: new Date(ctx.now()).toISOString(),
     };
   }
@@ -116,7 +139,7 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
       }
       const [regions, all] = await Promise.all([
         Promise.all(places.map((p) => (p.county ? Promise.resolve(p) : geo.region(p, { signal: options.signal })))),
-        feed({ signal: options.signal }),
+        feed({ feeds: options.feeds, signal: options.signal }),
       ]);
       return {
         places: regions,

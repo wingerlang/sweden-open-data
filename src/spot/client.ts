@@ -6,7 +6,18 @@
  */
 import { type ClientOptions, type Context, createContext, storeGet, storeSet } from "../core/context.ts";
 import { addDays, isCalendarDate, swedishDate } from "../core/time.ts";
-import { type SpotArea, type SpotDay, type SpotPoint, isCompleteSpotDay, parseElprisResponse, toSpotArea, toSpotDay } from "./prices.ts";
+import {
+  isCompleteSpotDay,
+  parseElprisResponse,
+  type SpotArea,
+  type SpotDay,
+  type SpotPoint,
+  type SpotSummary,
+  summarizeSpotPrices,
+  toSpotArea,
+  toSpotDay,
+} from "./prices.ts";
+import { stockholmMidnight } from "../core/time.ts";
 
 /** Where the prices come from – show it next to the data. */
 export const SPOT_SOURCE: { readonly name: string; readonly url: string } = Object.freeze({
@@ -22,6 +33,18 @@ export interface SpotPrices {
   /** `null` until tomorrow's prices are published. */
   tomorrow: SpotDay | null;
   /** When the data was fetched (ISO 8601). */
+  fetchedAt: string;
+}
+
+/** What a price widget shows: the price right now and summaries of today and tomorrow. */
+export interface SpotOverview {
+  area: SpotArea;
+  /** The interval running now, or `null` if today's prices are unavailable. */
+  current: SpotPoint | null;
+  /** Summary of today from now on (cheapest window, level …), or `null`. */
+  today: SpotSummary | null;
+  /** Summary of tomorrow once published, else `null`. */
+  tomorrow: SpotSummary | null;
   fetchedAt: string;
 }
 
@@ -55,6 +78,15 @@ export interface SpotClient {
   day(area: SpotArea | string, date: string, options?: { signal?: AbortSignal }): Promise<SpotDay | null>;
   /** Today and tomorrow in one call – what a price widget needs. */
   prices(area: SpotArea | string, options?: { signal?: AbortSignal }): Promise<SpotPrices>;
+  /**
+   * The price now plus summaries of today and tomorrow – one call for a widget.
+   *
+   * @example
+   * ```ts
+   * const { current, today } = await spot.overview("SE3", { windowHours: 2 });
+   * ```
+   */
+  overview(area: SpotArea | string, options?: { windowHours?: number; signal?: AbortSignal }): Promise<SpotOverview>;
   /** Every day from `from` to `to` (inclusive). */
   history(area: SpotArea | string, from: string, to: string, options?: HistoryOptions): Promise<SpotHistory>;
 }
@@ -100,7 +132,7 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
     );
   };
 
-  return {
+  const client: SpotClient = {
     day,
 
     async prices(areaInput, options = {}) {
@@ -112,6 +144,20 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
         day(area, swedishDate(now, 1), options).catch(() => null),
       ]);
       return { area, today, tomorrow, fetchedAt: new Date(now).toISOString() };
+    },
+
+    async overview(areaInput, options = {}) {
+      const { area, today, tomorrow, fetchedAt } = await client.prices(areaInput, options);
+      const now = ctx.now();
+      const windowHours = options.windowHours ?? 3;
+      const todaySummary = today ? summarizeSpotPrices(today.points, { now, windowHours }) : null;
+      return {
+        area,
+        current: todaySummary?.current ?? null,
+        today: todaySummary,
+        tomorrow: tomorrow ? summarizeSpotPrices(tomorrow.points, { now: stockholmMidnight(tomorrow.date) - 1, windowHours }) : null,
+        fetchedAt,
+      };
     },
 
     async history(areaInput, from, to, options = {}) {
@@ -150,4 +196,5 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
       };
     },
   };
+  return client;
 }

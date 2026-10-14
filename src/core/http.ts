@@ -33,6 +33,11 @@ export interface HttpOptions {
   /** Delay before the first retry; doubled for each further retry. Default `500`. */
   retryDelayMs?: number;
   /**
+   * Longest wait before a retry. A source that answers 429 or 503 with a longer `Retry-After` is not retried –
+   * the error is returned at once, with {@link SourceError.retryAfterMs} set. Default `10000`.
+   */
+  maxRetryDelayMs?: number;
+  /**
    * Sent as `User-Agent` where the runtime allows it (not in browsers). Several sources ask that automated
    * clients identify themselves, so setting this to your application name and a contact URL is good manners.
    */
@@ -69,6 +74,15 @@ const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
     signal?.addEventListener("abort", onAbort, { once: true });
   });
 
+/** `Retry-After` as milliseconds: either seconds (`"120"`) or an HTTP date. */
+export function parseRetryAfter(value: string | null | undefined, now: number = Date.now()): number | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000;
+  const date = Date.parse(trimmed);
+  return Number.isFinite(date) ? Math.max(0, date - now) : undefined;
+}
+
 function combine(signals: AbortSignal[]): AbortSignal {
   if (signals.length === 1) return signals[0];
   if (typeof AbortSignal.any === "function") return AbortSignal.any(signals);
@@ -88,6 +102,7 @@ export function createHttp(options: HttpOptions = {}): Http {
   const timeoutMs = options.timeoutMs ?? 10_000;
   const retries = Math.max(0, Math.floor(options.retries ?? 1));
   const retryDelayMs = Math.max(0, options.retryDelayMs ?? 500);
+  const maxRetryDelayMs = Math.max(0, options.maxRetryDelayMs ?? 10_000);
   const headers: Record<string, string> = { accept: "application/json" };
   if (options.userAgent) headers["user-agent"] = options.userAgent;
 
@@ -108,12 +123,14 @@ export function createHttp(options: HttpOptions = {}): Http {
         return undefined;
       }
       if (!response.ok) {
+        const retryAfterMs = response.status === 429 || response.status === 503 ? parseRetryAfter(response.headers?.get("retry-after")) : undefined;
         await response.body?.cancel();
         throw new SourceError(`${source} answered HTTP ${response.status}`, {
           code: response.status === 429 ? "rate-limited" : "http",
           source,
           status: response.status,
           url,
+          retryAfterMs,
         });
       }
       let body: unknown;
@@ -146,8 +163,10 @@ export function createHttp(options: HttpOptions = {}): Http {
           return await attempt(source, href, request, n);
         } catch (error) {
           if (!(error instanceof SourceError) || !error.transient || n > retries) throw error;
+          const delay = Math.max(retryDelayMs * 2 ** (n - 1), error.retryAfterMs ?? 0);
+          if (delay > maxRetryDelayMs) throw error;
           try {
-            await sleep(retryDelayMs * 2 ** (n - 1), request.signal);
+            await sleep(delay, request.signal);
           } catch (cause) {
             throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
           }
