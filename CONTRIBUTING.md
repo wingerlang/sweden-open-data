@@ -1,0 +1,33 @@
+# Contributing
+
+Thanks for helping! Issues and pull requests are welcome.
+
+## Ground rules
+
+* **No runtime dependencies.** Web-standard APIs only (`fetch`, `URL`, `AbortController`, `Intl`); file-system code
+  belongs in `src/node.ts`.
+* **Pure where possible.** Parsing and analysis are pure functions that take data and return data. Network, cache and
+  clock live in the clients and come from the shared `Context`.
+* **Never invent data.** When a source is incomplete, say so (`null`, `missing`, `approximate: true`) instead of
+  filling gaps.
+* **Defensive parsing.** A malformed entry is skipped; it never breaks a whole response.
+* **Explicit types on everything exported** (`isolatedDeclarations`), and JSDoc with an example for public functions.
+* **Tests for every change.** Tests use a scripted `fetch` (`test/helpers.ts`) and never touch the network.
+  Coverage must stay above 95 % lines.
+
+## Workflow
+
+```sh
+npm test            # run the tests (Node ≥ 22.18)
+npm run coverage    # tests with coverage thresholds
+npm run typecheck   # strict TypeScript, no slow types
+```
+
+Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org) style
+(`feat(spot): …`, `fix(geo): …`) and add a line to `CHANGELOG.md` under *Unreleased*.
+
+## Releasing
+
+1. Update the version in `package.json` and `jsr.json` (CI checks that they match) and move *Unreleased* in the
+   changelog to the new version.
+2. Tag the commit `vX.Y.Z` and push the tag. The *Publish* workflow publishes to JSR with provenance.

@@ -1,0 +1,303 @@
+/**
+ * Public warnings and crisis information: parsing and relevance. Everything here is pure.
+ *
+ *  - **Krisinformation.se** publishes VMA (Important Public Announcements) and news from Swedish authorities.
+ *    Areas are given as the country, a county or a municipality, sometimes with a point.
+ *  - **SMHI** publishes impact-based weather warnings, each with a polygon.
+ *
+ * An alert is relevant to a place when it is national or touches the place (polygon, county, municipality or
+ * within 40 km of a given point). Both formats are read defensively: unknown or missing fields skip the entry,
+ * they never break the whole feed.
+ *
+ * @module
+ */
+import { type Coordinates, type Polygon, distanceKm, fold, inPolygon } from "../core/geo.ts";
+import { type Region, neighboringCounties, regionKey } from "../geo/regions.ts";
+import type { Locale } from "../core/context.ts";
+
+/** VMA, a weather warning, or news from an authority. */
+export type AlertKind = "vma" | "warning" | "news";
+/** Severity. VMA are always `"red"`; news have no level. */
+export type AlertLevel = "red" | "orange" | "yellow" | "message";
+
+/** An area an alert applies to, as named by the source. */
+export interface AlertArea {
+  type: "country" | "county" | "municipality" | "other";
+  name: string;
+  point?: Coordinates;
+}
+
+/** An alert as parsed from a source. */
+export interface Alert {
+  /** Stable id, prefixed with the source: `"kris:…"` or `"smhi:…"`. */
+  id: string;
+  source: "Krisinformation" | "SMHI";
+  kind: AlertKind;
+  level?: AlertLevel;
+  title: string;
+  /** Plain text. Krisinformation preambles are stripped of HTML and capped at 600 characters; SMHI texts are kept whole. */
+  summary: string;
+  /** Always an `https://` link. */
+  url: string;
+  /** ISO 8601. */
+  published: string;
+  start?: string;
+  end?: string;
+  areas: AlertArea[];
+  /** SMHI warning areas. */
+  polygons?: Polygon[];
+}
+
+/** An alert that concerns at least one of the given places. */
+export interface RelevantAlert extends Omit<Alert, "polygons" | "areas"> {
+  /** Area names. */
+  areas: string[];
+  /** `true` for alerts that apply to all of Sweden. */
+  national: boolean;
+  /** Indexes into the places that were passed in. */
+  places: number[];
+}
+
+// deno-lint-ignore no-explicit-any
+type Json = any;
+
+const pick = (o: Json, ...keys: string[]): Json => {
+  if (!o || typeof o !== "object") return undefined;
+  for (const k of keys) {
+    if (o[k] != null) return o[k];
+    const hit = Object.keys(o).find((x) => x.toLowerCase() === k.toLowerCase());
+    if (hit && o[hit] != null) return o[hit];
+  }
+  return undefined;
+};
+const text = (v: unknown, max = 2000): string =>
+  typeof v === "string"
+    ? v.trim().slice(0, max)
+    : v && typeof v === "object" && typeof (v as { sv?: unknown }).sv === "string"
+    ? ((v as { sv: string }).sv).trim().slice(0, max)
+    : "";
+const iso = (v: unknown): string => {
+  const t = Date.parse(String(v ?? ""));
+  return Number.isFinite(t) ? new Date(t).toISOString() : "";
+};
+const stripHtml = (s: string): string =>
+  s.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+
+/**
+ * Reads a point from the many shapes sources use: `"56.1,14.0"`, `"14.0 56.1"`, `"POINT (14.0 56.1)"` or
+ * `{ lat, lon }`. When the order is ambiguous, the value in Sweden's latitude range is taken as latitude.
+ */
+export function parsePoint(value: unknown): Coordinates | undefined {
+  if (value && typeof value === "object") {
+    const lat = Number(pick(value, "latitude", "lat"));
+    const lon = Number(pick(value, "longitude", "lon", "lng"));
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return { latitude: lat, longitude: lon };
+  }
+  const nums = String(value ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number);
+  if (!nums || nums.length < 2) return undefined;
+  const [a, b] = nums;
+  if (Math.abs(a) > 90 && Math.abs(b) > 90) return undefined;
+  const latFirst = a >= 50 && a <= 72 && !(b >= 50 && b <= 72);
+  return latFirst ? { latitude: a, longitude: b } : { latitude: b, longitude: a };
+}
+
+function krisArea(a: Json): AlertArea | null {
+  const name = text(pick(a, "Description", "Name"), 120);
+  if (!name) return null;
+  const t = fold(String(pick(a, "Type") ?? ""));
+  const n = fold(name);
+  const type: AlertArea["type"] = t.includes("country") || /^(sverige|hela (sverige|landet))$/.test(n)
+    ? "country"
+    : t.includes("county") || /\blan$/.test(n)
+    ? "county"
+    : t.includes("municipality") || /kommun$/.test(n)
+    ? "municipality"
+    : "other";
+  const point = parsePoint(pick(a, "Coordinate", "Coordinates"));
+  return { type, name, ...(point && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180 ? { point } : {}) };
+}
+
+/**
+ * Parses Krisinformation.se API v3 (`/news` or `/vmas`). Accepts a list or an object with
+ * `items`/`Entries`/`data`. Links that are not `https://` are replaced by the site's front page.
+ */
+export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert[] {
+  const list = Array.isArray(json) ? json : pick(json, "items", "Entries", "data") ?? [];
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((x: Json): Alert[] => {
+    const id = text(pick(x, "Identifier", "Id"), 200);
+    const title = text(pick(x, "Headline", "PushMessage", "Title"), 300);
+    if (!id || !title) return [];
+    const raw = pick(x, "Area", "Areas");
+    const areas = (Array.isArray(raw) ? raw : raw ? [raw] : []).map(krisArea).filter((a): a is AlertArea => !!a);
+    const isVma = feed === "vma" || /alert|vma/.test(fold(String(pick(x, "Event") ?? "")));
+    let url = text(pick(x, "Web", "Url", "Link"), 500);
+    if (!/^https:\/\//.test(url)) url = "https://www.krisinformation.se";
+    return [{
+      id: "kris:" + id,
+      source: "Krisinformation",
+      kind: isVma ? "vma" : "news",
+      ...(isVma ? { level: "red" as const } : {}),
+      title,
+      summary: stripHtml(text(pick(x, "Preamble", "PushMessage", "BodyText"), 1200)).slice(0, 600),
+      url,
+      // The publication date decides freshness. "Updated" is only a fallback: a later edit must not revive old news.
+      published: iso(pick(x, "Published", "Sent")) || iso(pick(x, "Updated")),
+      areas,
+    }];
+  });
+}
+
+const LEVELS: Record<string, AlertLevel> = { red: "red", orange: "orange", yellow: "yellow", message: "message", rod: "red", gul: "yellow" };
+const LEVEL_TITLES: Record<Locale, Record<AlertLevel, string>> = {
+  sv: { red: "Röd varning", orange: "Orange varning", yellow: "Gul varning", message: "Meddelande" },
+  en: { red: "Red warning", orange: "Orange warning", yellow: "Yellow warning", message: "Message" },
+};
+
+function polygonsOf(geo: Json): Polygon[] {
+  if (!geo) return [];
+  if (geo.type === "FeatureCollection") return (geo.features ?? []).flatMap((f: Json) => polygonsOf(f?.geometry));
+  if (geo.type === "Feature") return polygonsOf(geo.geometry);
+  if (geo.type === "Polygon" && Array.isArray(geo.coordinates)) return [geo.coordinates];
+  if (geo.type === "MultiPolygon" && Array.isArray(geo.coordinates)) return geo.coordinates;
+  if (geo.type === "GeometryCollection") return (geo.geometries ?? []).flatMap(polygonsOf);
+  return [];
+}
+
+/** Options for {@link parseSmhiWarnings}. */
+export interface SmhiOptions {
+  /** Warnings that have ended before this instant are skipped. Default `Date.now()`. */
+  now?: number;
+  /** Language of the generated title prefix ("Gul varning" / "Yellow warning"). Default `"sv"`. */
+  locale?: Locale;
+}
+
+/** Parses SMHI's impact-based warnings (`warning.json`): one alert per warning area. */
+export function parseSmhiWarnings(json: unknown, options: SmhiOptions = {}): Alert[] {
+  const now = options.now ?? Date.now();
+  const titles = LEVEL_TITLES[options.locale ?? "sv"];
+  if (!Array.isArray(json)) return [];
+  return json.flatMap((w: Json): Alert[] => {
+    const event = text(pick(w, "event"), 120);
+    const warningAreas = pick(w, "warningAreas");
+    if (!Array.isArray(warningAreas)) return [];
+    return warningAreas.flatMap((a: Json): Alert[] => {
+      const end = iso(pick(a, "approximateEnd", "end"));
+      if (end && Date.parse(end) < now) return [];
+      const rawLevel = pick(a, "warningLevel");
+      const code = fold(String(pick(rawLevel, "code") ?? text(rawLevel) ?? ""));
+      const level = LEVELS[code] ?? (code ? "message" : "yellow");
+      const areaName = text(pick(a, "areaName"), 120);
+      const what = text(pick(a, "eventDescription"), 120) || event;
+      const id = String(pick(a, "id") ?? "");
+      if (!id || !what) return [];
+      const descriptions = pick(a, "descriptions");
+      const affected = pick(a, "affectedAreas");
+      const areas: AlertArea[] = (Array.isArray(affected) ? affected : []).map((x: Json) => text(x, 120)).filter(Boolean)
+        .map((name: string): AlertArea => ({
+          type: /kommun$/.test(fold(name)) ? "municipality" : /lan$/.test(fold(name)) ? "county" : "other",
+          name,
+        }));
+      const start = iso(pick(a, "approximateStart", "start"));
+      return [{
+        id: "smhi:" + id,
+        source: "SMHI",
+        kind: "warning",
+        level,
+        title: `${titles[level]}: ${what}${areaName ? " – " + areaName : ""}`,
+        // SMHI's terms: warning texts must not be altered, so they are kept in full.
+        summary: Array.isArray(descriptions) ? descriptions.map((d: Json) => text(pick(d, "text"), 4000)).filter(Boolean).join(" ") : "",
+        url: "https://www.smhi.se/vader/varningar-och-brandrisk/varningar-och-meddelanden/varningar",
+        published: iso(pick(a, "published")) || iso(pick(w, "published")),
+        ...(start ? { start } : {}),
+        ...(end ? { end } : {}),
+        areas,
+        polygons: polygonsOf(pick(a, "area")),
+      }];
+    });
+  });
+}
+
+/** Options for matching alerts to places. */
+export interface MatchOptions {
+  /** Also match alerts for counties that border a place's county. Default `false`. */
+  neighbors?: boolean;
+  /** Distance in km within which an alert's point counts as touching a place. Default `40`. */
+  radiusKm?: number;
+}
+
+/** Which of `places` an alert concerns, and whether it is national. */
+export function alertPlaces(alert: Alert, places: Region[], options: MatchOptions = {}): { national: boolean; places: number[] } {
+  const national = alert.areas.some((a) => a.type === "country");
+  if (national) return { national, places: places.map((_, i) => i) };
+  const radius = options.radiusKm ?? 40;
+  const same = (a: string, b: string | undefined): boolean => !!b && regionKey(a) === regionKey(b);
+  const hits = places.flatMap((p, i) => {
+    if (alert.polygons?.some((poly) => inPolygon(p, poly))) return [i];
+    for (const a of alert.areas) {
+      if (a.type === "county" && same(a.name, p.county)) return [i];
+      if (options.neighbors && a.type === "county" && p.county && neighboringCounties(p.county).some((c) => same(c, a.name))) return [i];
+      if (a.type === "municipality" && same(a.name, p.municipality)) return [i];
+      if (a.type === "other" && (same(a.name, p.municipality) || same(a.name, p.county))) return [i];
+      if (a.point && a.type !== "county" && distanceKm(p, a.point) <= radius) return [i];
+    }
+    return [];
+  });
+  return { national, places: hits };
+}
+
+/** Options for {@link relevantAlerts}. */
+export interface RelevanceOptions extends MatchOptions {
+  /** Reference time. Default `Date.now()`. */
+  now?: number;
+  /** Drop alerts published more than this many days ago (1–30). Default `7`. */
+  days?: number;
+}
+
+const KIND_ORDER: Record<AlertKind, number> = { vma: 0, warning: 1, news: 2 };
+const LEVEL_ORDER: Record<AlertLevel, number> = { red: 0, orange: 1, yellow: 2, message: 3 };
+const clampDays = (days: number | undefined): number => Math.max(1, Math.min(30, Number.isFinite(days) ? (days as number) : 7));
+
+/**
+ * Keeps the alerts that concern at least one place and are still current, removes duplicates and sorts them:
+ * VMA first, then warnings by severity, then newest first.
+ */
+export function relevantAlerts(alerts: Alert[], places: Region[], options: RelevanceOptions = {}): RelevantAlert[] {
+  const now = options.now ?? Date.now();
+  const maxAge = clampDays(options.days) * 86_400_000;
+  const seen = new Set<string>();
+  return alerts.flatMap((alert): RelevantAlert[] => {
+    if (seen.has(alert.id)) return [];
+    seen.add(alert.id);
+    const stamp = Date.parse(alert.published || alert.start || "");
+    if (!Number.isFinite(stamp) || now - stamp > maxAge) return [];
+    if (alert.end && Date.parse(alert.end) < now) return [];
+    if (alert.kind === "warning" && alert.level === "message" && !alert.polygons?.length && !alert.areas.length) return [];
+    const match = alertPlaces(alert, places, options);
+    if (!match.places.length) return [];
+    const { polygons: _polygons, areas, ...rest } = alert;
+    return [{ ...rest, areas: areas.map((a) => a.name), national: match.national, places: match.places }];
+  }).sort((a, b) =>
+    KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+    LEVEL_ORDER[a.level ?? "message"] - LEVEL_ORDER[b.level ?? "message"] ||
+    Date.parse(b.published || "0") - Date.parse(a.published || "0")
+  );
+}
+
+/**
+ * Drops alerts that are too old or have ended – also for data from a cache or an older server, so stale alerts
+ * can never resurface. Upcoming warnings without a publication date stay.
+ */
+export function freshAlerts<T extends { published?: string; start?: string; end?: string }>(
+  alerts: T[],
+  options: { days?: number; now?: number } = {},
+): T[] {
+  const now = options.now ?? Date.now();
+  const days = clampDays(options.days);
+  const cutoff = now - days * 86_400_000;
+  return alerts.filter((a) => {
+    const stamp = Date.parse(a.published || a.start || "");
+    const horizon = now + (a.published ? 1 : days) * 86_400_000;
+    return Number.isFinite(stamp) && stamp >= cutoff && stamp <= horizon && (!a.end || Date.parse(a.end) >= now);
+  });
+}

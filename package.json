@@ -1,0 +1,45 @@
+{
+  "name": "@wingerlang/sweden-open-data",
+  "version": "0.1.0",
+  "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather, VMA/crisis information and SMHI warnings, and geocoding that understands Swedish addresses.",
+  "license": "MIT",
+  "author": "Johannes Winger-Lang",
+  "type": "module",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/mod.ts",
+    "./spot": "./src/spot/mod.ts",
+    "./weather": "./src/weather/mod.ts",
+    "./alerts": "./src/alerts/mod.ts",
+    "./geo": "./src/geo/mod.ts",
+    "./node": "./src/node.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "keywords": [
+    "sweden",
+    "sverige",
+    "open-data",
+    "spot-price",
+    "elpris",
+    "weather",
+    "smhi",
+    "krisinformation",
+    "vma",
+    "geocoding"
+  ],
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-lines=95 --test-coverage-branches=85 --test-coverage-functions=95 \"test/**/*.test.ts\"",
+    "typecheck": "tsc -p .",
+    "check": "npm run typecheck && npm run coverage",
+    "smoke": "node examples/dashboard.ts"
+  }
+}

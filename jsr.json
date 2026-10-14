@@ -1,0 +1,17 @@
+{
+  "$schema": "https://jsr.io/schema/config-file.v1.json",
+  "name": "@wingerlang/sweden-open-data",
+  "version": "0.1.0",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/mod.ts",
+    "./spot": "./src/spot/mod.ts",
+    "./weather": "./src/weather/mod.ts",
+    "./alerts": "./src/alerts/mod.ts",
+    "./geo": "./src/geo/mod.ts",
+    "./node": "./src/node.ts"
+  },
+  "publish": {
+    "include": ["src/**/*.ts", "README.md", "LICENSE", "CHANGELOG.md"]
+  }
+}

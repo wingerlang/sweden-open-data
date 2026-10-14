@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      - name: Coverage (≥ 95 % lines)
+        if: matrix.node == 24
+        run: npm run coverage
+
+  types:
+    name: Types, versions and JSR dry run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-save typescript@5.9 @types/node@22
+      - run: npx tsc -p .
+      - name: package.json and jsr.json have the same version
+        run: node -e "const a=require('./package.json').version,b=require('./jsr.json').version;if(a!==b){console.error('package.json '+a+' ≠ jsr.json '+b);process.exit(1)}"
+      - run: npx -y jsr publish --dry-run
+
+  deno:
+    name: Deno
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno test --no-check --allow-read --allow-write --allow-env test/ # types are checked in the Types job
+
+  bun:
+    name: Bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun test test/
