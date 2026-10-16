@@ -14,7 +14,8 @@
     "./alerts": "./src/alerts/mod.ts",
     "./geo": "./src/geo/mod.ts",
     "./node": "./src/node.ts",
-    "./testing": "./src/testing.ts"
+    "./testing": "./src/testing.ts",
+    "./vehicles": "./src/vehicles/mod.ts"
   },
   "files": [
     "src",

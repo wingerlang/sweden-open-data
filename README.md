@@ -13,7 +13,7 @@ Swedish open data in one small, typed, dependency-free package:
 | **Alerts** | VMA, news from authorities and SMHI weather warnings that concern *your* places | [Krisinformation.se](https://www.krisinformation.se), [SMHI](https://www.smhi.se) |
 | **Geo** | Address search that handles Swedish rural addresses, place search, county and municipality for a position | [Photon](https://photon.komoot.io) (OpenStreetMap), Open-Meteo geocoding |
 
-No API keys. (Free does not always mean free for any use – see [Data and attribution](#data-and-attribution).) Works in Node.js, Deno, Bun and the browser (where the source allows CORS – see [Runtimes](#runtimes)).
+The core sources need no API keys. The optional [vehicle lookup](#vehicle-lookup-optional-authenticated-source) requires a server-side Biluppgifter key. (Free does not always mean free for any use – see [Data and attribution](#data-and-attribution).) Works in Node.js, Deno, Bun and the browser (where the source allows CORS – see [Runtimes](#runtimes)).
 
 The client takes care of what production code needs: caching with sensible lifetimes, sharing of concurrent identical
 requests, timeouts, retries with backoff for transient failures, cancellation, typed errors, and rounding of positions
@@ -281,3 +281,33 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Releases are published to JSR from GitHu
 ## License
 
 [MIT](LICENSE) © Johannes Winger-Lang
+
+## Vehicle lookup (optional authenticated source)
+
+```ts
+import {createVehicleClient} from "@wingerlang/sweden-open-data/vehicles";
+const vehicles = createVehicleClient({apiKey: process.env.BILUPPGIFTER_API_KEY!, userAgent: "my-server/1.0"});
+const vehicle = await vehicles.lookup("ABC123"); // null on HTTP 404, SourceError for provider failures
+```
+
+**Server-side only.** Unlike the open sources this requires your own paid/provider agreement and API key.
+[Provider contract](https://apidocs.biluppgifter.se/): Biluppgifter v1 `basic,status,inspection` packages.
+`modelYear` prefers `model_year`; `vehicleYear` is a separate observation. Tax is SEK/year. `mileageKm` is the last
+recorded inspection odometer in kilometres, not live mileage. Source and `fetchedAt` accompany every result.
+Missing values stay undefined; owner, address, VIN and finance fields are excluded. No deadline is guessed.
+
+Instantiate once per credential scope. Positive answers live in a bounded private memory cache for 6h (override
+`ttlMs`); 404 answers for at most 5 minutes. No disk cache or public client's cache is used. `cache: false` disables
+reuse; concurrent identical requests still share a load. Calls with a cancellation signal bypass cache so one
+caller cannot cancel another caller's lookup. `clearCache()`, `stats()` and `resetStats()` are available.
+Request/cache hooks and returned SourceErrors redact plates and credentials; your custom `fetch` can see the
+actual request, so do not log URLs or headers there. Authenticated redirects are rejected.
+
+Offline: use `createFakeSources()` from `/testing` with a dummy key; `fakeVehicleResponse()` exposes the source
+fixture. It is explicitly synthetic. A paid live test is **skipped by default**: only set both
+`BILUPPGIFTER_API_KEY` and `VEHICLE_LIVE_TEST_REGISTRATION` for a registration you may query, then run
+`node --test live/vehicles.test.ts`. The library never queries a default registration.
+
+This module is currently unreleased. Existing installations of 0.2.0 keep working; release a new minor version
+before switching consumers to the new export. No changes to users' personal vehicles, sharing or reminders are
+performed by the library; those belong to the consuming application.

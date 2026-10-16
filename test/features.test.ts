@@ -159,7 +159,7 @@ test("testing: fake sources are realistic, deterministic and cover DST days", as
 });
 
 test("testing: faults – status, Retry-After, offline, invalid JSON, delay, hang, rate", async () => {
-  assert.deepEqual(SOURCE_IDS.map((id) => id), ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi"]);
+  assert.deepEqual(SOURCE_IDS.map((id) => id), ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter"]);
   assert.equal(sourceOf("https://api.open-meteo.com/v1/forecast"), "open-meteo");
   assert.equal(sourceOf("https://geocoding-api.open-meteo.com/v1/search"), "open-meteo-geocoding");
   assert.equal(sourceOf("https://photon.komoot.io/api/"), "photon");

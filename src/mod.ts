@@ -2,7 +2,7 @@
  * Swedish open data in one small, dependency-free, typed package: **electricity spot prices**, **weather**,
  * **VMA, crisis information and SMHI warnings**, and **geocoding** that understands Swedish addresses.
  *
- * Every source is free and needs no API key. The client adds what production use needs: caching with sensible
+ * The core sources are free and need no API key. The optional `/vehicles` module requires a provider API key. The client adds what production use needs: caching with sensible
  * lifetimes, sharing of concurrent identical requests, timeouts, retries with backoff, cancellation, typed errors
  * and privacy-preserving rounding of positions.
  *
@@ -109,3 +109,4 @@ export * from "./spot/mod.ts";
 export * from "./weather/mod.ts";
 export * from "./alerts/mod.ts";
 export * from "./geo/mod.ts";
+export * from "./vehicles/mod.ts";

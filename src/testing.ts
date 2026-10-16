@@ -22,11 +22,11 @@ import { addDays, stockholmDateTime, stockholmMidnight, swedishDate } from "./co
 import { type Coordinates, distanceKm, fold } from "./core/geo.ts";
 
 /** The sources, named as in a request event's `source`. */
-export type SourceId = "elprisetjustnu" | "open-meteo" | "open-meteo-geocoding" | "photon" | "krisinformation" | "smhi";
+export type SourceId = "elprisetjustnu" | "open-meteo" | "open-meteo-geocoding" | "photon" | "krisinformation" | "smhi" | "biluppgifter";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze(
-  ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi"] as const,
+  ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter"] as const,
 );
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
@@ -38,6 +38,7 @@ export function sourceOf(url: string | URL): SourceId | undefined {
   if (host.includes("photon")) return "photon";
   if (host.endsWith("krisinformation.se")) return "krisinformation";
   if (host.endsWith("smhi.se")) return "smhi";
+  if (host === "api.biluppgifter.se") return "biluppgifter";
   return undefined;
 }
 
@@ -360,8 +361,15 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         return json(fakeKrisinformation(url.pathname.endsWith("/vmas") ? "vma" : "news", now()));
       case "smhi":
         return json(fakeSmhiWarnings(now()));
+      case "biluppgifter":
+        return json(fakeVehicleResponse(decodeURIComponent(url.pathname.split("/").at(-1)!)));
     }
     return new Response("not found", { status: 404 });
   };
   return withFaults(inner as typeof fetch, options.random);
+}
+
+/** Explicitly synthetic Biluppgifter-format fixture. Never use as a real vehicle record. */
+export function fakeVehicleResponse(registrationNumber: string = "ABC123"): Record<string, unknown> {
+  return {data:{attributes:{regno:registrationNumber},basic:{data:{make:"Example Motors",model:"Test Tourer",model_year:2022,vehicle_year:2021}},status:{data:{tax:360,first_registered:"2022-01-15"}},inspection:{data:{meter:48500,latest_inspection:"2026-02-01T00:00:00+01:00",inspection_valid_until:"2027-04-30T00:00:00+02:00"}}}};
 }
