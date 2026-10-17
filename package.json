@@ -8,19 +8,45 @@
   "private": true,
   "sideEffects": false,
   "exports": {
-    ".": "./src/mod.ts",
-    "./spot": "./src/spot/mod.ts",
-    "./weather": "./src/weather/mod.ts",
-    "./alerts": "./src/alerts/mod.ts",
-    "./geo": "./src/geo/mod.ts",
-    "./node": "./src/node.ts",
-    "./testing": "./src/testing.ts",
-    "./vehicles": "./src/vehicles/mod.ts"
+    ".": {
+      "types": "./src/mod.ts",
+      "default": "./dist/mod.js"
+    },
+    "./spot": {
+      "types": "./src/spot/mod.ts",
+      "default": "./dist/spot/mod.js"
+    },
+    "./weather": {
+      "types": "./src/weather/mod.ts",
+      "default": "./dist/weather/mod.js"
+    },
+    "./alerts": {
+      "types": "./src/alerts/mod.ts",
+      "default": "./dist/alerts/mod.js"
+    },
+    "./geo": {
+      "types": "./src/geo/mod.ts",
+      "default": "./dist/geo/mod.js"
+    },
+    "./node": {
+      "types": "./src/node.ts",
+      "default": "./dist/node.js"
+    },
+    "./testing": {
+      "types": "./src/testing.ts",
+      "default": "./dist/testing.js"
+    },
+    "./vehicles": {
+      "types": "./src/vehicles/mod.ts",
+      "default": "./dist/vehicles/mod.js"
+    }
   },
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "dist",
+    "tsconfig.build.json"
   ],
   "engines": {
     "node": ">=22.18"
@@ -44,6 +70,7 @@
     "coverage": "node --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-coverage-lines=95 --test-coverage-branches=85 --test-coverage-functions=95 \"test/**/*.test.ts\"",
     "typecheck": "tsc -p .",
     "check": "npm run typecheck && npm run coverage",
-    "smoke": "node examples/dashboard.ts"
+    "smoke": "node examples/dashboard.ts",
+    "build": "tsc -p tsconfig.build.json"
   }
 }
