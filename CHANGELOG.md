@@ -3,7 +3,7 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
-## Unreleased
+## 0.3.0 – 2026-10-17
 
 - Optional **`/vehicles`**: authenticated Biluppgifter lookup with typed registry observations, explicit missing
   fields, documented kilometre units, model year vs vehicle year, and no invented inspection deadlines.
@@ -11,7 +11,7 @@ minor versions may contain breaking changes, which are always listed.
   rejected, and plates/credentials are redacted from request/cache hooks and returned errors. No owner data.
 - Offline vehicle fixtures, fault injection and an explicitly opt-in paid live contract test.
 - Existing keyless clients are unchanged. Requires a provider agreement; this is an optional authenticated source,
-  not an open vehicle register. Publish a new minor version before importing `/vehicles` from a registry install.
+  not an open vehicle register. Available through the `/vehicles` export in this release.
 
 ## 0.2.0 – 2026-10-14
 

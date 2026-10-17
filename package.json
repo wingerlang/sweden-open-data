@@ -1,6 +1,6 @@
 {
   "name": "@wingerlang/sweden-open-data",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather, VMA/crisis information and SMHI warnings, and geocoding that understands Swedish addresses.",
   "license": "MIT",
   "author": "Johannes Winger-Lang",
