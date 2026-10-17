@@ -3,6 +3,10 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.5.0 – 2026-10-17
+
+- Historical hourly temperature client for address/spot-price comparisons: rounded coordinates, UTC epoch timestamps, bounded 31-day requests, cache and explicit missing values. Reanalysis is not a personal weather-station observation.
+
 ## 0.4.0 – 2026-10-17
 
 - npm archives expose compiled JavaScript with source TypeScript types; JSR keeps source exports. Run npm run build before npm pack.

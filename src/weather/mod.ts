@@ -12,3 +12,5 @@
  */
 export * from "./forecast.ts";
 export * from "./client.ts";
+
+export * from './history.ts';
