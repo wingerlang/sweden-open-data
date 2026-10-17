@@ -311,3 +311,7 @@ fixture. It is explicitly synthetic. A paid live test is **skipped by default**:
 This module is currently unreleased. Existing installations of 0.2.0 keep working; release a new minor version
 before switching consumers to the new export. No changes to users' personal vehicles, sharing or reminders are
 performed by the library; those belong to the consuming application.
+
+### Free vehicle lookup
+
+`createFreeVehicleClient()` from `/vehicles` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.

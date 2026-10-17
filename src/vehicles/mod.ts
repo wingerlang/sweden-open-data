@@ -1,3 +1,4 @@
+export {createFreeVehicleClient,parseTransportstyrelsenVehicle,vehicleLookupLinks} from './free.ts';
 /** Optional authenticated vehicle lookup; unlike the open sources, this requires a provider agreement. @module */
 import {createContext,type ClientOptions} from '../core/context.ts';
 import {SourceError} from '../core/errors.ts';
@@ -17,7 +18,7 @@ export interface VehicleRecord {
   lastInspectionDate?:string;
   nextInspectionDeadline?:string;
   firstRegistered?:string;
-  source:'biluppgifter';
+  source:'biluppgifter'|'transportstyrelsen';
   fetchedAt:string;
 }
 /** A private, server-side client. Never put the API key in browser code. */

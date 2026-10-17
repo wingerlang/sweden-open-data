@@ -3,6 +3,12 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.4.0 – 2026-10-17
+
+- Free, keyless public-page vehicle lookup from Transportstyrelsen, with bounded HTML reads, private memory cache and redacted hooks. No owner data. The public website is not a stable API contract.
+- Validated direct lookup links for a user-opened tab and copy/paste fallback.
+- Odometer values without an explicit distance unit are not assumed to be kilometres.
+
 ## 0.3.0 – 2026-10-17
 
 - Optional **`/vehicles`**: authenticated Biluppgifter lookup with typed registry observations, explicit missing
