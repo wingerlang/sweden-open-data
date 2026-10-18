@@ -110,3 +110,5 @@ export * from "./weather/mod.ts";
 export * from "./alerts/mod.ts";
 export * from "./geo/mod.ts";
 export * from "./vehicles/mod.ts";
+
+export * from "./education/mod.ts";

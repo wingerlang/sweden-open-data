@@ -3,6 +3,11 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.7.0 – 2026-10-18
+
+- Offline higher education reference catalogue: all 50 institutions listed by UKÄ, with stable IDs, official websites and aliases.
+- Optional /education export and accent-insensitive autocomplete, including abbreviations and historical names. No personal education data, graph nodes or network calls are created. Source snapshot checked 2026-10-18.
+
 ## 0.6.0 – 2026-10-18
 
 - Opt-in weather.environment(): hourly UV index, six pollen species and European AQI / PM2.5 / PM10 from Open-Meteo / CAMS, with explicit metric selection, rounded coordinates and shared cache/retries.

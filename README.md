@@ -335,3 +335,14 @@ performed by the library; those belong to the consuming application.
 ### Free vehicle lookup
 
 `createFreeVehicleClient()` from `/vehicles` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
+
+## Higher education reference catalogue
+
+The optional `@wingerlang/sweden-open-data/education` export provides `getSwedishInstitutions()`, `searchSwedishInstitutions(query, limit)` and `SWEDISH_INSTITUTIONS_SOURCE`. It contains the 50 institutions listed by [UKÄ](https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-universitet-hogskolor-och-enskilda-utbildningsanordnare), checked 2026-10-18. Names, websites and classifications follow that snapshot; aliases support abbreviations such as KTH and historical names such as MDH.
+
+This is a dated, immutable reference snapshot with stable IDs, not a live accreditation lookup. It makes no network calls and contains no students, relationships, private notes or graph nodes. Refresh the snapshot and review the source deliberately when publishing a new package version.
+
+```ts
+import {searchSwedishInstitutions} from "@wingerlang/sweden-open-data/education";
+const suggestions = searchSwedishInstitutions("kth");
+```
