@@ -16,6 +16,8 @@ export interface Endpoints {
   spot: string;
   /** Open-Meteo forecast API. */
   weather: string;
+  /** Open-Meteo / CAMS air-quality, UV and pollen API. */
+  airQuality: string;
   /** Open-Meteo geocoding API (place names). */
   geocoding: string;
   /** Photon search API (addresses and points of interest, OpenStreetMap data). */
@@ -32,6 +34,7 @@ export interface Endpoints {
 export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
   spot: "https://www.elprisetjustnu.se/api/v1/prices",
   weather: "https://api.open-meteo.com/v1/forecast",
+  airQuality: "https://air-quality-api.open-meteo.com/v1/air-quality",
   geocoding: "https://geocoding-api.open-meteo.com/v1/search",
   photon: "https://photon.komoot.io/api/",
   photonReverse: "https://photon.komoot.io/reverse",

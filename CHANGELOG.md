@@ -3,6 +3,11 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.6.0 – 2026-10-18
+
+- Opt-in weather.environment(): hourly UV index, six pollen species and European AQI / PM2.5 / PM10 from Open-Meteo / CAMS, with explicit metric selection, rounded coordinates and shared cache/retries.
+- Missing pollen coverage remains null. Caller-defined pollenWarnings() compares the next 24 hours with a configurable concentration threshold; it does not represent an official warning or a clinical risk category.
+
 ## 0.5.0 – 2026-10-17
 
 - Historical hourly temperature client for address/spot-price comparisons: rounded coordinates, UTC epoch timestamps, bounded 31-day requests, cache and explicit missing values. Reanalysis is not a personal weather-station observation.

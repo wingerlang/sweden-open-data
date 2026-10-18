@@ -91,6 +91,26 @@ console.log(describeWeather(current.code, "en"));                               
 All times are absolute (UTC ISO strings). `forecastAt(forecast, now)` re-bases a saved forecast on a later moment and
 returns `null` rather than presenting stale data as current – useful for offline caches.
 
+### Optional UV, pollen and air quality
+
+Ordinary forecasts make no additional requests. Opt in to environmental data separately:
+
+```ts
+import { createWeatherClient, pollenWarnings } from "@wingerlang/sweden-open-data";
+const weather = createWeatherClient();
+const environment = await weather.environment({ latitude: 59.33, longitude: 18.07 }, {
+  metrics: ["uv", "pollen", "airQuality"], days: 4,
+});
+const warnings = pollenWarnings(environment, 20); // caller's own grains/m³ threshold, next 24 h
+```
+
+Hourly values include UV index, alder/birch/grass/mugwort/olive/ragweed pollen (grains/m³), European AQI,
+PM2.5 and PM10 (µg/m³). Missing values remain null, including seasonal or geographic pollen gaps.
+These are model forecasts, not monitoring-station observations or official alerts. Pollen forecasts cover Europe
+and up to four days. Preserve fetchedAt and show the source attribution carried by the response.
+The endpoint is configurable with endpoints.airQuality. Requests reuse rounding, cache, retries and cancellation.
+Source and usage terms: [Open-Meteo Air Quality / CAMS](https://open-meteo.com/en/docs/air-quality-api).
+
 ## Alerts: VMA, crisis information and warnings
 
 ```ts

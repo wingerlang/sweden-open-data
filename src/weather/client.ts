@@ -1,3 +1,4 @@
+import {createWeatherEnvironmentClient,type WeatherEnvironmentClient} from './environment.ts';
 /**
  * Weather client backed by [Open-Meteo](https://open-meteo.com) – free, no API key, data under CC BY 4.0.
  *
@@ -22,7 +23,7 @@ export interface ForecastOptions {
 }
 
 /** Weather forecasts. */
-export interface WeatherClient {
+export interface WeatherClient extends WeatherEnvironmentClient {
   /** Current conditions, hourly forecast and daily forecast for a position (rounded to ~1 km before sending). */
   forecast(position: Coordinates, options?: ForecastOptions): Promise<Forecast>;
 }
@@ -40,6 +41,7 @@ export interface WeatherClient {
 export function createWeatherClient(options: ClientOptions | Context = {}): WeatherClient {
   const ctx = createContext(options);
   return {
+    ...createWeatherEnvironmentClient(ctx),
     async forecast(position, options = {}) {
       assertCoordinates(position, "position");
       const p = roundCoordinates(position, ctx.precision);
