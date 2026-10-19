@@ -112,3 +112,5 @@ export * from "./geo/mod.ts";
 export * from "./vehicles/mod.ts";
 
 export * from "./education/mod.ts";
+
+export * from "./sports/mod.ts";

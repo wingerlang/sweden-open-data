@@ -346,3 +346,7 @@ This is a dated, immutable reference snapshot with stable IDs, not a live accred
 import {searchSwedishInstitutions} from "@wingerlang/sweden-open-data/education";
 const suggestions = searchSwedishInstitutions("kth");
 ```
+
+## Sport reference catalogue
+
+The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.

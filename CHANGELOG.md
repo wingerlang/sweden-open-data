@@ -3,6 +3,10 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.8.0 – 2026-10-19
+
+- Add a dependency-free sports catalogue with immutable IDs, Swedish names, aliases, semantic emoji and bounded autocomplete. Public facts only; participation remains private.
+
 ## 0.7.0 – 2026-10-18
 
 - Offline higher education reference catalogue: all 50 institutions listed by UKÄ, with stable IDs, official websites and aliases.
