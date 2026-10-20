@@ -1,3 +1,4 @@
+import {createInvestmentClient,type InvestmentClient} from "./investments/mod.ts";
 /**
  * Swedish open data in one small, dependency-free, typed package: **electricity spot prices**, **weather**,
  * **VMA, crisis information and SMHI warnings**, **geocoding** that understands Swedish addresses, and
@@ -34,6 +35,8 @@ import type { ClientStats } from "./core/stats.ts";
 
 /** All clients, sharing one cache and one network configuration. */
 export interface SwedenOpenData {
+  /** Public investment-company NAV, history and holdings from IBIndex. */
+  readonly investments: InvestmentClient;
   /** Electricity spot prices. */
   readonly spot: SpotClient;
   /** Weather forecasts. */
@@ -76,6 +79,7 @@ export interface SwedenOpenData {
 export function createClient(options: ClientOptions = {}): SwedenOpenData {
   const ctx = createContext(options);
   return Object.freeze({
+    investments: createInvestmentClient(ctx),
     spot: createSpotClient(ctx),
     weather: createWeatherClient(ctx),
     alerts: createAlertsClient(ctx),

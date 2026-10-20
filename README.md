@@ -383,3 +383,9 @@ const suggestions = searchSwedishInstitutions("kth");
 ## Sport reference catalogue
 
 The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.
+
+### Investment companies (IBIndex)
+
+The optional `/investments` entry point provides `createInvestmentClient()`, also exposed as `createClient().investments`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
+
+Responses share a six-hour cache and can persist in the existing store. Failed refreshes retain the last complete result marked stale. This is an unofficial adapter to public IBIndex read endpoints; availability and third-party data terms are determined by IBIndex, not this package's MIT source-code license. Always show source and dates. Reports are handled by the application's existing company-report source. No private portfolio inputs are accepted.

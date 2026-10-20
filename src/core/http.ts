@@ -48,6 +48,9 @@ export interface HttpOptions {
 
 /** Per-request options. */
 export interface RequestOptions {
+  /** Read-only POST APIs such as IBIndex. */
+  method?: "GET" | "POST";
+  body?: unknown;
   /** Cancels the request (and any pending retry). */
   signal?: AbortSignal;
   /** Return `undefined` instead of throwing when the source answers 404. */
@@ -115,7 +118,7 @@ export function createHttp(options: HttpOptions = {}): Http {
     const signal = combine(request.signal ? [timeout.signal, request.signal] : [timeout.signal]);
     let status: number | null = null;
     try {
-      const response = await doFetch(url, { headers, signal });
+      const response = await doFetch(url, { headers: request.body===undefined?headers:{...headers,"content-type":"application/json;charset=UTF-8"}, signal, ...(request.method?{method:request.method}:{}), ...(request.body!==undefined?{body:JSON.stringify(request.body)}:{}) });
       status = response.status;
       if (response.status === 404 && request.allowNotFound) {
         await response.body?.cancel();
