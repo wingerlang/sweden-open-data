@@ -12,6 +12,7 @@ Swedish open data in one small, typed, dependency-free package:
 | **Weather** | Current conditions, 7-day hourly and daily forecast, weather codes in Swedish and English | [Open-Meteo](https://open-meteo.com) |
 | **Alerts** | VMA, news from authorities and SMHI weather warnings that concern *your* places | [Krisinformation.se](https://www.krisinformation.se), [SMHI](https://www.smhi.se) |
 | **Geo** | Address search that handles Swedish rural addresses, place search, county and municipality for a position | [Photon](https://photon.komoot.io) (OpenStreetMap), Open-Meteo geocoding |
+| **Inflation** | Consumer price indices KPI, KPIF and KPIF-XE month by month; amounts in today's money, inflation rates, salary vs prices, real values | [SCB](https://www.scb.se/kpi) (Statistikdatabasen) |
 
 The core sources need no API keys. The optional [vehicle lookup](#vehicle-lookup-optional-authenticated-source) requires a server-side Biluppgifter key. (Free does not always mean free for any use – see [Data and attribution](#data-and-attribution).) Works in Node.js, Deno, Bun and the browser (where the source allows CORS – see [Runtimes](#runtimes)).
 
@@ -28,6 +29,7 @@ const { today, tomorrow } = await se.spot.prices("SE3");
 const forecast = await se.weather.forecast({ latitude: 59.33, longitude: 18.07 });
 const { alerts } = await se.alerts.near([{ latitude: 59.33, longitude: 18.07 }]);
 const [address] = await se.geo.addresses("Åraslöv 1105, 28890 Vinslöv");
+const kpi = await se.economy.cpi("KPI");
 ```
 
 ## Install
@@ -158,6 +160,35 @@ Many Swedish rural addresses are missing from OpenStreetMap. Instead of returnin
 number or a similarly named street – the search offers *the address as you typed it*, positioned at the village or town
 it found nearby, and marks it `approximate: true`. Nothing is invented.
 
+## Inflation: consumer price indices from SCB
+
+```ts
+import { createEconomyClient, adjustForInflation, realChange, inflationRate, latestCpi } from "@wingerlang/sweden-open-data/economy";
+
+const economy = createEconomyClient();
+const kpi = await economy.cpi("KPI");                    // every month since 1980, 2020=100
+
+adjustForInflation(kpi, 10_000, "2000-01").amount;       // 10 000 kr from January 2000 in today's money
+inflationRate(kpi, latestCpi(kpi)!.month);               // the latest annual (12-month) rate, 0.031 = 3.1 %
+realChange(kpi, { amount: 32_000, month: "2018-01" }, { amount: 41_000, month: "2026-09" }).real; // did the salary keep up?
+```
+
+| Function | Purpose |
+|---|---|
+| `economy.cpi(index)` | `"KPI"` (from 1980), `"KPIF"` or `"KPIF-XE"` (from 1987), monthly, 2020=100 |
+| `adjustForInflation(series, amount, from, to?)` | An amount in the prices of another month (default: the newest) |
+| `inflationRate(series, month, months = 12)` / `inflationRates(series)` | Inflation over a period; the annual rate for every month |
+| `averageAnnualInflation(series, from, to)` | Geometric average per year |
+| `realChange(series, earlier, later)` | Nominal and real change of an amount, and what keeps its purchasing power |
+| `deflate(series, values, to?)` | A nominal series (balance, price, index) in real terms |
+| `annualAverage`, `cpiAt`, `latestCpi`, `cpiRange`, `toMonth`, `addMonths` | Helpers |
+
+KPI is SCB's official ("fastställda") series. SCB changed the reference year from 1980 to 2020 in January 2026; the
+client joins the 1980 figures rebased to 2020=100 (until December 2025) with the new official figures, so there is no
+break. SCB publishes once a month: series are cached for 6 hours, and with a `store` the last good series is kept
+across restarts and returned (with `stale: true`) when SCB cannot be reached. All functions are pure and run in the
+browser on a series your server fetched.
+
 ## Options
 
 ```ts
@@ -232,6 +263,7 @@ try {
 | `@wingerlang/sweden-open-data/weather` | Weather |
 | `@wingerlang/sweden-open-data/alerts` | Alerts |
 | `@wingerlang/sweden-open-data/geo` | Geocoding and regions |
+| `@wingerlang/sweden-open-data/economy` | Consumer price indices and inflation arithmetic |
 | `@wingerlang/sweden-open-data/node` | `fileStore` (needs a file system) |
 | `@wingerlang/sweden-open-data/testing` | Fakes of every source and fault injection, for your own tests |
 
@@ -272,10 +304,11 @@ The data belongs to its publishers. Show the source next to it – the `*_SOURCE
 | Krisinformation.se | [Terms of use for the API](https://www.krisinformation.se/globalassets/om-krisinformation.se/oppen-data/anvandarvillkor-for-krisinformations-api.pdf): no availability guarantee, cache responses, avoid unnecessary calls. |
 | SMHI | [CC BY 4.0 (Erkännande 4.0 SE)](https://www.smhi.se/data/om-smhis-data/villkor-for-anvandning). Warnings may be used commercially but must **not be altered** and SMHI must be credited – the parser keeps SMHI's texts as they are and only adds the level ("Gul varning: …"). |
 | elprisetjustnu.se | Free public API republishing Nord Pool day-ahead prices; see the site for terms and credit it. |
+| SCB | Open data, free to use including commercially ([CC0](https://www.scb.se/vara-tjanster/oppna-data/)). Credit SCB as the source. |
 
 ## På svenska
 
-Elpriser, väder, VMA och varningar samt adressökning för svenska förhållanden – utan nycklar och utan beroenden.
+Elpriser, väder, VMA och varningar, adressökning och KPI/inflation för svenska förhållanden – utan nycklar och utan beroenden.
 Dokumentationen är på engelska, men allt som visas för användare (väderbeskrivningar, varningsrubriker) finns på svenska
 som standard.
 

@@ -3,6 +3,12 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.9.0 – 2026-10-20
+
+- New **`/economy`** export and `se.economy`: consumer price indices KPI (from 1980), KPIF and KPIF-XE (from 1987) month by month from SCB's PxWebApi v2, 2020=100. KPI joins the 1980 figures rebased to 2020=100 with the official figures after SCB's base change in January 2026.
+- Pure inflation arithmetic: `adjustForInflation`, `inflationRate(s)`, `averageAnnualInflation`, `realChange` (salary vs prices), `deflate`, `annualAverage`.
+- Series are cached for 6 hours (`ttl.cpi`); with a `store` the last good series survives restarts and is returned with `stale: true` when SCB is down. New `scb` endpoint and source, fake SCB answers in `/testing` and a live contract test.
+
 ## 0.8.0 – 2026-10-19
 
 - Add a dependency-free sports catalogue with immutable IDs, Swedish names, aliases, semantic emoji and bounded autocomplete. Public facts only; participation remains private.

@@ -22,11 +22,11 @@ import { addDays, stockholmDateTime, stockholmMidnight, swedishDate } from "./co
 import { type Coordinates, distanceKm, fold } from "./core/geo.ts";
 
 /** The sources, named as in a request event's `source`. */
-export type SourceId = "elprisetjustnu" | "open-meteo" | "open-meteo-geocoding" | "photon" | "krisinformation" | "smhi" | "biluppgifter";
+export type SourceId = "elprisetjustnu" | "open-meteo" | "open-meteo-geocoding" | "photon" | "krisinformation" | "smhi" | "biluppgifter" | "scb";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze(
-  ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter"] as const,
+  ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter", "scb"] as const,
 );
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
@@ -39,6 +39,7 @@ export function sourceOf(url: string | URL): SourceId | undefined {
   if (host.endsWith("krisinformation.se")) return "krisinformation";
   if (host.endsWith("smhi.se")) return "smhi";
   if (host === "api.biluppgifter.se") return "biluppgifter";
+  if (host.endsWith("scb.se")) return "scb";
   return undefined;
 }
 
@@ -363,6 +364,12 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         return json(fakeSmhiWarnings(now()));
       case "biluppgifter":
         return json(fakeVehicleResponse(decodeURIComponent(url.pathname.split("/").at(-1)!)));
+      case "scb": {
+        const m = url.pathname.match(/\/tables\/(TAB\d+)\/data$/);
+        const content = p.get("valueCodes[ContentsCode]");
+        if (m && content) return json(fakeScbMonthly(m[1], content, now()));
+        break;
+      }
     }
     return new Response("not found", { status: 404 });
   };
@@ -372,4 +379,34 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
 /** Explicitly synthetic Biluppgifter-format fixture. Never use as a real vehicle record. */
 export function fakeVehicleResponse(registrationNumber: string = "ABC123"): Record<string, unknown> {
   return {data:{attributes:{regno:registrationNumber},basic:{data:{make:"Example Motors",model:"Test Tourer",model_year:2022,vehicle_year:2021}},status:{data:{tax:360,first_registered:"2022-01-15"}},inspection:{data:{meter:48500,latest_inspection:"2026-02-01T00:00:00+01:00",inspection_valid_until:"2027-04-30T00:00:00+02:00"}}}};
+}
+
+/**
+ * A synthetic SCB JSON-stat answer for a monthly price index: about 2 % a year, 2020 = 100, up to the month before
+ * `now`. The KPI tables follow SCB's split at the base change (rebased 1980 figures until 2025, new figures after).
+ * Demo data – never real statistics.
+ */
+export function fakeScbMonthly(table: string, content: string, now: number = Date.now()): Record<string, unknown> {
+  const end = new Date(now), last = end.getUTCFullYear() * 12 + end.getUTCMonth() - 1;
+  const first = table === "TAB6792" || table === "TAB6596" ? 1980 * 12 : 1987 * 12;
+  const months = Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => first + i);
+  const code = (t: number): string => `${Math.floor(t / 12)}M${String((t % 12) + 1).padStart(2, "0")}`;
+  const value = (t: number): number | null => {
+    const year = Math.floor(t / 12);
+    if (table === "TAB6792" && year >= 2026) return null;
+    if (table === "TAB6596" && year < 2026) return null;
+    return Number((100 * 1.02 ** ((t - (2020 * 12 + 5.5)) / 12)).toFixed(2));
+  };
+  return {
+    version: "2.0",
+    class: "dataset",
+    id: ["ContentsCode", "Tid"],
+    size: [1, months.length],
+    updated: new Date(now).toISOString(),
+    dimension: {
+      ContentsCode: { category: { index: { [content]: 0 }, label: { [content]: "Demodata" } } },
+      Tid: { category: { index: Object.fromEntries(months.map((t, i) => [code(t), i])) } },
+    },
+    value: months.map(value),
+  };
 }

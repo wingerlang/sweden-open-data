@@ -1,7 +1,7 @@
 {
   "name": "@wingerlang/sweden-open-data",
-  "version": "0.8.0",
-  "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather, VMA/crisis information and SMHI warnings, and geocoding that understands Swedish addresses.",
+  "version": "0.9.0",
+  "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather, VMA/crisis information and SMHI warnings, and geocoding that understands Swedish addresses, and consumer price indices from SCB with inflation arithmetic.",
   "license": "MIT",
   "author": "Johannes Winger-Lang",
   "type": "module",
@@ -44,6 +44,10 @@
     "./education": {
       "types": "./src/education/mod.ts",
       "default": "./dist/education/mod.js"
+    },
+    "./economy": {
+      "types": "./src/economy/mod.ts",
+      "default": "./dist/economy/mod.js"
     }
   },
   "files": [
@@ -66,7 +70,10 @@
     "smhi",
     "krisinformation",
     "vma",
-    "geocoding"
+    "geocoding",
+    "kpi",
+    "inflation",
+    "scb"
   ],
   "scripts": {
     "test": "node --test \"test/**/*.test.ts\"",

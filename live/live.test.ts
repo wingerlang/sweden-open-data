@@ -5,7 +5,7 @@
  */
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { createClient, isCompleteSpotDay, SourceError, swedishDate } from "../src/mod.ts";
+import { adjustForInflation, annualAverage, createClient, isCompleteSpotDay, latestCpi, SourceError, swedishDate } from "../src/mod.ts";
 
 const se = createClient({
   userAgent: "sweden-open-data contract tests (https://github.com/wingerlang/sweden-open-data)",
@@ -71,4 +71,20 @@ test("Open-Meteo geocoding: a city", async (t) => {
   const places = await live(t, () => se.geo.places("Uppsala", { country: "SE" }));
   if (!places) return;
   assert.ok(places.some((p) => p.name === "Uppsala"));
+});
+
+test("SCB: KPI, KPIF och KPIF-XE är hela, sammanfogade och rimliga", async (t) => {
+  const kpi = await live(t, () => se.economy.cpi("KPI"));
+  if (!kpi) return;
+  assert.equal(kpi.points[0].month, "1980-01");
+  assert.ok(kpi.points.length >= 561, "varje månad från 1980");
+  assert.ok(Math.abs((annualAverage(kpi, 2020) ?? 0) - 100) < 0.05, "2020 = 100");
+  const latest = latestCpi(kpi)!;
+  assert.ok(Date.now() - Date.parse(latest.month + "-01") < 75 * 86_400_000, "senaste månaden är högst två månader gammal");
+  const gap = adjustForInflation(kpi, 1, "2025-12", "2026-01").change;
+  assert.ok(Math.abs(gap) < 0.02, "ingen spricka vid basbytet");
+  for (const index of ["KPIF", "KPIF-XE"] as const) {
+    const s = await live(t, () => se.economy.cpi(index));
+    if (s) assert.equal(s.points[0].month, "1987-01");
+  }
 });

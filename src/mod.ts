@@ -1,6 +1,7 @@
 /**
  * Swedish open data in one small, dependency-free, typed package: **electricity spot prices**, **weather**,
- * **VMA, crisis information and SMHI warnings**, and **geocoding** that understands Swedish addresses.
+ * **VMA, crisis information and SMHI warnings**, **geocoding** that understands Swedish addresses, and
+ * **consumer price indices** with inflation arithmetic.
  *
  * The core sources are free and need no API key. The optional `/vehicles` module requires a provider API key. The client adds what production use needs: caching with sensible
  * lifetimes, sharing of concurrent identical requests, timeouts, retries with backoff, cancellation, typed errors
@@ -15,9 +16,10 @@
  * const forecast = await se.weather.forecast({ latitude: 59.33, longitude: 18.07 });
  * const { alerts } = await se.alerts.near([{ latitude: 59.33, longitude: 18.07 }]);
  * const [address] = await se.geo.addresses("Drottninggatan 1, Stockholm");
+ * const kpi = await se.economy.cpi("KPI");
  * ```
  *
- * Each area is also available on its own (`/spot`, `/weather`, `/alerts`, `/geo`), and all parsing and analysis
+ * Each area is also available on its own (`/spot`, `/weather`, `/alerts`, `/geo`, `/economy`), and all parsing and analysis
  * functions are pure, so they work on data you already have.
  *
  * @module
@@ -27,6 +29,7 @@ import { type AlertsClient, createAlertsClient } from "./alerts/client.ts";
 import { type GeoClient, createGeoClient } from "./geo/client.ts";
 import { type SpotClient, createSpotClient } from "./spot/client.ts";
 import { type WeatherClient, createWeatherClient } from "./weather/client.ts";
+import { type EconomyClient, createEconomyClient } from "./economy/client.ts";
 import type { ClientStats } from "./core/stats.ts";
 
 /** All clients, sharing one cache and one network configuration. */
@@ -39,6 +42,8 @@ export interface SwedenOpenData {
   readonly alerts: AlertsClient;
   /** Addresses, places and regions. */
   readonly geo: GeoClient;
+  /** Consumer price indices (KPI, KPIF, KPIF-XE) from SCB. */
+  readonly economy: EconomyClient;
   /** Empties the in-memory cache. */
   clearCache(): void;
   /** Requests, failures, retries and cache use since the client was created (or since {@link SwedenOpenData.resetStats}). */
@@ -75,6 +80,7 @@ export function createClient(options: ClientOptions = {}): SwedenOpenData {
     weather: createWeatherClient(ctx),
     alerts: createAlertsClient(ctx),
     geo: createGeoClient(ctx),
+    economy: createEconomyClient(ctx),
     clearCache: () => ctx.cache.clear(),
     stats: () => ctx.stats.snapshot(),
     resetStats: () => ctx.stats.reset(),
@@ -114,3 +120,5 @@ export * from "./vehicles/mod.ts";
 export * from "./education/mod.ts";
 
 export * from "./sports/mod.ts";
+
+export * from "./economy/mod.ts";

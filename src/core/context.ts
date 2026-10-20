@@ -28,6 +28,8 @@ export interface Endpoints {
   krisinformation: string;
   /** SMHI impact-based weather warnings. */
   smhiWarnings: string;
+  /** SCB Statistikdatabasen, PxWebApi v2. */
+  scb: string;
 }
 
 /** The public endpoints used by default. */
@@ -40,6 +42,7 @@ export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
   photonReverse: "https://photon.komoot.io/reverse",
   krisinformation: "https://api.krisinformation.se/v3",
   smhiWarnings: "https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json",
+  scb: "https://statistikdatabasen.scb.se/api/v2",
 });
 
 /** How long results are kept in memory, in milliseconds. */
@@ -56,6 +59,8 @@ export interface CacheTtl {
   region: number;
   /** Address and place searches. Default 1 h. */
   search: number;
+  /** A consumer price index series (published monthly). Default 6 h. */
+  cpi: number;
 }
 
 /** The default {@link CacheTtl}. */
@@ -66,6 +71,7 @@ export const DEFAULT_TTL: Readonly<CacheTtl> = Object.freeze({
   alerts: 5 * 60_000,
   region: 30 * 86_400_000,
   search: 3_600_000,
+  cpi: 6 * 3_600_000,
 });
 
 /** Options for `createClient` and the individual client factories. All are optional. */
@@ -87,7 +93,7 @@ export interface ClientOptions extends HttpOptions {
   };
   /** Called for every cache hit, miss and stale answer. Must not throw. */
   onCacheEvent?: (event: CacheEvent) => void;
-  /** Durable storage for immutable data (complete historical spot-price days). */
+  /** Durable storage: complete historical spot-price days, and the last good consumer price index series. */
   store?: PersistentStore;
   /** Override individual upstream URLs. */
   endpoints?: Partial<Endpoints>;
