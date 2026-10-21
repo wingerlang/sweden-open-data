@@ -40,6 +40,8 @@ Added:
   (`a/b` and `a_b` are different files) and removes temporary files left by a crash. Old files are still read.
 - `Endpoints` and `CacheTtl` for the archive, IBIndex and the vehicle sources; `TRUSTED_ALERT_HOSTS`.
 - Fakes for the Open-Meteo archive, air quality, IBIndex and Transportstyrelsen in `/testing`.
+- Runnable examples for every new feature in `examples/` (offline by default, `--live` for real sources), kept
+  working by `npm run examples`.
 
 Security:
 

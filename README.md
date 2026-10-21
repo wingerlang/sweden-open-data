@@ -32,6 +32,9 @@ const [address] = await se.geo.addresses("Åraslöv 1105, 28890 Vinslöv");
 const kpi = await se.economy.cpi("KPI");
 ```
 
+Runnable examples for every feature – cancellation, history, air quality, autocomplete, storage and the optional
+modules – are in [`examples/`](examples/README.md); they work offline and take `--live`.
+
 ## Install
 
 ```sh
@@ -440,6 +443,7 @@ npm run check:package  # pack, install into a plain TypeScript project, type-che
 npm run load           # 100 concurrent callers per method against the fakes
 npm run test:live      # contract tests against the real sources (weekly in CI; LIVE_SCRAPED=1 adds the experimental ones)
 npm run smoke          # a small terminal dashboard: node examples/dashboard.ts [lat] [lon]
+npm run examples       # run every example in examples/ offline (see examples/README.md)
 ```
 
 The **dev board** runs every call of the package from a browser page – spot prices with a chart, weather, alerts,

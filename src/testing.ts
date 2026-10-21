@@ -487,15 +487,20 @@ export function fakeWeatherArchive(position: Coordinates, from: string, to: stri
     0,
     Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 3_600_000) + 24,
   );
-  const base = 12 - (position.latitude - 55) * 1.2;
+  const base = 8 - (position.latitude - 55) * 1.2;
+  const temperature = (t: number): number => {
+    const day = t / 86_400;
+    const season = -10 * Math.cos((2 * Math.PI * (day - 15)) / 365.25); // coldest in mid-January
+    const weather = 4 * Math.sin(day * 1.7) + 2 * Math.sin(day * 0.6); // changes from day to day
+    const daily = 3 * Math.sin((((t / 3600) % 24) - 9) * (Math.PI / 12));
+    return Number((base + season + weather + daily).toFixed(1));
+  };
   return {
     latitude: position.latitude,
     longitude: position.longitude,
     hourly: {
       time: Array.from({ length: hours }, (_, i) => start + i * 3600),
-      temperature_2m: Array.from({ length: hours }, (_, i) =>
-        Number((base + 5 * Math.sin(((i % 24) - 9) * (Math.PI / 12))).toFixed(1)),
-      ),
+      temperature_2m: Array.from({ length: hours }, (_, i) => temperature(start + i * 3600)),
     },
   };
 }
@@ -515,7 +520,11 @@ export function fakeAirQuality(
   const series = (name: string, i: number): number => {
     const day = Math.sin(((i % 24) - 6) * (Math.PI / 12));
     if (name === "uv_index") return Math.max(0, Number((4 * day).toFixed(1)));
-    if (name.endsWith("_pollen")) return Math.max(0, Math.round(30 + 25 * day));
+    if (name.endsWith("_pollen")) {
+      const level =
+        { alder: 5, birch: 60, grass: 25, mugwort: 3, olive: 0, ragweed: 1 }[name.replace("_pollen", "")] ?? 0;
+      return Math.max(0, Math.round(level * (0.6 + 0.4 * day)));
+    }
     if (name === "european_aqi") return 20 + (i % 7);
     return Number((5 + (i % 5) * 0.8).toFixed(1));
   };

@@ -102,6 +102,7 @@
     "fmt": "npx --yes prettier@3.8.1 --write .",
     "fmt:check": "npx --yes prettier@3.8.1 --check .",
     "smoke": "node examples/dashboard.ts",
+    "examples": "node --test test/examples.test.ts",
     "load": "node scripts/load.ts",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build",
