@@ -297,7 +297,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 21 · Bounding box för varningspolygoner (P5)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): bounding box per polygon cachas i en `WeakMap`. `scripts/bench-alerts.ts` (50 varningar × 20 platser) mätte 0,55 ms mot 6,02 ms, alltså 11 gånger snabbare. Korrekthetstest med en L-formad polygon i `test/scaling.test.ts`.
 
 **Gör** i `src/alerts/alerts.ts`:
 1. Lägg en `WeakMap<Polygon, [minLon, minLat, maxLon, maxLat]>` som fylls första gången en polygon används.

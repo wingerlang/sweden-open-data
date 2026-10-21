@@ -262,6 +262,29 @@ export interface MatchOptions {
   radiusKm?: number;
 }
 
+/** Outline bounding boxes, computed once per polygon: `[minLon, minLat, maxLon, maxLat]`. */
+const boxes = new WeakMap<Polygon, readonly [number, number, number, number]>();
+
+/** A cheap first test: points outside the outline's bounding box are never inside the polygon. */
+function insideBox(point: Coordinates, polygon: Polygon): boolean {
+  let box = boxes.get(polygon);
+  if (!box) {
+    let minLon = Infinity;
+    let minLat = Infinity;
+    let maxLon = -Infinity;
+    let maxLat = -Infinity;
+    for (const [lon, lat] of polygon[0] ?? []) {
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    }
+    box = [minLon, minLat, maxLon, maxLat];
+    boxes.set(polygon, box);
+  }
+  return point.longitude >= box[0] && point.latitude >= box[1] && point.longitude <= box[2] && point.latitude <= box[3];
+}
+
 /** Which of `places` an alert concerns, and whether it is national. */
 export function alertPlaces(
   alert: Alert,
@@ -273,7 +296,7 @@ export function alertPlaces(
   const radius = options.radiusKm ?? 40;
   const same = (a: string, b: string | undefined): boolean => !!b && regionKey(a) === regionKey(b);
   const hits = places.flatMap((p, i) => {
-    if (alert.polygons?.some((poly) => inPolygon(p, poly))) return [i];
+    if (alert.polygons?.some((poly) => insideBox(p, poly) && inPolygon(p, poly))) return [i];
     for (const a of alert.areas) {
       if (a.type === "county" && same(a.name, p.county)) return [i];
       if (
