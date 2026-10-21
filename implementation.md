@@ -423,7 +423,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 32 · Paketets omfång (T6)
 
-- [ ] Klart
+- [ ] Klart. **Kvar för dig:** ett beslut om omfång som jag inte fattar åt dig. `education` och `sports` ligger kvar oförändrade, är dokumenterade i README och har egna importvägar, så en flytt till eget paket kan göras senare utan brådska.
 
 **Gör:** Besluta om `education` och `sports` ska ligga kvar. Om de flyttas: skapa ett eget paket (t.ex. `@wingerlang/sweden-reference-data`), behåll en återexport med `@deprecated` i en version och ta bort den i nästa.
 
@@ -431,7 +431,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 33 · Dokumentation i takt (T7)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): CHANGELOG har 0.10.0, 0.10.1 och 0.11.0 med alla brytande ändringar. README är sorterad efter domän, valfria moduler samlas under ett eget avsnitt före `## Options`, filen slutar med `## License`, och den inaktuella texten "This module is currently unreleased" är borttagen. Utvecklingskommandona är uppdaterade, och `package.json` beskriver hela paketet.
 
 **Gör**
 1. Lägg till 0.10.0, 0.10.1 och den nya versionen i `CHANGELOG.md`, med alla brytande ändringar listade.

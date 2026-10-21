@@ -206,6 +206,67 @@ break. SCB publishes once a month: series are cached for 6 hours, and with a `st
 across restarts and returned (with `stale: true`) when SCB cannot be reached. All functions are pure and run in the
 browser on a series your server fetched.
 
+## Optional and experimental modules
+
+These live in their own entry points and are not part of `createClient()` unless noted.
+
+### Vehicle lookup (optional authenticated source)
+
+```ts
+import {createVehicleClient} from "@wingerlang/sweden-open-data/vehicles";
+const vehicles = createVehicleClient({apiKey: process.env.BILUPPGIFTER_API_KEY!, userAgent: "my-server/1.0"});
+const vehicle = await vehicles.lookup("ABC123"); // null on HTTP 404, SourceError for provider failures
+```
+
+**Server-side only.** Unlike the open sources this requires your own paid/provider agreement and API key.
+[Provider contract](https://apidocs.biluppgifter.se/): Biluppgifter v1 `basic,status,inspection` packages.
+`modelYear` prefers `model_year`; `vehicleYear` is a separate observation. Tax is SEK/year. `mileageKm` is the last
+recorded inspection odometer in kilometres, not live mileage. Source and `fetchedAt` accompany every result.
+Missing values stay undefined; owner, address, VIN and finance fields are excluded. No deadline is guessed.
+
+Instantiate once per credential scope. Positive answers live in a bounded private memory cache for 6h (override
+`ttlMs`); 404 answers for at most 5 minutes. No disk cache or public client's cache is used. `cache: false` disables
+reuse; concurrent identical requests still share a load. A caller's cancellation signal only
+ends that caller's wait; the shared lookup is aborted when every waiting caller has cancelled. `clearCache()`, `stats()` and `resetStats()` are available.
+Request/cache hooks and returned SourceErrors redact plates and credentials; your custom `fetch` can see the
+actual request, so do not log URLs or headers there. Authenticated redirects are rejected.
+
+Offline: use `createFakeSources()` from `/testing` with a dummy key; `fakeVehicleResponse()` exposes the source
+fixture. It is explicitly synthetic. A paid live test is **skipped by default**: only set both
+`BILUPPGIFTER_API_KEY` and `VEHICLE_LIVE_TEST_REGISTRATION` for a registration you may query, then run
+`node --test live/vehicles.test.ts`. The library never queries a default registration.
+
+#### Free vehicle lookup (experimental)
+
+> **Experimental.** Transportstyrelsen publishes this page for people, not as an API, and no agreement covers automated reading. Registration numbers can be personal data under GDPR. Until the terms are confirmed in writing it lives in its own entry point,
+> `@wingerlang/sweden-open-data/vehicles/free`, and is not exported from the main package or `/vehicles`.
+
+`createFreeVehicleClient()` from `/vehicles/free` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
+
+### Investment companies (IBIndex, experimental)
+
+> **Experimental.** IBIndex offers no public API or agreement for these endpoints; availability and data terms are decided by IBIndex. Until the terms are confirmed in writing it is only available from
+> `@wingerlang/sweden-open-data/investments` and is not part of `createClient()`.
+
+The optional `/investments` entry point provides `createInvestmentClient()`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
+
+Responses share a six-hour cache and can persist in the existing store. Failed refreshes retain the last complete result marked stale. This is an unofficial adapter to public IBIndex read endpoints; availability and third-party data terms are determined by IBIndex, not this package's MIT source-code license. Always show source and dates. Reports are handled by the application's existing company-report source. No private portfolio inputs are accepted.
+
+### Higher education reference catalogue
+
+The optional `@wingerlang/sweden-open-data/education` export provides `getSwedishInstitutions()`, `searchSwedishInstitutions(query, limit)` and `SWEDISH_INSTITUTIONS_SOURCE`. It contains the 50 institutions listed by [UKÄ](https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-universitet-hogskolor-och-enskilda-utbildningsanordnare), checked 2026-10-18. Names, websites and classifications follow that snapshot; aliases support abbreviations such as KTH and historical names such as MDH.
+
+This is a dated, immutable reference snapshot with stable IDs, not a live accreditation lookup. It makes no network calls and contains no students, relationships, private notes or graph nodes. Refresh the snapshot and review the source deliberately when publishing a new package version.
+
+```ts
+import {searchSwedishInstitutions} from "@wingerlang/sweden-open-data/education";
+const suggestions = searchSwedishInstitutions("kth");
+```
+
+### Sport reference catalogue
+
+The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.
+
 ## Options
 
 ```ts
@@ -318,6 +379,8 @@ try {
 | `@wingerlang/sweden-open-data/vehicles` | Authenticated vehicle lookup (Biluppgifter, needs an API key) |
 | `@wingerlang/sweden-open-data/vehicles/free` | **Experimental:** Transportstyrelsen public-page lookup |
 | `@wingerlang/sweden-open-data/investments` | **Experimental:** IBIndex investment companies |
+| `@wingerlang/sweden-open-data/education` | Swedish higher education institutions (offline reference data) |
+| `@wingerlang/sweden-open-data/sports` | A sport vocabulary for autocomplete (offline reference data) |
 
 ## Testing your code
 
@@ -367,12 +430,16 @@ som standard.
 ## Development
 
 ```sh
-npm run dev         # the dev board: http://localhost:5174 (add -- --fake for generated data, no network)
-npm test            # node --test (Node ≥ 22.18 runs the TypeScript sources directly)
-npm run coverage    # with coverage thresholds
-npm run typecheck   # strict, isolatedDeclarations (= JSR "no slow types")
-npm run test:live   # contract tests against the real sources (also run weekly in CI)
-npm run smoke       # a small terminal dashboard: node examples/dashboard.ts [lat] [lon]
+npm run dev            # the dev board on this computer: http://localhost:5174 (-- --fake: no network, -- --port N)
+npm test               # node --test (Node ≥ 22.18 runs the TypeScript sources directly)
+npm run check          # typecheck + lint + export checks + coverage per file – run before every commit
+npm run fmt            # format with Prettier (fmt:check only checks)
+npm run lint           # project rules: line length, docs, shared helpers, no any, endpoints
+npm run coverage       # tests with coverage limits per file
+npm run check:package  # pack, install into a plain TypeScript project, type-check and import
+npm run load           # 100 concurrent callers per method against the fakes
+npm run test:live      # contract tests against the real sources (weekly in CI; LIVE_SCRAPED=1 adds the experimental ones)
+npm run smoke          # a small terminal dashboard: node examples/dashboard.ts [lat] [lon]
 ```
 
 The **dev board** runs every call of the package from a browser page – spot prices with a chart, weather, alerts,
@@ -386,64 +453,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Releases are published to JSR from GitHu
 ## License
 
 [MIT](LICENSE) © Johannes Winger-Lang
-
-## Vehicle lookup (optional authenticated source)
-
-```ts
-import {createVehicleClient} from "@wingerlang/sweden-open-data/vehicles";
-const vehicles = createVehicleClient({apiKey: process.env.BILUPPGIFTER_API_KEY!, userAgent: "my-server/1.0"});
-const vehicle = await vehicles.lookup("ABC123"); // null on HTTP 404, SourceError for provider failures
-```
-
-**Server-side only.** Unlike the open sources this requires your own paid/provider agreement and API key.
-[Provider contract](https://apidocs.biluppgifter.se/): Biluppgifter v1 `basic,status,inspection` packages.
-`modelYear` prefers `model_year`; `vehicleYear` is a separate observation. Tax is SEK/year. `mileageKm` is the last
-recorded inspection odometer in kilometres, not live mileage. Source and `fetchedAt` accompany every result.
-Missing values stay undefined; owner, address, VIN and finance fields are excluded. No deadline is guessed.
-
-Instantiate once per credential scope. Positive answers live in a bounded private memory cache for 6h (override
-`ttlMs`); 404 answers for at most 5 minutes. No disk cache or public client's cache is used. `cache: false` disables
-reuse; concurrent identical requests still share a load. A caller's cancellation signal only
-ends that caller's wait; the shared lookup is aborted when every waiting caller has cancelled. `clearCache()`, `stats()` and `resetStats()` are available.
-Request/cache hooks and returned SourceErrors redact plates and credentials; your custom `fetch` can see the
-actual request, so do not log URLs or headers there. Authenticated redirects are rejected.
-
-Offline: use `createFakeSources()` from `/testing` with a dummy key; `fakeVehicleResponse()` exposes the source
-fixture. It is explicitly synthetic. A paid live test is **skipped by default**: only set both
-`BILUPPGIFTER_API_KEY` and `VEHICLE_LIVE_TEST_REGISTRATION` for a registration you may query, then run
-`node --test live/vehicles.test.ts`. The library never queries a default registration.
-
-This module is currently unreleased. Existing installations of 0.2.0 keep working; release a new minor version
-before switching consumers to the new export. No changes to users' personal vehicles, sharing or reminders are
-performed by the library; those belong to the consuming application.
-
-### Free vehicle lookup (experimental)
-
-> **Experimental.** Transportstyrelsen publishes this page for people, not as an API, and no agreement covers automated reading. Registration numbers can be personal data under GDPR. Until the terms are confirmed in writing it lives in its own entry point,
-> `@wingerlang/sweden-open-data/vehicles/free`, and is not exported from the main package or `/vehicles`.
-
-`createFreeVehicleClient()` from `/vehicles/free` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
-
-## Higher education reference catalogue
-
-The optional `@wingerlang/sweden-open-data/education` export provides `getSwedishInstitutions()`, `searchSwedishInstitutions(query, limit)` and `SWEDISH_INSTITUTIONS_SOURCE`. It contains the 50 institutions listed by [UKÄ](https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-universitet-hogskolor-och-enskilda-utbildningsanordnare), checked 2026-10-18. Names, websites and classifications follow that snapshot; aliases support abbreviations such as KTH and historical names such as MDH.
-
-This is a dated, immutable reference snapshot with stable IDs, not a live accreditation lookup. It makes no network calls and contains no students, relationships, private notes or graph nodes. Refresh the snapshot and review the source deliberately when publishing a new package version.
-
-```ts
-import {searchSwedishInstitutions} from "@wingerlang/sweden-open-data/education";
-const suggestions = searchSwedishInstitutions("kth");
-```
-
-## Sport reference catalogue
-
-The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.
-
-### Investment companies (IBIndex, experimental)
-
-> **Experimental.** IBIndex offers no public API or agreement for these endpoints; availability and data terms are decided by IBIndex. Until the terms are confirmed in writing it is only available from
-> `@wingerlang/sweden-open-data/investments` and is not part of `createClient()`.
-
-The optional `/investments` entry point provides `createInvestmentClient()`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
-
-Responses share a six-hour cache and can persist in the existing store. Failed refreshes retain the last complete result marked stale. This is an unofficial adapter to public IBIndex read endpoints; availability and third-party data terms are determined by IBIndex, not this package's MIT source-code license. Always show source and dates. Reports are handled by the application's existing company-report source. No private portfolio inputs are accepted.

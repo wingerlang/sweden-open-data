@@ -3,7 +3,10 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
-## Unreleased (0.11.0)
+## 0.11.0 – unreleased
+
+A clean-up after the code review in [docs/kodgranskning.md](docs/kodgranskning.md); the steps are in
+[implementation.md](implementation.md).
 
 Breaking:
 
@@ -11,14 +14,62 @@ Breaking:
   experimental: IBIndex offers no public API or agreement for the endpoints used.
 - `createFreeVehicleClient`, `parseTransportstyrelsenVehicle` and `vehicleLookupLinks` moved from `/vehicles` (and the
   main entry point) to the new `/vehicles/free` entry point, marked experimental: the Transportstyrelsen page is not an
-  API, no agreement covers automated reading, and registration numbers can be personal data.
+  API, no agreement covers automated reading, and registration numbers can be personal data. Both stay out of the main
+  entry point until their terms are confirmed in writing.
+- `MemoryCache.get(key, ttl, load, options)`: `load` receives an `AbortSignal`, and the caller's signal goes in
+  `options.signal`. Only matters if you call the cache yourself.
+- Endpoints must be `https:` (or `http:` for localhost); anything else throws a `RangeError`.
+- npm archives point `types` at compiled `.d.ts` files in `dist/` instead of the `.ts` sources.
 
-Both stay out of the main entry point until their terms are confirmed in writing.
+Fixed:
+
+- Cancelling one request no longer cancels other callers waiting for the same data; the shared request stops only when
+  every caller has cancelled. The vehicle clients no longer skip the cache when a signal is given.
+- `spot.history` keeps past days in a cache of its own (`cache.archiveEntries`, default 400), so a long range no
+  longer pushes forecasts and other current data out of the cache.
+- One HTTP 400 from Photon no longer turns its country filter off for good; it is only dropped, for an hour, when the
+  same request without it succeeds.
+- A vehicle page value without digits is missing instead of 0.
+
+Added:
+
+- `se.weather.history()` on the main client, with `signal`; every investments method takes `{ signal }`.
+- Per-source limits (`limits`, `DEFAULT_LIMITS`): Photon gets two requests at a time by default.
+- `maxResponseBytes` (default 5 MB) for every source.
+- `PersistentStore.set(key, value, { ttlMs })`; `fileStore` honours it, has `prune()`, encodes keys reversibly
+  (`a/b` and `a_b` are different files) and removes temporary files left by a crash. Old files are still read.
+- `Endpoints` and `CacheTtl` for the archive, IBIndex and the vehicle sources; `TRUSTED_ALERT_HOSTS`.
+- Fakes for the Open-Meteo archive, air quality, IBIndex and Transportstyrelsen in `/testing`.
 
 Security:
 
 - The dev board listens on 127.0.0.1 only and rejects cross-origin, non-JSON, oversized and unknown requests.
+- Alert links only go to krisinformation.se over `https://`.
+- The vehicle clients always use their default addresses, so an API key or a registration number never goes to an
+  overridden endpoint.
 - TypeScript and `@types/node` are pinned as development dependencies with a lockfile; CI installs with `npm ci`.
+
+Performance:
+
+- Alert polygons are tested against a bounding box first (11× faster for 50 warnings × 20 places).
+- An address search costs at most 3–4 Photon requests instead of up to 6.
+- Times are parsed once before sorting.
+
+Development:
+
+- Prettier (`npm run fmt`), a dependency-free lint script (`npm run lint`), export checks (`npm run check:exports`),
+  per-file coverage limits, an npm archive check (`npm run check:package`) and a load test (`npm run load`).
+- Shared parsing helpers in `src/core/parse.ts` and source patterns in `src/core/source.ts` replace the copies.
+
+## 0.10.1 – 2026-10-20
+
+- Investments: a lightweight NAV overview for company lists (`overview()`, one request, cached 15 minutes) and readable
+  holding category names. Old fields stay compatible; a failing source falls back to the last complete answer.
+
+## 0.10.0 – 2026-10-20
+
+- New `/investments` entry point: investment companies from IBIndex with reported and estimated NAV, discount and
+  premium history and public holdings, with shared retries, request coalescing and a durable cache.
 
 ## 0.9.0 – 2026-10-20
 
