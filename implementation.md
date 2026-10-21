@@ -286,7 +286,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 20 · Färre anrop per adressökning (P3)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): högst två varianter i första steget, och orten slås bara upp om den inte redan fanns i svaren. Exemplet `"Åraslöv 1105, 28890 Vinslöv"` ger 3 anrop när orten finns i första svaret och annars 4, mot tidigare 6. README beskriver debounce och `signal` för autocomplete (se steg 19). Med verkliga Photon-svar är detta inte verifierat; live-testet i steg 27 täcker det.
 
 **Gör** i `src/geo/client.ts`:
 1. Begränsa varianterna i steg 1 av `searchAddresses` till högst 2.

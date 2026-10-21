@@ -243,12 +243,13 @@ test("address search: a rural address missing from the map is offered as typed, 
     return json([]);
   });
   const r = await createGeoClient({ fetch, ...quick }).addresses("Åraslöv 1105, 28890 Vinslöv");
-  assert.ok(
-    queries.includes("Åraslöv 1105 Vinslöv") &&
-      queries.includes("Åraslöv 1105 288 90") &&
-      queries.includes("Åraslöv @near [localities]") &&
-      queries.includes("Vinslöv [localities]"),
-  );
+  // The query as typed, one rewritten form, the town and the village near it: four requests, not six.
+  assert.deepEqual(queries.sort(), [
+    "Vinslöv [localities]",
+    "Åraslöv 1105 Vinslöv",
+    "Åraslöv 1105, 28890 Vinslöv",
+    "Åraslöv @near [localities]",
+  ]);
   const typed = r[0];
   assert.deepEqual(
     [typed.address, typed.postalCode, typed.city, typed.approximate, typed.near, typed.longitude],
@@ -457,4 +458,21 @@ test("address search: an unrelated 400 keeps the country filter, and a dropped f
     seen.some((s) => s.includes("countrycode")),
     "filter used again after an hour",
   );
+});
+
+test("address search: at most three Photon requests when the first answers already contain the town", async () => {
+  const queries: string[] = [];
+  const fetch = fakeFetch((url) => {
+    const q = url.searchParams.get("q")!;
+    queries.push(q);
+    if (q === "Åraslöv")
+      return json([photonFeature(14.02, 56.05, { name: "Åraslöv", city: "Hässleholms kommun", countrycode: "SE" })]);
+    return json([
+      photonFeature(13.91, 56.1, { name: "Vinslöv", city: "Vinslöv", postcode: "288 31", countrycode: "SE" }),
+    ]);
+  });
+  const r = await createGeoClient({ fetch, ...quick }).addresses("Åraslöv 1105, 28890 Vinslöv");
+  assert.equal(queries.length, 3, queries.join(" | "));
+  assert.equal(r[0].approximate, true);
+  assert.equal(r[0].near, "Åraslöv");
 });

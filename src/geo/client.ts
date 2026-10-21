@@ -153,16 +153,14 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
       });
     const parsed = parseAddressQuery(q);
 
-    // 1. The exact address, trying the common ways of writing the same query.
-    const variants = [
-      ...new Set(
-        [
-          q,
-          parsed.address && parsed.city ? `${parsed.address} ${parsed.city}` : "",
-          parsed.address && parsed.postalCode ? `${parsed.address} ${parsed.postalCode}` : "",
-        ].filter(Boolean),
-      ),
-    ];
+    // 1. The exact address: the query as typed and at most one rewritten form (address + town, else + postal code).
+    const rewritten =
+      parsed.address && parsed.city
+        ? `${parsed.address} ${parsed.city}`
+        : parsed.address && parsed.postalCode
+          ? `${parsed.address} ${parsed.postalCode}`
+          : "";
+    const variants = [...new Set([q, rewritten].filter(Boolean))];
     const first = await Promise.all(variants.map((v) => safe(raw(v))));
     // Every variant failed: report the source error rather than "no results".
     if (first.every((r) => r === null)) throw lastError;
@@ -170,8 +168,17 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
     const exact = uniqueByLabel(firstAll.filter((p) => p.precision === "address" && matchesAddressQuery(p, q)));
     if (exact.length) return exact;
 
-    // 2. The town (or the postal code) as an anchor, and a village/street with the queried name near it.
-    const townHits = parsed.city.length >= 2 ? ((await safe(raw(parsed.city, { localities: true }))) ?? []) : [];
+    // 2. The town (or the postal code) as an anchor, and a village/street with the queried name near it. The town is
+    // only looked up when the first answers do not already contain it.
+    const isTown = (p: AddressSuggestion): boolean =>
+      !p.address && fold(p.city) === fold(parsed.city) && fold(p.label.split(" · ")[0]) === fold(parsed.city);
+    const knownTown = firstAll.filter(isTown);
+    const townHits =
+      parsed.city.length < 2
+        ? []
+        : knownTown.length
+          ? knownTown
+          : ((await safe(raw(parsed.city, { localities: true }))) ?? []);
     const postHits =
       !townHits.length && parsed.postalCode
         ? ((await safe(raw(parsed.postalCode))) ?? []).filter(
