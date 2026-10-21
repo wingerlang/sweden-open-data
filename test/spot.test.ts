@@ -29,7 +29,10 @@ import { elprisDay, fakeFetch, hourlyDay, quick } from "./helpers.ts";
 const at = (iso: string): number => Date.parse(iso);
 
 test("areas: validation, normalisation and a rough guess from a position", () => {
-  assert.deepEqual(SPOT_AREAS.map((a) => a.id), ["SE1", "SE2", "SE3", "SE4"]);
+  assert.deepEqual(
+    SPOT_AREAS.map((a) => a.id),
+    ["SE1", "SE2", "SE3", "SE4"],
+  );
   assert.ok(isSpotArea("SE3") && !isSpotArea("se3") && !isSpotArea("SE5"));
   assert.equal(toSpotArea(" se4 "), "SE4");
   assert.throws(() => toSpotArea("SE9"), RangeError);
@@ -45,11 +48,26 @@ test("areas: validation, normalisation and a rough guess from a position", () =>
 });
 
 test("parsing: valid rows only, sorted; anything but a list is an error", () => {
-  const points = parseElprisResponse([...elprisDay().reverse(), { SEK_per_kWh: "x" }, { SEK_per_kWh: null }, null, { SEK_per_kWh: 1, time_start: "nope", time_end: "x" }, { SEK_per_kWh: 1, EUR_per_kWh: "n/a", time_start: "2026-10-13T00:00:00+02:00", time_end: "2026-10-13T00:15:00+02:00" }]);
+  const points = parseElprisResponse([
+    ...elprisDay().reverse(),
+    { SEK_per_kWh: "x" },
+    { SEK_per_kWh: null },
+    null,
+    { SEK_per_kWh: 1, time_start: "nope", time_end: "x" },
+    {
+      SEK_per_kWh: 1,
+      EUR_per_kWh: "n/a",
+      time_start: "2026-10-13T00:00:00+02:00",
+      time_end: "2026-10-13T00:15:00+02:00",
+    },
+  ]);
   assert.equal(points.length, 97);
   assert.ok(points.every((p, i) => i === 0 || Date.parse(p.start) >= Date.parse(points[i - 1].start)));
   assert.equal(points[96].eur, null);
-  assert.throws(() => parseElprisResponse({ error: "x" }), (e: SourceError) => e.code === "invalid-response");
+  assert.throws(
+    () => parseElprisResponse({ error: "x" }),
+    (e: SourceError) => e.code === "invalid-response",
+  );
 });
 
 test("days: quarter and hourly resolution, completeness and the autumn DST quirk", () => {
@@ -108,7 +126,10 @@ test("analysis: hourly averages, summary, levels, windows and cheapest hours", (
 
   const cheap = cheapestHours(points, 4, { from: noon });
   assert.equal(cheap.length, 4);
-  assert.ok(cheap.every((p, i) => i === 0 || Date.parse(p.start) > Date.parse(cheap[i - 1].start)), "chronological");
+  assert.ok(
+    cheap.every((p, i) => i === 0 || Date.parse(p.start) > Date.parse(cheap[i - 1].start)),
+    "chronological",
+  );
   assert.ok(cheap.every((p) => Date.parse(p.end) > noon));
   assert.equal(cheapestHours(points, 2).length, 2);
   assert.throws(() => cheapestHours(points, 1.5), RangeError);
@@ -122,7 +143,12 @@ test("analysis: hourly averages, summary, levels, windows and cheapest hours", (
 
 test("display windows: whole day, remaining, rolling 24 h", () => {
   const day = (d: string): SpotPoint[] =>
-    Array.from({ length: 24 }, (_, h) => ({ start: `${d}T${String(h).padStart(2, "0")}:00:00+02:00`, end: `${d}T${String(h).padStart(2, "0")}:59:59+02:00`, sek: h / 10, eur: null }));
+    Array.from({ length: 24 }, (_, h) => ({
+      start: `${d}T${String(h).padStart(2, "0")}:00:00+02:00`,
+      end: `${d}T${String(h).padStart(2, "0")}:59:59+02:00`,
+      sek: h / 10,
+      eur: null,
+    }));
   const t = day("2026-10-12");
   const m = day("2026-10-13");
   const now = at("2026-10-12T15:20:00+02:00");
@@ -172,7 +198,13 @@ test("client: today and tomorrow, caching, and a tomorrow that is published late
 });
 
 test("client: a failing tomorrow does not hide today; an empty day counts as unpublished", async () => {
-  const fetch = fakeFetch((url) => (url.pathname.includes("10-13_") ? new Response("", { status: 500 }) : url.pathname.includes("10-14_") ? [] : elprisDay("2026-10-12")));
+  const fetch = fakeFetch((url) =>
+    url.pathname.includes("10-13_")
+      ? new Response("", { status: 500 })
+      : url.pathname.includes("10-14_")
+        ? []
+        : elprisDay("2026-10-12"),
+  );
   const spot = createSpotClient({ fetch, now: () => at("2026-10-12T10:00:00+02:00"), ...quick });
   const r = await spot.prices("SE4");
   assert.ok(r.today);
@@ -206,8 +238,18 @@ test("history: shared requests, persistent store for complete past days, missing
   assert.equal(calls, 1, "a new client reads the persistent store");
 
   const range = await spot.history("SE4", "2026-01-01", "2026-01-05", { concurrency: 3 });
-  assert.deepEqual(range.days.map((d) => d.date), ["2026-01-01", "2026-01-05"]);
-  assert.deepEqual(range.missing.map((m) => [m.date, m.reason]), [["2026-01-02", "not published"], ["2026-01-03", "incomplete"], ["2026-01-04", "elprisetjustnu answered HTTP 500"]]);
+  assert.deepEqual(
+    range.days.map((d) => d.date),
+    ["2026-01-01", "2026-01-05"],
+  );
+  assert.deepEqual(
+    range.missing.map((m) => [m.date, m.reason]),
+    [
+      ["2026-01-02", "not published"],
+      ["2026-01-03", "incomplete"],
+      ["2026-01-04", "elprisetjustnu answered HTTP 500"],
+    ],
+  );
   assert.equal(store.size, 3, "only complete past days are stored");
   assert.ok(!JSON.stringify(range).includes("NaN"));
   await assert.rejects(spot.history("SE4", "2026-01-01", "2027-02-03"), RangeError);
@@ -218,7 +260,11 @@ test("history: shared requests, persistent store for complete past days, missing
 
   const controller = new AbortController();
   controller.abort();
-  await assert.rejects(createSpotClient({ ...options, cache: false }).history("SE3", "2025-01-01", "2025-01-02", { signal: controller.signal }));
+  await assert.rejects(
+    createSpotClient({ ...options, cache: false }).history("SE3", "2025-01-01", "2025-01-02", {
+      signal: controller.signal,
+    }),
+  );
 });
 
 test("history: a corrupt stored day is refetched", async () => {

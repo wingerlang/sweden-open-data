@@ -54,7 +54,9 @@ test("Retry-After: honoured when short, not waited for when long", async () => {
   assert.equal(parseRetryAfter("soon"), undefined);
   assert.equal(parseRetryAfter(null), undefined);
   let n = 0;
-  const shortWait = fakeFetch(() => (++n === 1 ? new Response("", { status: 429, headers: { "retry-after": "0" } }) : { ok: 1 }));
+  const shortWait = fakeFetch(() =>
+    ++n === 1 ? new Response("", { status: 429, headers: { "retry-after": "0" } }) : { ok: 1 },
+  );
   const se = createClient({ fetch: shortWait, retries: 1, retryDelayMs: 0 });
   const started = Date.now();
   await se.weather.forecast({ latitude: 1, longitude: 1 }).catch(() => {});
@@ -62,7 +64,10 @@ test("Retry-After: honoured when short, not waited for when long", async () => {
   assert.equal(shortWait.calls.length, 2);
   const longWait = fakeFetch(() => new Response("", { status: 503, headers: { "retry-after": "120" } }));
   const se2 = createClient({ fetch: longWait, retries: 3, retryDelayMs: 0 });
-  await assert.rejects(se2.weather.forecast({ latitude: 1, longitude: 1 }), (e: SourceError) => e.retryAfterMs === 120_000 && e.status === 503);
+  await assert.rejects(
+    se2.weather.forecast({ latitude: 1, longitude: 1 }),
+    (e: SourceError) => e.retryAfterMs === 120_000 && e.status === 503,
+  );
   assert.equal(longWait.calls.length, 1, "a long Retry-After is reported, not slept through");
 });
 
@@ -86,18 +91,29 @@ test("stats: per-source counters, retries and reset", async () => {
 
 test("alerts: filter by kind and severity, and choose feeds", async () => {
   const now = Date.parse("2026-10-12T10:00:00Z");
-  const fetch = fakeFetch((url) => (url.pathname.endsWith("warning.json") ? SMHI_WARNINGS : url.pathname.endsWith("/news") ? KRIS_NEWS : []));
+  const fetch = fakeFetch((url) =>
+    url.pathname.endsWith("warning.json") ? SMHI_WARNINGS : url.pathname.endsWith("/news") ? KRIS_NEWS : [],
+  );
   const se = createClient({ fetch, now: () => now, ...quick });
   const vinslov = { latitude: 56.1, longitude: 13.91, county: "Skåne län", municipality: "Hässleholms kommun" };
   const all = await se.alerts.near([vinslov]);
   assert.ok(all.alerts.some((a) => a.kind === "news"));
   const warnings = await se.alerts.near([vinslov], { kinds: ["warning"] });
-  assert.deepEqual(warnings.alerts.map((a) => a.kind), ["warning"]);
-  assert.equal((await se.alerts.near([vinslov], { minLevel: "orange" })).alerts.some((a) => a.level === "yellow"), false);
+  assert.deepEqual(
+    warnings.alerts.map((a) => a.kind),
+    ["warning"],
+  );
+  assert.equal(
+    (await se.alerts.near([vinslov], { minLevel: "orange" })).alerts.some((a) => a.level === "yellow"),
+    false,
+  );
   assert.ok((await se.alerts.near([vinslov], { minLevel: "yellow" })).alerts.some((a) => a.level === "yellow"));
   const before = fetch.calls.length;
   const onlySmhi = await se.alerts.near([vinslov], { feeds: ["smhi"] });
-  assert.deepEqual(onlySmhi.sources.map((s) => s.id), ["smhi"]);
+  assert.deepEqual(
+    onlySmhi.sources.map((s) => s.id),
+    ["smhi"],
+  );
   assert.equal(fetch.calls.length, before, "feeds are cached per feed");
   await assert.rejects(se.alerts.feed({ feeds: [] }), RangeError);
   await assert.rejects(se.alerts.feed({ feeds: ["twitter" as "smhi"] }), RangeError);
@@ -128,13 +144,20 @@ test("spot overview: now, today and tomorrow in one call", async () => {
   assert.ok(o.tomorrow && o.tomorrow.current === null && o.tomorrow.cheapest);
   assert.ok(o.tomorrow.cheapest.start.startsWith("2026-10-15"));
   const down = createClient({ fetch: fakeFetch(() => new Response("", { status: 404 })), ...quick });
-  assert.deepEqual({ ...(await down.spot.overview("SE1")), fetchedAt: "" }, { area: "SE1", current: null, today: null, tomorrow: null, fetchedAt: "" });
+  assert.deepEqual(
+    { ...(await down.spot.overview("SE1")), fetchedAt: "" },
+    { area: "SE1", current: null, today: null, tomorrow: null, fetchedAt: "" },
+  );
 });
 
 test("testing: fake sources are realistic, deterministic and cover DST days", async () => {
   assert.deepEqual(fakeSpotDay("SE3", "2026-10-14"), fakeSpotDay("SE3", "2026-10-14"));
   assert.notDeepEqual(fakeSpotDay("SE3", "2026-10-14"), fakeSpotDay("SE4", "2026-10-14"));
-  for (const [date, n] of [["2026-10-25", 100], ["2026-03-29", 92], ["2026-10-14", 96]] as const) {
+  for (const [date, n] of [
+    ["2026-10-25", 100],
+    ["2026-03-29", 92],
+    ["2026-10-14", 96],
+  ] as const) {
     const points = parseElprisResponse(fakeSpotDay("SE3", date));
     assert.equal(points.length, n, date);
     assert.ok(isCompleteSpotDay(points, date), date);
@@ -152,14 +175,30 @@ test("testing: fake sources are realistic, deterministic and cover DST days", as
   assert.equal((await se.geo.places("Göte"))[0].name, "Göteborg");
   assert.equal((await fake.fetch("https://example.com/x")).status, 404);
   assert.equal((await fake.fetch("https://www.elprisetjustnu.se/api/v1/prices/nonsense")).status, 404);
-  assert.equal((await fake.fetch("https://www.elprisetjustnu.se/api/v1/prices/2027/01-01_SE3.json")).status, 404, "the future is not published");
+  assert.equal(
+    (await fake.fetch("https://www.elprisetjustnu.se/api/v1/prices/2027/01-01_SE3.json")).status,
+    404,
+    "the future is not published",
+  );
   const feed = await se.alerts.feed();
   assert.equal(feed.alerts.length, 4);
   assert.ok(fake.calls.length > 0);
 });
 
 test("testing: faults – status, Retry-After, offline, invalid JSON, delay, hang, rate", async () => {
-  assert.deepEqual(SOURCE_IDS.map((id) => id), ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter", "scb"]);
+  assert.deepEqual(
+    SOURCE_IDS.map((id) => id),
+    [
+      "elprisetjustnu",
+      "open-meteo",
+      "open-meteo-geocoding",
+      "photon",
+      "krisinformation",
+      "smhi",
+      "biluppgifter",
+      "scb",
+    ],
+  );
   assert.equal(sourceOf("https://api.open-meteo.com/v1/forecast"), "open-meteo");
   assert.equal(sourceOf("https://geocoding-api.open-meteo.com/v1/search"), "open-meteo-geocoding");
   assert.equal(sourceOf("https://photon.komoot.io/api/"), "photon");
@@ -185,9 +224,16 @@ test("testing: faults – status, Retry-After, offline, invalid JSON, delay, han
   assert.deepEqual(fake.faults(), {});
 
   let r = 0.9;
-  const flaky = withFaults(fakeFetch(() => ({ ok: true })), () => r);
+  const flaky = withFaults(
+    fakeFetch(() => ({ ok: true })),
+    () => r,
+  );
   flaky.setFault("smhi", { status: 500, rate: 0.5 });
-  assert.equal((await flaky.fetch("https://opendata-download-warnings.smhi.se/x")).status, 200, "above the rate: passes");
+  assert.equal(
+    (await flaky.fetch("https://opendata-download-warnings.smhi.se/x")).status,
+    200,
+    "above the rate: passes",
+  );
   r = 0.1;
   assert.equal((await flaky.fetch("https://opendata-download-warnings.smhi.se/x")).status, 500);
   assert.equal(flaky.calls.length, 2);
@@ -198,5 +244,7 @@ test("testing: faults – status, Retry-After, offline, invalid JSON, delay, han
   const pending = flaky.fetch("https://opendata-download-warnings.smhi.se/x", { signal: controller.signal });
   controller.abort();
   await assert.rejects(pending);
-  await assert.rejects(flaky.fetch(new Request("https://opendata-download-warnings.smhi.se/x"), { signal: AbortSignal.abort() }));
+  await assert.rejects(
+    flaky.fetch(new Request("https://opendata-download-warnings.smhi.se/x"), { signal: AbortSignal.abort() }),
+  );
 });

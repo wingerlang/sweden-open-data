@@ -11,7 +11,11 @@ test("experimental sources stay out of the main entry point and createClient", (
   for (const name of ["createFreeVehicleClient", "parseTransportstyrelsenVehicle", "vehicleLookupLinks"]) {
     assert.equal(name in root, false, `${name} must not be exported from the main entry point`);
     assert.equal(name in vehicles, false, `${name} must not be exported from /vehicles`);
-    assert.equal(typeof (freeVehicles as Record<string, unknown>)[name], "function", `${name} is available from /vehicles/free`);
+    assert.equal(
+      typeof (freeVehicles as Record<string, unknown>)[name],
+      "function",
+      `${name} is available from /vehicles/free`,
+    );
   }
   assert.equal("createInvestmentClient" in root, false);
   assert.equal(typeof investments.createInvestmentClient, "function");

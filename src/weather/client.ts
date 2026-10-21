@@ -1,4 +1,4 @@
-import {createWeatherEnvironmentClient,type WeatherEnvironmentClient} from './environment.ts';
+import { createWeatherEnvironmentClient, type WeatherEnvironmentClient } from "./environment.ts";
 /**
  * Weather client backed by [Open-Meteo](https://open-meteo.com) – free, no API key, data under CC BY 4.0.
  *

@@ -27,11 +27,17 @@ function sized(bytes: number, head = '{"a":"', tail = '"}'): Response {
 }
 
 test("http: answers larger than maxResponseBytes are refused, smaller ones read in full", async () => {
-  const http = createHttp({ retries: 0, fetch: async (input) => sized(Number(new URL(String(input)).searchParams.get("bytes"))) });
-  const small = await http.json("s", "https://x.test/?bytes=1000000") as { a: string };
+  const http = createHttp({
+    retries: 0,
+    fetch: async (input) => sized(Number(new URL(String(input)).searchParams.get("bytes"))),
+  });
+  const small = (await http.json("s", "https://x.test/?bytes=1000000")) as { a: string };
   assert.equal(small.a.length, 1_000_000 - 8);
-  await assert.rejects(http.json("s", "https://x.test/?bytes=6000000"), (e: SourceError) =>
-    e instanceof SourceError && e.code === "invalid-response" && /more than 5000000 bytes/.test(e.message));
+  await assert.rejects(
+    http.json("s", "https://x.test/?bytes=6000000"),
+    (e: SourceError) =>
+      e instanceof SourceError && e.code === "invalid-response" && /more than 5000000 bytes/.test(e.message),
+  );
   const strict = createHttp({ retries: 0, maxResponseBytes: 100, fetch: async () => sized(101) });
   await assert.rejects(strict.json("s", "https://x.test/"), (e: SourceError) => e.code === "invalid-response");
   assert.throws(() => createHttp({ maxResponseBytes: 0 }), RangeError);
@@ -57,6 +63,9 @@ test("http: text() reads text with the same rules, asks for HTML and can refuse 
 
 test("free vehicle lookup: pages over 2 MB are refused without exposing the registration", async () => {
   const client = createFreeVehicleClient({ retries: 0, fetch: async () => sized(2_100_000, "<p>", "</p>") });
-  await assert.rejects(client.lookup("ABC123"), (e: SourceError) =>
-    e.code === "invalid-response" && !String(e.url).includes("ABC123") && !e.message.includes("ABC123"));
+  await assert.rejects(
+    client.lookup("ABC123"),
+    (e: SourceError) =>
+      e.code === "invalid-response" && !String(e.url).includes("ABC123") && !e.message.includes("ABC123"),
+  );
 });

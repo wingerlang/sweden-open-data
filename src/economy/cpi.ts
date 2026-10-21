@@ -56,15 +56,19 @@ export interface CpiTablePart {
  * Which SCB tables each index is read from. KPI is the official ("fastställda") series: the 1980=100 figures
  * rebased to 2020=100 up to December 2025, then the official 2020=100 figures. KPIF and KPIF-XE start in 1987.
  */
-export const CPI_TABLES: Readonly<Record<CpiIndex, { readonly label: string; readonly parts: readonly CpiTablePart[] }>> =
-  Object.freeze({
-    KPI: {
-      label: "Konsumentprisindex (KPI)",
-      parts: [{ table: "TAB6792", content: "000007T9" }, { table: "TAB6596", content: "00000808" }],
-    },
-    KPIF: { label: "KPI med fast ränta (KPIF)", parts: [{ table: "TAB6590", content: "000007ZN" }] },
-    "KPIF-XE": { label: "KPIF exklusive energi (KPIF-XE)", parts: [{ table: "TAB6593", content: "000007ZW" }] },
-  });
+export const CPI_TABLES: Readonly<
+  Record<CpiIndex, { readonly label: string; readonly parts: readonly CpiTablePart[] }>
+> = Object.freeze({
+  KPI: {
+    label: "Konsumentprisindex (KPI)",
+    parts: [
+      { table: "TAB6792", content: "000007T9" },
+      { table: "TAB6596", content: "00000808" },
+    ],
+  },
+  KPIF: { label: "KPI med fast ränta (KPIF)", parts: [{ table: "TAB6590", content: "000007ZN" }] },
+  "KPIF-XE": { label: "KPIF exklusive energi (KPIF-XE)", parts: [{ table: "TAB6593", content: "000007ZW" }] },
+});
 
 /** Every index, in the order they are usually shown. */
 export const CPI_INDICES: readonly CpiIndex[] = Object.freeze(["KPI", "KPIF", "KPIF-XE"] as const);
@@ -91,16 +95,20 @@ export function parseScbMonthly(raw: unknown, content: string): { points: CpiPoi
   if (!d || typeof d !== "object" || !Array.isArray(d.id) || !Array.isArray(d.size) || !Array.isArray(d.value)) {
     throw invalid("SCB did not answer with JSON-stat");
   }
-  const ids = d.id as string[], size = d.size as number[], values = d.value as unknown[];
+  const ids = d.id as string[],
+    size = d.size as number[],
+    values = d.value as unknown[];
   const positions = (name: string): Record<string, number> => {
     const index = d.dimension?.[name]?.category?.index;
     if (Array.isArray(index)) return Object.fromEntries(index.map((k, i) => [k, i]));
     if (index && typeof index === "object") return index;
     throw invalid(`SCB answer lacks the dimension ${name}`);
   };
-  const time = positions("Tid"), contents = positions("ContentsCode");
+  const time = positions("Tid"),
+    contents = positions("ContentsCode");
   if (!(content in contents)) throw invalid(`SCB answer lacks ${content}`);
-  if (values.length !== size.reduce((a, b) => a * b, 1) || values.length > 200_000) throw invalid("SCB answer has the wrong size");
+  if (values.length !== size.reduce((a, b) => a * b, 1) || values.length > 200_000)
+    throw invalid("SCB answer has the wrong size");
   // Row-major position of (content, month) with any other dimensions fixed at 0.
   const stride = ids.map((_, i) => size.slice(i + 1).reduce((a, b) => a * b, 1));
   const at = (dims: Record<string, number>): number => ids.reduce((sum, id, i) => sum + (dims[id] ?? 0) * stride[i], 0);
@@ -147,9 +155,11 @@ export function addMonths(month: string, months: number): string {
 export function cpiAt(series: Pick<CpiSeries, "points">, month: string): number | undefined {
   const key = toMonth(month);
   const points = series.points;
-  let lo = 0, hi = points.length - 1;
+  let lo = 0,
+    hi = points.length - 1;
   while (lo <= hi) {
-    const mid = (lo + hi) >> 1, m = points[mid].month;
+    const mid = (lo + hi) >> 1,
+      m = points[mid].month;
     if (m === key) return points[mid].value;
     if (m < key) lo = mid + 1;
     else hi = mid - 1;
@@ -164,14 +174,18 @@ export function latestCpi(series: Pick<CpiSeries, "points">): CpiPoint | undefin
 
 /** First and last month of the series. */
 export function cpiRange(series: Pick<CpiSeries, "points">): { from: string; to: string } | undefined {
-  return series.points.length ? { from: series.points[0].month, to: series.points[series.points.length - 1].month } : undefined;
+  return series.points.length
+    ? { from: series.points[0].month, to: series.points[series.points.length - 1].month }
+    : undefined;
 }
 
 function valueAt(series: Pick<CpiSeries, "points" | "index">, month: string): number {
   const v = cpiAt(series, month);
   if (v === undefined) {
     const r = cpiRange(series);
-    throw new RangeError(`${series.index ?? "The index"} has no value for ${toMonth(month)}${r ? ` (${r.from}–${r.to})` : ""}`);
+    throw new RangeError(
+      `${series.index ?? "The index"} has no value for ${toMonth(month)}${r ? ` (${r.from}–${r.to})` : ""}`,
+    );
   }
   return v;
 }
@@ -197,18 +211,25 @@ export interface InflationAdjustment {
  * adjustForInflation(kpi, 10_000, "2000-01").amount; // ≈ 16 000
  * ```
  */
-export function adjustForInflation(series: Pick<CpiSeries, "points" | "index">, amount: number, from: string, to?: string): InflationAdjustment {
+export function adjustForInflation(
+  series: Pick<CpiSeries, "points" | "index">,
+  amount: number,
+  from: string,
+  to?: string,
+): InflationAdjustment {
   if (!Number.isFinite(amount)) throw new RangeError("amount must be a finite number");
   const end = to === undefined ? latestCpi(series)?.month : toMonth(to);
   if (!end) throw new RangeError("The series is empty");
-  const start = toMonth(from), factor = valueAt(series, end) / valueAt(series, start);
+  const start = toMonth(from),
+    factor = valueAt(series, end) / valueAt(series, start);
   return { amount: amount * factor, factor, change: factor - 1, from: start, to: end };
 }
 
 /** Inflation over the `months` months up to and including `month` (default 12, the usual annual rate), or `null`. */
 export function inflationRate(series: Pick<CpiSeries, "points">, month: string, months = 12): number | null {
   if (!Number.isInteger(months) || months < 1) throw new RangeError("months must be a positive integer");
-  const now = cpiAt(series, month), before = cpiAt(series, addMonths(month, -months));
+  const now = cpiAt(series, month),
+    before = cpiAt(series, addMonths(month, -months));
   return now === undefined || before === undefined ? null : now / before - 1;
 }
 
@@ -222,7 +243,8 @@ export function inflationRates(series: Pick<CpiSeries, "points">, months = 12): 
 
 /** Average annual inflation between two months (geometric, as a fraction per year). */
 export function averageAnnualInflation(series: Pick<CpiSeries, "points" | "index">, from: string, to: string): number {
-  const a = toMonth(from), b = toMonth(to);
+  const a = toMonth(from),
+    b = toMonth(to);
   const months = (Number(b.slice(0, 4)) - Number(a.slice(0, 4))) * 12 + Number(b.slice(5)) - Number(a.slice(5));
   if (months <= 0) throw new RangeError("to must be after from");
   return (valueAt(series, b) / valueAt(series, a)) ** (12 / months) - 1;
@@ -262,8 +284,13 @@ export interface RealChange {
  * r.real; // > 0: the salary buys more than in 2018
  * ```
  */
-export function realChange(series: Pick<CpiSeries, "points" | "index">, earlier: DatedAmount, later: DatedAmount): RealChange {
-  if (!(earlier.amount > 0) || !(later.amount >= 0)) throw new RangeError("The earlier amount must be positive and the later one not negative");
+export function realChange(
+  series: Pick<CpiSeries, "points" | "index">,
+  earlier: DatedAmount,
+  later: DatedAmount,
+): RealChange {
+  if (!(earlier.amount > 0) || !(later.amount >= 0))
+    throw new RangeError("The earlier amount must be positive and the later one not negative");
   const adj = adjustForInflation(series, earlier.amount, earlier.month, later.month);
   return {
     nominal: later.amount / earlier.amount - 1,
@@ -277,7 +304,11 @@ export function realChange(series: Pick<CpiSeries, "points" | "index">, earlier:
  * Turns nominal values (for example a balance, an index level or a price series) into real values in the prices of
  * month `to` (default: newest). Points in months without an index value are left out.
  */
-export function deflate(series: Pick<CpiSeries, "points" | "index">, values: readonly DatedAmount[], to?: string): DatedAmount[] {
+export function deflate(
+  series: Pick<CpiSeries, "points" | "index">,
+  values: readonly DatedAmount[],
+  to?: string,
+): DatedAmount[] {
   const end = to === undefined ? latestCpi(series)?.month : toMonth(to);
   if (!end) return [];
   const target = valueAt(series, end);

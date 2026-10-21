@@ -19,8 +19,14 @@ export type Polygon = number[][][];
 export function isCoordinates(value: unknown): value is Coordinates {
   if (!value || typeof value !== "object") return false;
   const { latitude, longitude } = value as Record<string, unknown>;
-  return typeof latitude === "number" && typeof longitude === "number" && Number.isFinite(latitude) &&
-    Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+  return (
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180
+  );
 }
 
 /** Throws a {@link RangeError} unless `value` are valid {@link Coordinates}. */
@@ -39,8 +45,9 @@ export function roundCoordinates(point: Coordinates, decimals = 2): Coordinates 
 /** Great-circle distance in kilometres. */
 export function distanceKm(a: Coordinates, b: Coordinates): number {
   const r = Math.PI / 180;
-  const x = Math.sin((b.latitude - a.latitude) * r / 2) ** 2 +
-    Math.cos(a.latitude * r) * Math.cos(b.latitude * r) * Math.sin((b.longitude - a.longitude) * r / 2) ** 2;
+  const x =
+    Math.sin(((b.latitude - a.latitude) * r) / 2) ** 2 +
+    Math.cos(a.latitude * r) * Math.cos(b.latitude * r) * Math.sin(((b.longitude - a.longitude) * r) / 2) ** 2;
   return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(x)));
 }
 
@@ -51,8 +58,11 @@ export function inPolygon(point: Coordinates, polygon: Polygon): boolean {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
       const [xi, yi] = ring[i];
       const [xj, yj] = ring[j];
-      if (yi > point.latitude !== yj > point.latitude &&
-        point.longitude < (xj - xi) * (point.latitude - yi) / (yj - yi || 1e-12) + xi) c = !c;
+      if (
+        yi > point.latitude !== yj > point.latitude &&
+        point.longitude < ((xj - xi) * (point.latitude - yi)) / (yj - yi || 1e-12) + xi
+      )
+        c = !c;
     }
     return c;
   };

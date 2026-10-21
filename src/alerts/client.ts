@@ -9,7 +9,14 @@ import { SourceError } from "../core/errors.ts";
 import { isCoordinates } from "../core/geo.ts";
 import { createGeoClient } from "../geo/client.ts";
 import type { Region } from "../geo/regions.ts";
-import { type Alert, type RelevanceOptions, type RelevantAlert, parseKrisinformation, parseSmhiWarnings, relevantAlerts } from "./alerts.ts";
+import {
+  type Alert,
+  type RelevanceOptions,
+  type RelevantAlert,
+  parseKrisinformation,
+  parseSmhiWarnings,
+  relevantAlerts,
+} from "./alerts.ts";
 
 /** The three feeds: VMA and news from Krisinformation.se, weather warnings from SMHI. */
 export type AlertFeedId = "vma" | "news" | "smhi";
@@ -90,20 +97,31 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
       id: "vma",
       name: "Krisinformation.se · VMA",
       url: "https://www.krisinformation.se",
-      load: async (signal) => parseKrisinformation(await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/vmas`, { signal }), "vma"),
+      load: async (signal) =>
+        parseKrisinformation(
+          await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/vmas`, { signal }),
+          "vma",
+        ),
     },
     {
       id: "news",
       name: "Krisinformation.se · nyheter",
       url: "https://www.krisinformation.se",
       load: async (signal) =>
-        parseKrisinformation(await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/news?days=30`, { signal }), "news"),
+        parseKrisinformation(
+          await ctx.http.json("krisinformation", `${ctx.endpoints.krisinformation}/news?days=30`, { signal }),
+          "news",
+        ),
     },
     {
       id: "smhi",
       name: "SMHI · varningar",
       url: "https://www.smhi.se/vader/varningar-och-brandrisk",
-      load: async (signal) => parseSmhiWarnings(await ctx.http.json("smhi", ctx.endpoints.smhiWarnings, { signal }), { now: ctx.now(), locale }),
+      load: async (signal) =>
+        parseSmhiWarnings(await ctx.http.json("smhi", ctx.endpoints.smhiWarnings, { signal }), {
+          now: ctx.now(),
+          locale,
+        }),
     },
   ];
 
@@ -112,12 +130,19 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
       throw new RangeError(`feeds must be a non-empty list of ${ALERT_FEEDS.join(", ")}`);
     }
     const chosen = options.feeds ? feeds.filter((f) => options.feeds?.includes(f.id)) : feeds;
-    const results = await Promise.all(chosen.map((f) =>
-      ctx.cache.get(`alerts:${f.id}:${locale}`, ctx.ttl.alerts, (signal) => f.load(signal), { signal: options.signal, source: f.id === "smhi" ? "smhi" : "krisinformation" }).then(
-        (alerts) => ({ ok: true, alerts }),
-        (error: unknown) => ({ ok: false, alerts: [] as Alert[], error }),
-      )
-    ));
+    const results = await Promise.all(
+      chosen.map((f) =>
+        ctx.cache
+          .get(`alerts:${f.id}:${locale}`, ctx.ttl.alerts, (signal) => f.load(signal), {
+            signal: options.signal,
+            source: f.id === "smhi" ? "smhi" : "krisinformation",
+          })
+          .then(
+            (alerts) => ({ ok: true, alerts }),
+            (error: unknown) => ({ ok: false, alerts: [] as Alert[], error }),
+          ),
+      ),
+    );
     if (results.every((r) => !r.ok)) {
       const first = (results[0] as { error?: unknown }).error;
       throw first instanceof SourceError

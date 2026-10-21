@@ -1,13 +1,26 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createClient, createContext, createSpotClient, createWeatherClient, DEFAULT_ENDPOINTS, type RequestEvent, SourceError } from "../src/mod.ts";
+import {
+  createClient,
+  createContext,
+  createSpotClient,
+  createWeatherClient,
+  DEFAULT_ENDPOINTS,
+  type RequestEvent,
+  SourceError,
+} from "../src/mod.ts";
 import * as root from "../src/mod.ts";
 import { elprisDay, fakeFetch, openMeteoResponse, quick } from "./helpers.ts";
 
 test("createClient: one cache and one configuration for every area", async () => {
   const events: RequestEvent[] = [];
   const fetch = fakeFetch((url) => (url.hostname === "api.open-meteo.com" ? openMeteoResponse() : elprisDay()));
-  const se = createClient({ fetch, onRequest: (e) => events.push(e), now: () => Date.parse("2026-10-12T10:00:00+02:00"), ...quick });
+  const se = createClient({
+    fetch,
+    onRequest: (e) => events.push(e),
+    now: () => Date.parse("2026-10-12T10:00:00+02:00"),
+    ...quick,
+  });
   assert.ok(Object.isFrozen(se));
   const { today } = await se.spot.prices("SE3");
   assert.equal(today?.points.length, 96);
@@ -45,7 +58,21 @@ test("custom endpoints and disabled cache", async () => {
 });
 
 test("the main entry point exports every area", () => {
-  for (const name of ["createClient", "createSpotClient", "createWeatherClient", "createAlertsClient", "createGeoClient", "summarizeSpotPrices", "describeWeather", "relevantAlerts", "parseAddressQuery", "swedishDate", "distanceKm", "memoryStore", "SourceError"]) {
+  for (const name of [
+    "createClient",
+    "createSpotClient",
+    "createWeatherClient",
+    "createAlertsClient",
+    "createGeoClient",
+    "summarizeSpotPrices",
+    "describeWeather",
+    "relevantAlerts",
+    "parseAddressQuery",
+    "swedishDate",
+    "distanceKm",
+    "memoryStore",
+    "SourceError",
+  ]) {
     assert.equal(typeof (root as Record<string, unknown>)[name], "function", name);
   }
   assert.ok(new SourceError("x", { code: "http", source: "s" }) instanceof Error);

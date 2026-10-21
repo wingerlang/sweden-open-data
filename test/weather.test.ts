@@ -35,15 +35,28 @@ test("parsing: absolute times, skipped gaps, Swedish and English labels", () => 
   assert.deepEqual(describeWeather(1234), { label: "Okänt väder", icon: "cloud" });
   assert.equal(describeWeather(1234, "en").label, "Unknown weather");
   assert.ok(WEATHER_CODES.includes(95));
-  assert.throws(() => parseOpenMeteo({}), (e: SourceError) => e.code === "invalid-response");
+  assert.throws(
+    () => parseOpenMeteo({}),
+    (e: SourceError) => e.code === "invalid-response",
+  );
   assert.throws(() => parseOpenMeteo(null));
 
-  const sparse = parseOpenMeteo({ current: { time: "2026-10-12T14:00", temperature_2m: "5" }, latitude: 1, longitude: 2 }, NOW);
+  const sparse = parseOpenMeteo(
+    { current: { time: "2026-10-12T14:00", temperature_2m: "5" }, latitude: 1, longitude: 2 },
+    NOW,
+  );
   assert.equal(sparse.current.code, 3);
   assert.equal(sparse.current.wind, null);
   assert.equal(sparse.current.time, "2026-10-12T14:00:00.000Z", "no offset given: treated as UTC");
   assert.deepEqual([sparse.hours, sparse.days], [[], []]);
-  const odd = parseOpenMeteo({ current: { time: "2026-10-12T14:00", temperature_2m: 5, wind_speed_10m: "" }, daily: { time: ["2026-10-12"], temperature_2m_max: [1], temperature_2m_min: [0] }, hourly: { time: ["2026-10-12T14:00"], temperature_2m: [1] } }, NOW);
+  const odd = parseOpenMeteo(
+    {
+      current: { time: "2026-10-12T14:00", temperature_2m: 5, wind_speed_10m: "" },
+      daily: { time: ["2026-10-12"], temperature_2m_max: [1], temperature_2m_min: [0] },
+      hourly: { time: ["2026-10-12T14:00"], temperature_2m: [1] },
+    },
+    NOW,
+  );
   assert.equal(odd.current.wind, null);
   assert.equal(odd.days[0].code, 3);
   assert.equal(odd.hours[0].code, 3);
@@ -56,7 +69,12 @@ test("request URL: rounded position, all fields, validated options", () => {
   assert.equal(url.searchParams.get("forecast_days"), "7");
   assert.equal(url.searchParams.get("wind_speed_unit"), "ms");
   assert.ok(url.searchParams.get("hourly")!.includes("precipitation_probability"));
-  assert.equal(new URL(openMeteoUrl({ latitude: 59.3293, longitude: 18.0686 }, { precision: 3, days: 3, base: "https://m.test/f" })).search.includes("latitude=59.329"), true);
+  assert.equal(
+    new URL(
+      openMeteoUrl({ latitude: 59.3293, longitude: 18.0686 }, { precision: 3, days: 3, base: "https://m.test/f" }),
+    ).search.includes("latitude=59.329"),
+    true,
+  );
   assert.throws(() => openMeteoUrl({ latitude: 59, longitude: 18 }, { days: 17 }), RangeError);
   assert.throws(() => openMeteoUrl({ latitude: 99, longitude: 18 }), RangeError);
 });
@@ -99,7 +117,10 @@ test("client: rounds before sending, caches per ~1 km, reports failures", async 
   await weather.forecast({ latitude: 59.33, longitude: 18.07 }, { days: 3 });
   assert.equal(fetch.calls.length, 2, "different length, different request");
   fail = true;
-  await assert.rejects(weather.forecast({ latitude: 10, longitude: 10 }), (e: SourceError) => e.code === "network" && e.source === "open-meteo");
+  await assert.rejects(
+    weather.forecast({ latitude: 10, longitude: 10 }),
+    (e: SourceError) => e.code === "network" && e.source === "open-meteo",
+  );
   await assert.rejects(weather.forecast({ latitude: 999, longitude: 1 }), RangeError);
   assert.equal(WEATHER_SOURCE.license, "CC BY 4.0");
 });

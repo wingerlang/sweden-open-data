@@ -13,6 +13,6 @@
 export * from "./forecast.ts";
 export * from "./client.ts";
 
-export * from './history.ts';
+export * from "./history.ts";
 
-export * from './environment.ts';
+export * from "./environment.ts";

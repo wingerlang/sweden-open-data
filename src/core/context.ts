@@ -80,19 +80,21 @@ export interface ClientOptions extends HttpOptions {
    * In-memory caching. `true` (default) uses {@link DEFAULT_TTL}; `false` disables it (concurrent identical requests
    * are still shared); an object tunes it.
    */
-  cache?: boolean | {
-    /** Maximum number of cached results. Default `500`. */
-    maxEntries?: number;
-    /** Maximum number of past days kept by `spot.history`, in a cache of their own. Default `400`. */
-    archiveEntries?: number;
-    /** Lifetimes per kind of data. */
-    ttl?: Partial<CacheTtl>;
-    /**
-     * Keep serving the last good result for this long after it expired when the source fails, instead of an error.
-     * Default `0`. A dashboard might use a few hours; results carry `fetchedAt`, so you can show their age.
-     */
-    staleIfErrorMs?: number;
-  };
+  cache?:
+    | boolean
+    | {
+        /** Maximum number of cached results. Default `500`. */
+        maxEntries?: number;
+        /** Maximum number of past days kept by `spot.history`, in a cache of their own. Default `400`. */
+        archiveEntries?: number;
+        /** Lifetimes per kind of data. */
+        ttl?: Partial<CacheTtl>;
+        /**
+         * Keep serving the last good result for this long after it expired when the source fails, instead of an error.
+         * Default `0`. A dashboard might use a few hours; results carry `fetchedAt`, so you can show their age.
+         */
+        staleIfErrorMs?: number;
+      };
   /** Called for every cache hit, miss and stale answer. Must not throw. */
   onCacheEvent?: (event: CacheEvent) => void;
   /** Durable storage: complete historical spot-price days, and the last good consumer price index series. */

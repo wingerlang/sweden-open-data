@@ -4,12 +4,21 @@ import { SourceError } from "../src/core/errors.ts";
 import { createHttp, type RequestEvent } from "../src/core/http.ts";
 import { createMemoryCache, memoryStore } from "../src/core/cache.ts";
 import { createContext, DEFAULT_ENDPOINTS, DEFAULT_TTL, storeGet, storeSet } from "../src/core/context.ts";
-import { addDays, hoursInDay, isCalendarDate, stockholmClock, stockholmDateTime, stockholmMidnight, swedishDate } from "../src/core/time.ts";
+import {
+  addDays,
+  hoursInDay,
+  isCalendarDate,
+  stockholmClock,
+  stockholmDateTime,
+  stockholmMidnight,
+  swedishDate,
+} from "../src/core/time.ts";
 import { assertCoordinates, distanceKm, fold, inPolygon, isCoordinates, roundCoordinates } from "../src/core/geo.ts";
 import { fakeFetch, square } from "./helpers.ts";
 
 test("SourceError: transient for timeouts, network, 429 and 5xx only", () => {
-  const e = (code: SourceError["code"], status?: number): SourceError => new SourceError("x", { code, source: "s", status });
+  const e = (code: SourceError["code"], status?: number): SourceError =>
+    new SourceError("x", { code, source: "s", status });
   assert.equal(e("timeout").transient, true);
   assert.equal(e("network").transient, true);
   assert.equal(e("rate-limited", 429).transient, true);
@@ -37,53 +46,89 @@ test("http: JSON, headers, 404 as undefined, and an event per attempt", async ()
   assert.equal(headers?.get("user-agent"), "test/1.0");
   assert.equal(headers?.get("accept"), "application/json");
   assert.equal(await http.json("src", new URL("https://x.test/missing"), { allowNotFound: true }), undefined);
-  await assert.rejects(http.json("src", "https://x.test/missing"), (e: SourceError) => e.code === "http" && e.status === 404 && !e.transient);
-  assert.deepEqual(events.map((e) => [e.source, e.status, e.attempt, !!e.error]), [["src", 200, 1, false], ["src", 404, 1, false], ["src", 404, 1, true]]);
+  await assert.rejects(
+    http.json("src", "https://x.test/missing"),
+    (e: SourceError) => e.code === "http" && e.status === 404 && !e.transient,
+  );
+  assert.deepEqual(
+    events.map((e) => [e.source, e.status, e.attempt, !!e.error]),
+    [
+      ["src", 200, 1, false],
+      ["src", 404, 1, false],
+      ["src", 404, 1, true],
+    ],
+  );
   assert.ok(events.every((e) => e.ms >= 0 && e.url.startsWith("https://x.test/")));
 });
 
 test("http: retries transient failures with backoff, never permanent ones", async () => {
   let n = 0;
   const flaky = fakeFetch(() => (++n < 3 ? new Response("busy", { status: 503 }) : { n }));
-  assert.deepEqual(await createHttp({ fetch: flaky, retries: 2, retryDelayMs: 1 }).json("s", "https://x.test"), { n: 3 });
+  assert.deepEqual(await createHttp({ fetch: flaky, retries: 2, retryDelayMs: 1 }).json("s", "https://x.test"), {
+    n: 3,
+  });
   assert.equal(flaky.calls.length, 3);
 
   const limited = fakeFetch(() => new Response("slow down", { status: 429 }));
-  await assert.rejects(createHttp({ fetch: limited, retries: 1, retryDelayMs: 0 }).json("s", "https://x.test"), (e: SourceError) => e.code === "rate-limited");
+  await assert.rejects(
+    createHttp({ fetch: limited, retries: 1, retryDelayMs: 0 }).json("s", "https://x.test"),
+    (e: SourceError) => e.code === "rate-limited",
+  );
   assert.equal(limited.calls.length, 2);
 
   const bad = fakeFetch(() => new Response("bad", { status: 400 }));
-  await assert.rejects(createHttp({ fetch: bad, retries: 3 }).json("s", "https://x.test"), (e: SourceError) => e.status === 400);
+  await assert.rejects(
+    createHttp({ fetch: bad, retries: 3 }).json("s", "https://x.test"),
+    (e: SourceError) => e.status === 400,
+  );
   assert.equal(bad.calls.length, 1, "400 is not retried");
 
   const down = fakeFetch(() => {
     throw new TypeError("fetch failed");
   });
-  await assert.rejects(createHttp({ fetch: down, retries: 0 }).json("s", "https://x.test"), (e: SourceError) => e.code === "network" && e.transient);
+  await assert.rejects(
+    createHttp({ fetch: down, retries: 0 }).json("s", "https://x.test"),
+    (e: SourceError) => e.code === "network" && e.transient,
+  );
 });
 
 test("http: invalid JSON, timeouts and cancellation", async () => {
   const html = fakeFetch(() => new Response("<html>", { status: 200 }));
-  await assert.rejects(createHttp({ fetch: html }).json("s", "https://x.test"), (e: SourceError) => e.code === "invalid-response");
+  await assert.rejects(
+    createHttp({ fetch: html }).json("s", "https://x.test"),
+    (e: SourceError) => e.code === "invalid-response",
+  );
 
-  const hang = fakeFetch((_, init) => new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal?.reason))));
-  await assert.rejects(createHttp({ fetch: hang, timeoutMs: 20, retries: 0 }).json("s", "https://x.test"), (e: SourceError) => e.code === "timeout");
+  const hang = fakeFetch(
+    (_, init) => new Promise((_, reject) => init?.signal?.addEventListener("abort", () => reject(init.signal?.reason))),
+  );
+  await assert.rejects(
+    createHttp({ fetch: hang, timeoutMs: 20, retries: 0 }).json("s", "https://x.test"),
+    (e: SourceError) => e.code === "timeout",
+  );
 
   const controller = new AbortController();
-  const pending = createHttp({ fetch: hang, timeoutMs: 5000 }).json("s", "https://x.test", { signal: controller.signal });
+  const pending = createHttp({ fetch: hang, timeoutMs: 5000 }).json("s", "https://x.test", {
+    signal: controller.signal,
+  });
   controller.abort();
   await assert.rejects(pending, (e: SourceError) => e.code === "aborted" && !e.transient);
 
   // Cancelling while waiting to retry stops the retry.
   const failing = fakeFetch(() => new Response("", { status: 500 }));
   const c2 = new AbortController();
-  const retrying = createHttp({ fetch: failing, retries: 3, retryDelayMs: 1000 }).json("s", "https://x.test", { signal: c2.signal });
+  const retrying = createHttp({ fetch: failing, retries: 3, retryDelayMs: 1000 }).json("s", "https://x.test", {
+    signal: c2.signal,
+  });
   setTimeout(() => c2.abort(), 10);
   await assert.rejects(retrying, (e: SourceError) => e.code === "aborted");
   assert.equal(failing.calls.length, 1);
 
   const already = AbortSignal.abort();
-  await assert.rejects(createHttp({ fetch: failing, retries: 1, retryDelayMs: 0 }).json("s", "https://x.test", { signal: already }), (e: SourceError) => e.code === "aborted");
+  await assert.rejects(
+    createHttp({ fetch: failing, retries: 1, retryDelayMs: 0 }).json("s", "https://x.test", { signal: already }),
+    (e: SourceError) => e.code === "aborted",
+  );
 });
 
 test("http: works without AbortSignal.any", async () => {
@@ -93,8 +138,13 @@ test("http: works without AbortSignal.any", async () => {
   try {
     const fetch = fakeFetch(() => ({ ok: true }));
     const controller = new AbortController();
-    assert.deepEqual(await createHttp({ fetch }).json("s", "https://x.test", { signal: controller.signal }), { ok: true });
-    await assert.rejects(createHttp({ fetch }).json("s", "https://x.test", { signal: AbortSignal.abort() }), (e: SourceError) => e.code === "aborted");
+    assert.deepEqual(await createHttp({ fetch }).json("s", "https://x.test", { signal: controller.signal }), {
+      ok: true,
+    });
+    await assert.rejects(
+      createHttp({ fetch }).json("s", "https://x.test", { signal: AbortSignal.abort() }),
+      (e: SourceError) => e.code === "aborted",
+    );
   } finally {
     AbortSignal.any = original;
   }
@@ -115,7 +165,14 @@ test("memory cache: single flight, TTL, per-value TTL, failures not cached, LRU"
   await assert.rejects(cache.get("bad", 100, () => Promise.reject(new Error("x"))));
   assert.equal(await cache.get("bad", 100, async () => "ok"), "ok", "a failure is retried");
 
-  assert.equal(await cache.get("short", (v: string) => (v === "miss" ? 0 : 100), async () => "miss"), "miss");
+  assert.equal(
+    await cache.get(
+      "short",
+      (v: string) => (v === "miss" ? 0 : 100),
+      async () => "miss",
+    ),
+    "miss",
+  );
   assert.equal(await cache.get("short", 100, async () => "hit"), "hit", "TTL 0 is not kept");
 
   await cache.get("x", 100, async () => 1);
@@ -142,7 +199,11 @@ test("memory cache: disabled still shares concurrent loads", async () => {
 });
 
 test("context: defaults, overrides, validation, reuse and resilient stores", async () => {
-  const ctx = createContext({ endpoints: { weather: "https://mirror.test" }, cache: { ttl: { weather: 5 } }, locale: "en" });
+  const ctx = createContext({
+    endpoints: { weather: "https://mirror.test" },
+    cache: { ttl: { weather: 5 } },
+    locale: "en",
+  });
   assert.equal(ctx.endpoints.weather, "https://mirror.test");
   assert.equal(ctx.endpoints.spot, DEFAULT_ENDPOINTS.spot);
   assert.equal(ctx.ttl.weather, 5);
@@ -160,7 +221,14 @@ test("context: defaults, overrides, validation, reuse and resilient stores", asy
   assert.equal(await storeGet(store, "missing"), undefined);
   assert.equal(await storeGet(undefined, "a"), undefined);
   await storeSet(undefined, "a", 1);
-  const broken = { get: (): never => { throw new Error("disk"); }, set: (): never => { throw new Error("disk"); } };
+  const broken = {
+    get: (): never => {
+      throw new Error("disk");
+    },
+    set: (): never => {
+      throw new Error("disk");
+    },
+  };
   assert.equal(await storeGet(broken, "a"), undefined);
   await storeSet(broken, "a", 1);
   assert.equal(await storeGet({ get: () => "{not json", set: () => {} }, "a"), undefined);
@@ -188,11 +256,22 @@ test("time: Swedish dates regardless of the runtime's time zone, including DST d
 
 test("geo: validation, rounding, distance, polygons with holes and folding", () => {
   assert.ok(isCoordinates({ latitude: 59.3, longitude: 18 }));
-  for (const bad of [null, 1, {}, { latitude: 91, longitude: 0 }, { latitude: 0, longitude: 181 }, { latitude: NaN, longitude: 0 }, { latitude: "59", longitude: 18 }]) {
+  for (const bad of [
+    null,
+    1,
+    {},
+    { latitude: 91, longitude: 0 },
+    { latitude: 0, longitude: 181 },
+    { latitude: NaN, longitude: 0 },
+    { latitude: "59", longitude: 18 },
+  ]) {
     assert.ok(!isCoordinates(bad), JSON.stringify(bad));
   }
   assert.throws(() => assertCoordinates({ latitude: 100, longitude: 0 }, "home"), /home must be/);
-  assert.deepEqual(roundCoordinates({ latitude: 59.32938, longitude: 18.06861 }), { latitude: 59.33, longitude: 18.07 });
+  assert.deepEqual(roundCoordinates({ latitude: 59.32938, longitude: 18.06861 }), {
+    latitude: 59.33,
+    longitude: 18.07,
+  });
   assert.deepEqual(roundCoordinates({ latitude: 59.32938, longitude: 18.06861 }, 0), { latitude: 59, longitude: 18 });
   const km = distanceKm({ latitude: 59.3293, longitude: 18.0686 }, { latitude: 57.7089, longitude: 11.9746 });
   assert.ok(km > 390 && km < 400, `Stockholm–Göteborg ${km}`);

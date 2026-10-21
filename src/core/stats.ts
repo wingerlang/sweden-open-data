@@ -53,7 +53,14 @@ export function createStats(now: () => number = Date.now): StatsCollector {
   let sources = new Map<string, SourceStats & { totalMs: number }>();
   return {
     request(e) {
-      const s = sources.get(e.source) ?? { requests: 0, failures: 0, retries: 0, averageMs: 0, totalMs: 0, lastStatus: null };
+      const s = sources.get(e.source) ?? {
+        requests: 0,
+        failures: 0,
+        retries: 0,
+        averageMs: 0,
+        totalMs: 0,
+        lastStatus: null,
+      };
       s.requests++;
       if (e.attempt > 1) s.retries++;
       if (e.error) {

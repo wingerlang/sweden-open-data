@@ -134,8 +134,14 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
   };
 
   return {
-    get<V>(key: string, ttl: Ttl<V>, load: (signal: AbortSignal) => Promise<V>, getOptions: CacheGetOptions = {}): Promise<V> {
-      if (getOptions.signal?.aborted) return Promise.reject(aborted(getOptions.source ?? "cache", getOptions.signal.reason));
+    get<V>(
+      key: string,
+      ttl: Ttl<V>,
+      load: (signal: AbortSignal) => Promise<V>,
+      getOptions: CacheGetOptions = {},
+    ): Promise<V> {
+      if (getOptions.signal?.aborted)
+        return Promise.reject(aborted(getOptions.source ?? "cache", getOptions.signal.reason));
       const hit = entries.get(key);
       if (hit && hit.expires > now()) {
         remember(key, hit);
@@ -145,32 +151,39 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
       const previous = hit?.data && hit.staleUntil > now() ? hit : undefined;
       emit({ type: "miss", key });
       const controller = new AbortController();
-      const entry: Entry = { expires: Infinity, staleUntil: Infinity, value: Promise.resolve(), flight: { controller, waiting: 0 } };
-      const value = Promise.resolve(controller.signal).then(load).then(
-        (v) => {
-          entry.flight = undefined;
-          const ms = typeof ttl === "function" ? ttl(v) : ttl;
-          if (!enabled || !(ms > 0)) {
+      const entry: Entry = {
+        expires: Infinity,
+        staleUntil: Infinity,
+        value: Promise.resolve(),
+        flight: { controller, waiting: 0 },
+      };
+      const value = Promise.resolve(controller.signal)
+        .then(load)
+        .then(
+          (v) => {
+            entry.flight = undefined;
+            const ms = typeof ttl === "function" ? ttl(v) : ttl;
+            if (!enabled || !(ms > 0)) {
+              if (entries.get(key) === entry) entries.delete(key);
+            } else {
+              entry.expires = now() + ms;
+              entry.staleUntil = entry.expires + staleIfError;
+              entry.data = { value: v };
+            }
+            return v;
+          },
+          (error: unknown) => {
+            entry.flight = undefined;
             if (entries.get(key) === entry) entries.delete(key);
-          } else {
-            entry.expires = now() + ms;
-            entry.staleUntil = entry.expires + staleIfError;
-            entry.data = { value: v };
-          }
-          return v;
-        },
-        (error: unknown) => {
-          entry.flight = undefined;
-          if (entries.get(key) === entry) entries.delete(key);
-          if (!previous || controller.signal.aborted) throw error;
-          // Serve the last good value, and wait a minute before asking the failing source again.
-          previous.expires = Math.min(previous.staleUntil, now() + 60_000);
-          previous.value = Promise.resolve(previous.data?.value);
-          if (!entries.has(key)) remember(key, previous);
-          emit({ type: "stale", key });
-          return previous.data?.value as V;
-        },
-      );
+            if (!previous || controller.signal.aborted) throw error;
+            // Serve the last good value, and wait a minute before asking the failing source again.
+            previous.expires = Math.min(previous.staleUntil, now() + 60_000);
+            previous.value = Promise.resolve(previous.data?.value);
+            if (!entries.has(key)) remember(key, previous);
+            emit({ type: "stale", key });
+            return previous.data?.value as V;
+          },
+        );
       // Nobody may be listening when every caller has left; the rejection is then expected and not an error.
       value.catch(() => {});
       entry.value = value;

@@ -66,7 +66,10 @@ export function parseAddressQuery(query: string): AddressQuery {
   const postalCode = postal ? postal[1] + " " + postal[2] : "";
   const before = postal ? t.slice(0, postal.index).trim() : t;
   const after = postal ? t.slice((postal.index ?? 0) + postal[0].length).trim() : "";
-  const [first = "", ...rest] = before.split(",").map((s) => s.trim()).filter(Boolean);
+  const [first = "", ...rest] = before
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const houseMatch = first.match(/\s(\d+ ?[a-z]?(?:-\d+)?)$/i);
   const house = houseMatch ? houseMatch[1].replace(/\s/g, "").toUpperCase() : "";
   const street = (houseMatch ? first.slice(0, houseMatch.index) : first).trim();
@@ -87,7 +90,8 @@ export function matchesAddressQuery(result: AddressSuggestion, query: string): b
   return !house || (result.precision === "city" && !result.address) || tokens.has(fold(house));
 }
 
-const capitalize = (s: string): string => s.replace(/(^|[\s-])(\p{Ll})/gu, (_, a: string, b: string) => a + b.toUpperCase());
+const capitalize = (s: string): string =>
+  s.replace(/(^|[\s-])(\p{Ll})/gu, (_, a: string, b: string) => a + b.toUpperCase());
 
 /**
  * A suggestion with the address exactly as typed, positioned at a village or town that was found. Used when the
@@ -129,23 +133,29 @@ export function parsePhotonAddresses(json: unknown): AddressSuggestion[] {
   const features = (json as Json)?.features;
   if (!Array.isArray(features)) return [];
   const seen = new Set<string>();
-  return features.flatMap((f: Json): AddressSuggestion[] => {
-    const p = f?.properties;
-    const position = point(f);
-    if (!p || !position) return [];
-    const house = str(p.housenumber);
-    const street = str(p.street) || (house ? str(p.name) : "");
-    const address = [street, house].filter(Boolean).join(" ");
-    const city = str(p.city) || str(p.town) || str(p.village) || str(p.locality) || str(p.district) || str(p.name);
-    const postalCode = str(p.postcode);
-    const countryCode = str(p.countrycode).toUpperCase();
-    if (!/^[A-Z]{2}$/.test(countryCode) || (!city && !address)) return [];
-    const label = [address || str(p.name), [postalCode, city].filter(Boolean).join(" "), countryCode].filter(Boolean).join(" · ");
-    const key = `${label}:${position.longitude},${position.latitude}`;
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [{ label, address, city, postalCode, countryCode, ...position, precision: house && street ? "address" : "city" }];
-  }).slice(0, 12);
+  return features
+    .flatMap((f: Json): AddressSuggestion[] => {
+      const p = f?.properties;
+      const position = point(f);
+      if (!p || !position) return [];
+      const house = str(p.housenumber);
+      const street = str(p.street) || (house ? str(p.name) : "");
+      const address = [street, house].filter(Boolean).join(" ");
+      const city = str(p.city) || str(p.town) || str(p.village) || str(p.locality) || str(p.district) || str(p.name);
+      const postalCode = str(p.postcode);
+      const countryCode = str(p.countrycode).toUpperCase();
+      if (!/^[A-Z]{2}$/.test(countryCode) || (!city && !address)) return [];
+      const label = [address || str(p.name), [postalCode, city].filter(Boolean).join(" "), countryCode]
+        .filter(Boolean)
+        .join(" · ");
+      const key = `${label}:${position.longitude},${position.latitude}`;
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [
+        { label, address, city, postalCode, countryCode, ...position, precision: house && street ? "address" : "city" },
+      ];
+    })
+    .slice(0, 12);
 }
 
 /** Parses a Photon response into named places (points of interest, villages, cities). */
@@ -169,6 +179,14 @@ export function parseOpenMeteoPlaces(json: unknown): Place[] {
   return results.flatMap((r: Json): Place[] => {
     const position = { latitude: r?.latitude, longitude: r?.longitude };
     if (typeof r?.name !== "string" || !/^[A-Z]{2}$/.test(r.country_code) || !isCoordinates(position)) return [];
-    return [{ name: r.name, region: typeof r.admin1 === "string" ? r.admin1 : "", countryCode: r.country_code, ...position, source: "Open-Meteo / GeoNames" }];
+    return [
+      {
+        name: r.name,
+        region: typeof r.admin1 === "string" ? r.admin1 : "",
+        countryCode: r.country_code,
+        ...position,
+        source: "Open-Meteo / GeoNames",
+      },
+    ];
   });
 }

@@ -150,7 +150,13 @@ export function createHttp(options: HttpOptions = {}): Http {
   if (options.userAgent) baseHeaders["user-agent"] = options.userAgent;
 
   type Kind = "json" | "text";
-  async function attempt(source: string, url: string, request: RequestOptions, n: number, kind: Kind): Promise<unknown> {
+  async function attempt(
+    source: string,
+    url: string,
+    request: RequestOptions,
+    n: number,
+    kind: Kind,
+  ): Promise<unknown> {
     const doFetch = options.fetch ?? globalThis.fetch;
     const started = Date.now();
     // An own timer rather than AbortSignal.timeout(): that one is unref'd in Node and cannot be cleared.
@@ -178,9 +184,10 @@ export function createHttp(options: HttpOptions = {}): Http {
         return undefined;
       }
       if (!response.ok) {
-        const retryAfterMs = response.status === 429 || response.status === 503
-          ? parseRetryAfter(response.headers?.get("retry-after"))
-          : undefined;
+        const retryAfterMs =
+          response.status === 429 || response.status === 503
+            ? parseRetryAfter(response.headers?.get("retry-after"))
+            : undefined;
         await response.body?.cancel();
         throw new SourceError(`${source} answered HTTP ${response.status}`, {
           code: response.status === 429 ? "rate-limited" : "http",
@@ -190,24 +197,47 @@ export function createHttp(options: HttpOptions = {}): Http {
           retryAfterMs,
         });
       }
-      const text = await readText(response, maxResponseBytes, () =>
-        new SourceError(`${source} answered with more than ${maxResponseBytes} bytes`, { code: "invalid-response", source, status: response.status, url }));
+      const text = await readText(
+        response,
+        maxResponseBytes,
+        () =>
+          new SourceError(`${source} answered with more than ${maxResponseBytes} bytes`, {
+            code: "invalid-response",
+            source,
+            status: response.status,
+            url,
+          }),
+      );
       let body: unknown = text;
       if (kind === "json") {
         try {
           body = JSON.parse(text);
         } catch (cause) {
-          throw new SourceError(`${source} did not answer with JSON`, { code: "invalid-response", source, status, url, cause });
+          throw new SourceError(`${source} did not answer with JSON`, {
+            code: "invalid-response",
+            source,
+            status,
+            url,
+            cause,
+          });
         }
       }
       options.onRequest?.({ source, url, status, ms: Date.now() - started, attempt: n });
       return body;
     } catch (cause) {
-      const error = cause instanceof SourceError ? cause : request.signal?.aborted
-        ? new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url, cause })
-        : timeout.signal.aborted
-        ? new SourceError(`${source} did not answer within ${timeoutMs} ms`, { code: "timeout", source, url, cause })
-        : new SourceError(`Could not reach ${source}`, { code: "network", source, url, cause });
+      const error =
+        cause instanceof SourceError
+          ? cause
+          : request.signal?.aborted
+            ? new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url, cause })
+            : timeout.signal.aborted
+              ? new SourceError(`${source} did not answer within ${timeoutMs} ms`, {
+                  code: "timeout",
+                  source,
+                  url,
+                  cause,
+                })
+              : new SourceError(`Could not reach ${source}`, { code: "network", source, url, cause });
       options.onRequest?.({ source, url, status, ms: Date.now() - started, attempt: n, error });
       throw error;
     } finally {
@@ -217,7 +247,7 @@ export function createHttp(options: HttpOptions = {}): Http {
 
   async function run(source: string, url: string | URL, request: RequestOptions, kind: Kind): Promise<unknown> {
     const href = String(url);
-    for (let n = 1;; n++) {
+    for (let n = 1; ; n++) {
       try {
         return await attempt(source, href, request, n, kind);
       } catch (error) {

@@ -77,7 +77,11 @@ export class SourceError extends Error {
 
   /** `true` when the same request may well succeed later (timeouts, network errors, 429 and 5xx). */
   get transient(): boolean {
-    return this.code === "timeout" || this.code === "network" || this.code === "rate-limited" ||
-      (this.code === "http" && (this.status ?? 0) >= 500);
+    return (
+      this.code === "timeout" ||
+      this.code === "network" ||
+      this.code === "rate-limited" ||
+      (this.code === "http" && (this.status ?? 0) >= 500)
+    );
   }
 }

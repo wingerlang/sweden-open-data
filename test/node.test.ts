@@ -17,7 +17,10 @@ test("fileStore: one file per key, atomic writes, safe names, survives restarts"
     assert.equal(await fileStore(dir).get("spot:SE3:2026-01-01"), "[1]");
     assert.deepEqual(await readdir(join(dir, "spot", "SE3")), ["2026-01-01.json"], "no temporary files left");
     await store.set("../../etc:passwd", "x");
-    assert.ok((await readdir(dir)).every((name) => !name.startsWith("..")), "keys cannot escape the directory");
+    assert.ok(
+      (await readdir(dir)).every((name) => !name.startsWith("..")),
+      "keys cannot escape the directory",
+    );
     assert.equal(await store.get("../../etc:passwd"), "x");
     await store.set(":", "empty parts");
     assert.equal(await store.get(":"), "empty parts");

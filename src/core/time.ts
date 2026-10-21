@@ -20,7 +20,12 @@ const dateTime = new Intl.DateTimeFormat("sv-SE", {
   second: "2-digit",
   hourCycle: "h23",
 });
-const clock = new Intl.DateTimeFormat("sv-SE", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+const clock = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 
 /** Local Swedish wall time for an instant, as `YYYY-MM-DDTHH:MM:SS`. */
 export function stockholmDateTime(time: number | string | Date): string {
@@ -43,8 +48,12 @@ export function swedishDate(time: number | string | Date = Date.now(), offsetDay
 
 /** `true` for a real calendar date written as `YYYY-MM-DD` (so `2026-02-30` is rejected). */
 export function isCalendarDate(value: unknown): value is string {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-    Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(value)) &&
+    new Date(value).toISOString().slice(0, 10) === value
+  );
 }
 
 function assertDate(date: string): void {

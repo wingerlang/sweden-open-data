@@ -5,7 +5,15 @@
  */
 import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { adjustForInflation, annualAverage, createClient, isCompleteSpotDay, latestCpi, SourceError, swedishDate } from "../src/mod.ts";
+import {
+  adjustForInflation,
+  annualAverage,
+  createClient,
+  isCompleteSpotDay,
+  latestCpi,
+  SourceError,
+  swedishDate,
+} from "../src/mod.ts";
 
 const se = createClient({
   userAgent: "sweden-open-data contract tests (https://github.com/wingerlang/sweden-open-data)",
@@ -33,7 +41,10 @@ test("elprisetjustnu: today is published, complete and plausible", async (t) => 
   assert.equal(r.today.date, swedishDate());
   assert.ok(isCompleteSpotDay(r.today.points, r.today.date), "covers the whole day");
   assert.ok([15, 60].includes(r.today.resolutionMinutes));
-  assert.ok(r.today.points.every((p) => p.sek > -5 && p.sek < 50), "SEK/kWh in a plausible range");
+  assert.ok(
+    r.today.points.every((p) => p.sek > -5 && p.sek < 50),
+    "SEK/kWh in a plausible range",
+  );
 });
 
 test("Open-Meteo: current conditions, hours and days", async (t) => {
@@ -47,7 +58,10 @@ test("Open-Meteo: current conditions, hours and days", async (t) => {
 test("Krisinformation and SMHI: feeds parse", async (t) => {
   const feed = await live(t, () => se.alerts.feed());
   if (!feed) return;
-  assert.deepEqual(feed.sources.map((s) => s.id), ["vma", "news", "smhi"]);
+  assert.deepEqual(
+    feed.sources.map((s) => s.id),
+    ["vma", "news", "smhi"],
+  );
   assert.ok(feed.sources.some((s) => s.ok));
   for (const a of feed.alerts) {
     assert.ok(a.id && a.title && a.url.startsWith("https://"), a.id);
@@ -80,7 +94,10 @@ test("SCB: KPI, KPIF och KPIF-XE är hela, sammanfogade och rimliga", async (t) 
   assert.ok(kpi.points.length >= 561, "varje månad från 1980");
   assert.ok(Math.abs((annualAverage(kpi, 2020) ?? 0) - 100) < 0.05, "2020 = 100");
   const latest = latestCpi(kpi)!;
-  assert.ok(Date.now() - Date.parse(latest.month + "-01") < 75 * 86_400_000, "senaste månaden är högst två månader gammal");
+  assert.ok(
+    Date.now() - Date.parse(latest.month + "-01") < 75 * 86_400_000,
+    "senaste månaden är högst två månader gammal",
+  );
   const gap = adjustForInflation(kpi, 1, "2025-12", "2026-01").change;
   assert.ok(Math.abs(gap) < 0.02, "ingen spricka vid basbytet");
   for (const index of ["KPIF", "KPIF-XE"] as const) {

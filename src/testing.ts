@@ -22,12 +22,27 @@ import { addDays, stockholmDateTime, stockholmMidnight, swedishDate } from "./co
 import { type Coordinates, distanceKm, fold } from "./core/geo.ts";
 
 /** The sources, named as in a request event's `source`. */
-export type SourceId = "elprisetjustnu" | "open-meteo" | "open-meteo-geocoding" | "photon" | "krisinformation" | "smhi" | "biluppgifter" | "scb";
+export type SourceId =
+  | "elprisetjustnu"
+  | "open-meteo"
+  | "open-meteo-geocoding"
+  | "photon"
+  | "krisinformation"
+  | "smhi"
+  | "biluppgifter"
+  | "scb";
 
 /** All sources. */
-export const SOURCE_IDS: readonly SourceId[] = Object.freeze(
-  ["elprisetjustnu", "open-meteo", "open-meteo-geocoding", "photon", "krisinformation", "smhi", "biluppgifter", "scb"] as const,
-);
+export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
+  "elprisetjustnu",
+  "open-meteo",
+  "open-meteo-geocoding",
+  "photon",
+  "krisinformation",
+  "smhi",
+  "biluppgifter",
+  "scb",
+] as const);
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
 export function sourceOf(url: string | URL): SourceId | undefined {
@@ -79,10 +94,14 @@ const wait = (ms: number, signal?: AbortSignal | null): Promise<void> =>
   new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(signal.reason);
     const timer = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(signal.reason);
-    }, { once: true });
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(signal.reason);
+      },
+      { once: true },
+    );
   });
 
 /**
@@ -162,7 +181,13 @@ export function fakeSpotDay(area: string, date: string): Record<string, unknown>
       const offset = Math.round((Date.parse(local + "Z") - ms) / 3_600_000);
       return `${local}+0${offset}:00`;
     };
-    out.push({ SEK_per_kWh: sek, EUR_per_kWh: Math.round(sek / 11.4 * 100000) / 100000, EXR: 11.4, time_start: iso(t), time_end: iso(t + 900_000) });
+    out.push({
+      SEK_per_kWh: sek,
+      EUR_per_kWh: Math.round((sek / 11.4) * 100000) / 100000,
+      EXR: 11.4,
+      time_start: iso(t),
+      time_end: iso(t + 900_000),
+    });
   }
   return out;
 }
@@ -170,7 +195,10 @@ export function fakeSpotDay(area: string, date: string): Record<string, unknown>
 /** An Open-Meteo forecast response for a position: 7 days of hourly and daily data from the current hour. */
 export function fakeForecast(position: Coordinates, now: number = Date.now()): Record<string, unknown> {
   const random = seeded(`${position.latitude.toFixed(1)},${position.longitude.toFixed(1)}:${swedishDate(now)}`);
-  const base = 22 - Math.abs(position.latitude - 45) * 0.6 + Math.sin(((Number(swedishDate(now).slice(5, 7)) - 4) / 12) * 2 * Math.PI) * 9;
+  const base =
+    22 -
+    Math.abs(position.latitude - 45) * 0.6 +
+    Math.sin(((Number(swedishDate(now).slice(5, 7)) - 4) / 12) * 2 * Math.PI) * 9;
   const local = (ms: number): string => stockholmDateTime(ms).slice(0, 16);
   const offset = Math.round((Date.parse(stockholmDateTime(now) + "Z") - now) / 3_600_000) * 3600;
   const hour0 = Math.floor(now / 3_600_000) * 3_600_000;
@@ -178,7 +206,8 @@ export function fakeForecast(position: Coordinates, now: number = Date.now()): R
   const hours = Array.from({ length: 168 }, (_, i) => {
     const t = hour0 + i * 3_600_000;
     const h = Number(stockholmDateTime(t).slice(11, 13));
-    const temperature = Math.round((base + 4 * Math.sin(((h - 9) / 24) * 2 * Math.PI) + (random() - 0.5) * 2) * 10) / 10;
+    const temperature =
+      Math.round((base + 4 * Math.sin(((h - 9) / 24) * 2 * Math.PI) + (random() - 0.5) * 2) * 10) / 10;
     const code = codes[Math.floor(random() * codes.length)];
     return { t, h, temperature, code, rain: code >= 61 ? Math.round(random() * 20) / 10 : 0 };
   });
@@ -244,14 +273,70 @@ export const FAKE_PLACES: readonly {
   longitude: number;
   postcode: string;
 }[] = Object.freeze([
-  { name: "Stockholm", county: "Stockholms län", municipality: "Stockholms kommun", latitude: 59.33, longitude: 18.07, postcode: "111 52" },
-  { name: "Göteborg", county: "Västra Götalands län", municipality: "Göteborgs kommun", latitude: 57.71, longitude: 11.97, postcode: "411 03" },
-  { name: "Malmö", county: "Skåne län", municipality: "Malmö kommun", latitude: 55.6, longitude: 13.0, postcode: "211 20" },
-  { name: "Uppsala", county: "Uppsala län", municipality: "Uppsala kommun", latitude: 59.86, longitude: 17.64, postcode: "753 20" },
-  { name: "Vinslöv", county: "Skåne län", municipality: "Hässleholms kommun", latitude: 56.1, longitude: 13.91, postcode: "288 31" },
-  { name: "Åraslöv", county: "Skåne län", municipality: "Hässleholms kommun", latitude: 56.05, longitude: 14.02, postcode: "291 95" },
-  { name: "Umeå", county: "Västerbottens län", municipality: "Umeå kommun", latitude: 63.83, longitude: 20.26, postcode: "903 26" },
-  { name: "Kiruna", county: "Norrbottens län", municipality: "Kiruna kommun", latitude: 67.86, longitude: 20.23, postcode: "981 31" },
+  {
+    name: "Stockholm",
+    county: "Stockholms län",
+    municipality: "Stockholms kommun",
+    latitude: 59.33,
+    longitude: 18.07,
+    postcode: "111 52",
+  },
+  {
+    name: "Göteborg",
+    county: "Västra Götalands län",
+    municipality: "Göteborgs kommun",
+    latitude: 57.71,
+    longitude: 11.97,
+    postcode: "411 03",
+  },
+  {
+    name: "Malmö",
+    county: "Skåne län",
+    municipality: "Malmö kommun",
+    latitude: 55.6,
+    longitude: 13.0,
+    postcode: "211 20",
+  },
+  {
+    name: "Uppsala",
+    county: "Uppsala län",
+    municipality: "Uppsala kommun",
+    latitude: 59.86,
+    longitude: 17.64,
+    postcode: "753 20",
+  },
+  {
+    name: "Vinslöv",
+    county: "Skåne län",
+    municipality: "Hässleholms kommun",
+    latitude: 56.1,
+    longitude: 13.91,
+    postcode: "288 31",
+  },
+  {
+    name: "Åraslöv",
+    county: "Skåne län",
+    municipality: "Hässleholms kommun",
+    latitude: 56.05,
+    longitude: 14.02,
+    postcode: "291 95",
+  },
+  {
+    name: "Umeå",
+    county: "Västerbottens län",
+    municipality: "Umeå kommun",
+    latitude: 63.83,
+    longitude: 20.26,
+    postcode: "903 26",
+  },
+  {
+    name: "Kiruna",
+    county: "Norrbottens län",
+    municipality: "Kiruna kommun",
+    latitude: 67.86,
+    longitude: 20.23,
+    postcode: "981 31",
+  },
 ]);
 
 const FAKE_STREETS: readonly { street: string; house: string; place: string }[] = [
@@ -273,11 +358,25 @@ function photonSearch(q: string, layers: string[]): Record<string, unknown> {
   const streets = layers.length
     ? []
     : FAKE_STREETS.filter((s) => words.some((w) => fold(s.street).startsWith(w))).map((s) => {
-      const p = FAKE_PLACES.find((x) => x.name === s.place) as (typeof FAKE_PLACES)[number];
-      return feature(p.longitude + 0.002, p.latitude + 0.001, { street: s.street, housenumber: s.house, city: p.name, postcode: p.postcode, name: s.street });
-    });
-  const places = FAKE_PLACES.filter((p) => words.some((w) => fold(p.name).startsWith(w) || fold(p.postcode).replace(/\s/g, "") === w))
-    .map((p) => feature(p.longitude, p.latitude, { name: p.name, city: p.name === "Åraslöv" ? p.municipality : p.name, state: p.county, postcode: p.postcode }));
+        const p = FAKE_PLACES.find((x) => x.name === s.place) as (typeof FAKE_PLACES)[number];
+        return feature(p.longitude + 0.002, p.latitude + 0.001, {
+          street: s.street,
+          housenumber: s.house,
+          city: p.name,
+          postcode: p.postcode,
+          name: s.street,
+        });
+      });
+  const places = FAKE_PLACES.filter((p) =>
+    words.some((w) => fold(p.name).startsWith(w) || fold(p.postcode).replace(/\s/g, "") === w),
+  ).map((p) =>
+    feature(p.longitude, p.latitude, {
+      name: p.name,
+      city: p.name === "Åraslöv" ? p.municipality : p.name,
+      state: p.county,
+      postcode: p.postcode,
+    }),
+  );
   return { type: "FeatureCollection", features: [...streets, ...places] };
 }
 
@@ -285,7 +384,17 @@ function photonReverse(lat: number, lon: number): Record<string, unknown> {
   const here = { latitude: lat, longitude: lon };
   const nearest = [...FAKE_PLACES].sort((a, b) => distanceKm(here, a) - distanceKm(here, b))[0];
   if (distanceKm(here, nearest) > 150) return { type: "FeatureCollection", features: [] };
-  return { type: "FeatureCollection", features: [feature(nearest.longitude, nearest.latitude, { name: nearest.name, city: nearest.name, county: nearest.municipality, state: nearest.county })] };
+  return {
+    type: "FeatureCollection",
+    features: [
+      feature(nearest.longitude, nearest.latitude, {
+        name: nearest.name,
+        city: nearest.name,
+        county: nearest.municipality,
+        state: nearest.county,
+      }),
+    ],
+  };
 }
 
 /** VMA and news in the Krisinformation.se v3 format, published relative to `now`. */
@@ -293,31 +402,67 @@ export function fakeKrisinformation(feed: "vma" | "news", now: number = Date.now
   const ago = (hours: number): string => new Date(now - hours * 3_600_000).toISOString();
   if (feed === "vma") return [];
   return [
-    { Identifier: "demo-1", Headline: "Exempel: Vattenläcka i Hässleholm", Preamble: "Demodata. Koka dricksvattnet tills vidare.", Published: ago(5), Area: [{ Type: "Municipality", Description: "Hässleholms kommun" }], Web: "https://www.krisinformation.se" },
-    { Identifier: "demo-2", Headline: "Exempel: Störningar i mobilnätet", Preamble: "Demodata. Det kan vara svårt att ringa 112 i delar av landet.", Published: ago(30), Area: [{ Type: "Country", Description: "Sverige" }], Web: "https://www.krisinformation.se" },
-    { Identifier: "demo-3", Headline: "Exempel: Skogsbrand nära Umeå", Preamble: "Demodata. Håll dörrar och fönster stängda.", Published: ago(50), Area: [{ Type: "County", Description: "Västerbottens län" }], Web: "https://www.krisinformation.se" },
+    {
+      Identifier: "demo-1",
+      Headline: "Exempel: Vattenläcka i Hässleholm",
+      Preamble: "Demodata. Koka dricksvattnet tills vidare.",
+      Published: ago(5),
+      Area: [{ Type: "Municipality", Description: "Hässleholms kommun" }],
+      Web: "https://www.krisinformation.se",
+    },
+    {
+      Identifier: "demo-2",
+      Headline: "Exempel: Störningar i mobilnätet",
+      Preamble: "Demodata. Det kan vara svårt att ringa 112 i delar av landet.",
+      Published: ago(30),
+      Area: [{ Type: "Country", Description: "Sverige" }],
+      Web: "https://www.krisinformation.se",
+    },
+    {
+      Identifier: "demo-3",
+      Headline: "Exempel: Skogsbrand nära Umeå",
+      Preamble: "Demodata. Håll dörrar och fönster stängda.",
+      Published: ago(50),
+      Area: [{ Type: "County", Description: "Västerbottens län" }],
+      Web: "https://www.krisinformation.se",
+    },
   ];
 }
 
 /** SMHI warnings in the IBWW format: one yellow wind warning over north-eastern Skåne. */
 export function fakeSmhiWarnings(now: number = Date.now()): Record<string, unknown>[] {
-  const square = [[[13.4, 55.8], [14.6, 55.8], [14.6, 56.5], [13.4, 56.5], [13.4, 55.8]]];
-  return [{
-    id: 1,
-    event: { sv: "Vind", en: "Wind" },
-    warningAreas: [{
-      id: 101,
-      approximateStart: new Date(now - 2 * 3_600_000).toISOString(),
-      approximateEnd: new Date(now + 20 * 3_600_000).toISOString(),
-      published: new Date(now - 6 * 3_600_000).toISOString(),
-      areaName: { sv: "Nordöstra Skåne" },
-      warningLevel: { sv: "Gul", code: "YELLOW" },
-      eventDescription: { sv: "Mycket hårda vindbyar" },
-      affectedAreas: [{ sv: "Hässleholm" }, { sv: "Kristianstad" }],
-      descriptions: [{ title: { sv: "Vad händer" }, text: { sv: "Demodata. Vindbyar upp till 25 m/s." } }],
-      area: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: square } }] },
-    }],
-  }];
+  const square = [
+    [
+      [13.4, 55.8],
+      [14.6, 55.8],
+      [14.6, 56.5],
+      [13.4, 56.5],
+      [13.4, 55.8],
+    ],
+  ];
+  return [
+    {
+      id: 1,
+      event: { sv: "Vind", en: "Wind" },
+      warningAreas: [
+        {
+          id: 101,
+          approximateStart: new Date(now - 2 * 3_600_000).toISOString(),
+          approximateEnd: new Date(now + 20 * 3_600_000).toISOString(),
+          published: new Date(now - 6 * 3_600_000).toISOString(),
+          areaName: { sv: "Nordöstra Skåne" },
+          warningLevel: { sv: "Gul", code: "YELLOW" },
+          eventDescription: { sv: "Mycket hårda vindbyar" },
+          affectedAreas: [{ sv: "Hässleholm" }, { sv: "Kristianstad" }],
+          descriptions: [{ title: { sv: "Vad händer" }, text: { sv: "Demodata. Vindbyar upp till 25 m/s." } }],
+          area: {
+            type: "FeatureCollection",
+            features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: square } }],
+          },
+        },
+      ],
+    },
+  ];
 }
 
 /** Options for {@link createFakeSources}. */
@@ -343,15 +488,23 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         if (!m) break;
         const date = `${m[1]}-${m[2]}-${m[3]}`;
         const today = swedishDate(now());
-        const published = date <= today || (date === swedishDate(now(), 1) && Number(stockholmDateTime(now()).slice(11, 13)) >= 13);
+        const published =
+          date <= today || (date === swedishDate(now(), 1) && Number(stockholmDateTime(now()).slice(11, 13)) >= 13);
         return published ? json(fakeSpotDay(m[4], date)) : new Response("", { status: 404 });
       }
       case "open-meteo":
-        return json(fakeForecast({ latitude: Number(p.get("latitude")), longitude: Number(p.get("longitude")) }, now()));
+        return json(
+          fakeForecast({ latitude: Number(p.get("latitude")), longitude: Number(p.get("longitude")) }, now()),
+        );
       case "open-meteo-geocoding": {
         const name = fold(p.get("name") ?? "");
-        const results = FAKE_PLACES.filter((x) => fold(x.name).startsWith(name))
-          .map((x) => ({ name: x.name, country_code: "SE", latitude: x.latitude, longitude: x.longitude, admin1: x.county }));
+        const results = FAKE_PLACES.filter((x) => fold(x.name).startsWith(name)).map((x) => ({
+          name: x.name,
+          country_code: "SE",
+          latitude: x.latitude,
+          longitude: x.longitude,
+          admin1: x.county,
+        }));
         return json({ results });
       }
       case "photon":
@@ -378,7 +531,20 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
 
 /** Explicitly synthetic Biluppgifter-format fixture. Never use as a real vehicle record. */
 export function fakeVehicleResponse(registrationNumber: string = "ABC123"): Record<string, unknown> {
-  return {data:{attributes:{regno:registrationNumber},basic:{data:{make:"Example Motors",model:"Test Tourer",model_year:2022,vehicle_year:2021}},status:{data:{tax:360,first_registered:"2022-01-15"}},inspection:{data:{meter:48500,latest_inspection:"2026-02-01T00:00:00+01:00",inspection_valid_until:"2027-04-30T00:00:00+02:00"}}}};
+  return {
+    data: {
+      attributes: { regno: registrationNumber },
+      basic: { data: { make: "Example Motors", model: "Test Tourer", model_year: 2022, vehicle_year: 2021 } },
+      status: { data: { tax: 360, first_registered: "2022-01-15" } },
+      inspection: {
+        data: {
+          meter: 48500,
+          latest_inspection: "2026-02-01T00:00:00+01:00",
+          inspection_valid_until: "2027-04-30T00:00:00+02:00",
+        },
+      },
+    },
+  };
 }
 
 /**
@@ -387,7 +553,8 @@ export function fakeVehicleResponse(registrationNumber: string = "ABC123"): Reco
  * Demo data – never real statistics.
  */
 export function fakeScbMonthly(table: string, content: string, now: number = Date.now()): Record<string, unknown> {
-  const end = new Date(now), last = end.getUTCFullYear() * 12 + end.getUTCMonth() - 1;
+  const end = new Date(now),
+    last = end.getUTCFullYear() * 12 + end.getUTCMonth() - 1;
   const first = table === "TAB6792" || table === "TAB6596" ? 1980 * 12 : 1987 * 12;
   const months = Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => first + i);
   const code = (t: number): string => `${Math.floor(t / 12)}M${String((t % 12) + 1).padStart(2, "0")}`;

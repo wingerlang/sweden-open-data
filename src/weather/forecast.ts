@@ -91,7 +91,6 @@ export type WeatherIcon =
   | "snowshowers"
   | "thunder";
 
-
 /** A described weather code. */
 export interface WeatherDescription {
   label: string;
@@ -171,9 +170,18 @@ export function openMeteoUrl(position: Coordinates, options: OpenMeteoUrlOptions
   const url = new URL(options.base ?? "https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", position.latitude.toFixed(precision));
   url.searchParams.set("longitude", position.longitude.toFixed(precision));
-  url.searchParams.set("current", "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,precipitation,is_day");
-  url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation,precipitation_probability,wind_speed_10m,is_day");
-  url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max");
+  url.searchParams.set(
+    "current",
+    "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,precipitation,is_day",
+  );
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,weather_code,precipitation,precipitation_probability,wind_speed_10m,is_day",
+  );
+  url.searchParams.set(
+    "daily",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max",
+  );
   url.searchParams.set("timezone", TIME_ZONE);
   url.searchParams.set("wind_speed_unit", "ms");
   url.searchParams.set("forecast_days", String(days));
@@ -265,8 +273,12 @@ export function forecastAt<T extends Forecast>(forecast: T, now: number = Date.n
   if (!forecast?.current || !Array.isArray(forecast.hours) || !Array.isArray(forecast.days)) return null;
   const fetched = Date.parse(forecast.fetchedAt);
   if (!Number.isFinite(fetched) || now - fetched > 48 * 3_600_000) return null;
-  const date = new Intl.DateTimeFormat("en-CA", { timeZone: forecast.timezone || TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" })
-    .format(new Date(now));
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: forecast.timezone || TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(now));
   const days = forecast.days.filter((d) => d.date >= date);
   const hours = forecast.hours.filter((h) => Date.parse(h.time) >= now - 3_600_000);
   if (!days.length) return null;

@@ -30,8 +30,11 @@ console.log(`${region.locality ?? region.municipality ?? region.county} (${area}
 const summary = prices.today && summarizeSpotPrices(prices.today.points);
 if (summary?.current) {
   console.log(`  El nu      ${formatOre(withVat(summary.current.sek))} inkl. moms (${summary.level})`);
-  if (summary.cheapest) console.log(`  Billigast  ${stockholmClock(summary.cheapest.start)}–${stockholmClock(summary.cheapest.end)}`);
+  if (summary.cheapest)
+    console.log(`  Billigast  ${stockholmClock(summary.cheapest.start)}–${stockholmClock(summary.cheapest.end)}`);
 }
-console.log(`  Väder      ${formatTemperature(forecast.current.temperature)} ${describeWeather(forecast.current.code).label}`);
+console.log(
+  `  Väder      ${formatTemperature(forecast.current.temperature)} ${describeWeather(forecast.current.code).label}`,
+);
 for (const alert of nearby.alerts.slice(0, 5)) console.log(`  ⚠ ${alert.title}`);
 if (!nearby.alerts.length) console.log("  Inga varningar eller VMA.");

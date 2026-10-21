@@ -17,7 +17,10 @@ export function fakeFetch(handler: (url: URL, init?: RequestInit) => unknown): t
 export const quick = { retries: 0, retryDelayMs: 0 } as const;
 
 /** One day of quarter-hour prices as elprisetjustnu.se returns them (local time with offset). */
-export function elprisDay(date = "2026-10-12", price = (i: number): number => 0.3 + 0.5 * Math.sin(i / 96 * Math.PI)): unknown[] {
+export function elprisDay(
+  date = "2026-10-12",
+  price = (i: number): number => 0.3 + 0.5 * Math.sin((i / 96) * Math.PI),
+): unknown[] {
   return Array.from({ length: 96 }, (_, i) => {
     const start = new Date(`${date}T00:00:00+02:00`).getTime() + i * 900_000;
     const iso = (t: number): string => new Date(t + 7_200_000).toISOString().replace("Z", "+02:00").replace(".000", "");
@@ -61,8 +64,11 @@ export function openMeteoResponse(): Record<string, unknown> {
       is_day: 1,
     },
     hourly: {
-      time: Array.from({ length: hours }, (_, i) =>
-        `2026-10-${String(12 + Math.floor((i + 12) / 24)).padStart(2, "0")}T${String((i + 12) % 24).padStart(2, "0")}:00`),
+      time: Array.from(
+        { length: hours },
+        (_, i) =>
+          `2026-10-${String(12 + Math.floor((i + 12) / 24)).padStart(2, "0")}T${String((i + 12) % 24).padStart(2, "0")}:00`,
+      ),
       temperature_2m: Array.from({ length: hours }, (_, i) => (i === 5 ? null : 8 + Math.sin(i / 4) * 3)),
       weather_code: Array(hours).fill(3),
       precipitation: Array(hours).fill(0),
@@ -86,46 +92,96 @@ export function openMeteoResponse(): Record<string, unknown> {
 
 /** Krisinformation.se news items in the API v3 format. */
 export const KRIS_NEWS: unknown[] = [
-  { Identifier: "a1", Headline: "Brand i Hässleholm", Preamble: "<p>Stäng fönster.</p>", Published: "2026-10-12T08:00:00Z", Area: [{ Type: "Municipality", Description: "Hässleholms kommun" }], Web: "https://www.krisinformation.se/nyheter/a1", Event: "News" },
-  { Identifier: "a2", Headline: "Vattenläcka i Umeå", Preamble: "Koka vattnet.", Published: "2026-10-11T08:00:00Z", Area: [{ Type: "County", Description: "Västerbottens län" }], Web: "https://www.krisinformation.se/nyheter/a2" },
-  { Identifier: "a3", Headline: "Gammal nyhet", Published: "2026-09-01T08:00:00Z", Area: [{ Type: "County", Description: "Skåne län" }] },
-  { Identifier: "a4", Headline: "Elbrist i hela landet", Published: "2026-10-12T07:00:00Z", Area: [{ Type: "Country", Description: "Sverige" }], Web: "javascript:alert(1)" },
-  { Identifier: "a5", Headline: "Utsläpp vid Kristianstad", Published: "2026-10-12T09:00:00Z", Area: [{ Type: "Other", Description: "Kristianstad", Coordinate: "56.03,14.15" }] },
+  {
+    Identifier: "a1",
+    Headline: "Brand i Hässleholm",
+    Preamble: "<p>Stäng fönster.</p>",
+    Published: "2026-10-12T08:00:00Z",
+    Area: [{ Type: "Municipality", Description: "Hässleholms kommun" }],
+    Web: "https://www.krisinformation.se/nyheter/a1",
+    Event: "News",
+  },
+  {
+    Identifier: "a2",
+    Headline: "Vattenläcka i Umeå",
+    Preamble: "Koka vattnet.",
+    Published: "2026-10-11T08:00:00Z",
+    Area: [{ Type: "County", Description: "Västerbottens län" }],
+    Web: "https://www.krisinformation.se/nyheter/a2",
+  },
+  {
+    Identifier: "a3",
+    Headline: "Gammal nyhet",
+    Published: "2026-09-01T08:00:00Z",
+    Area: [{ Type: "County", Description: "Skåne län" }],
+  },
+  {
+    Identifier: "a4",
+    Headline: "Elbrist i hela landet",
+    Published: "2026-10-12T07:00:00Z",
+    Area: [{ Type: "Country", Description: "Sverige" }],
+    Web: "javascript:alert(1)",
+  },
+  {
+    Identifier: "a5",
+    Headline: "Utsläpp vid Kristianstad",
+    Published: "2026-10-12T09:00:00Z",
+    Area: [{ Type: "Other", Description: "Kristianstad", Coordinate: "56.03,14.15" }],
+  },
 ];
 
 /** A square polygon around a point, `[lon, lat]` rings. */
-export const square = (lon: number, lat: number, d = 0.5): number[][][] => [[[lon - d, lat - d], [lon + d, lat - d], [lon + d, lat + d], [lon - d, lat + d], [lon - d, lat - d]]];
+export const square = (lon: number, lat: number, d = 0.5): number[][][] => [
+  [
+    [lon - d, lat - d],
+    [lon + d, lat - d],
+    [lon + d, lat + d],
+    [lon - d, lat + d],
+    [lon - d, lat - d],
+  ],
+];
 
 /** SMHI warnings in the IBWW format. */
-export const SMHI_WARNINGS: unknown[] = [{
-  id: 1,
-  event: { sv: "Vind", code: "WIND" },
-  warningAreas: [
-    {
-      id: 11,
-      approximateStart: "2026-10-12T06:00:00Z",
-      approximateEnd: "2026-10-13T06:00:00Z",
-      published: "2026-10-11T12:00:00Z",
-      areaName: { sv: "Nordöstra Skåne" },
-      warningLevel: { sv: "Gul", code: "YELLOW" },
-      eventDescription: { sv: "Mycket hårda vindbyar" },
-      affectedAreas: [{ id: 1293, sv: "Hässleholm" }, { sv: "Skåne län" }, { sv: "Osby kommun" }],
-      descriptions: [{ title: { sv: "Vad händer" }, text: { sv: "Vindbyar upp till 25 m/s." } }],
-      area: { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: square(14, 56.1) } }] },
-    },
-    { id: 12, approximateEnd: "2026-10-11T06:00:00Z", warningLevel: { code: "ORANGE" }, eventDescription: { sv: "Gammal" } },
-    {
-      id: 13,
-      approximateEnd: "2026-10-13T06:00:00Z",
-      warningLevel: { code: "ORANGE" },
-      eventDescription: { sv: "Snöfall" },
-      areaName: { sv: "Lappland" },
-      area: { type: "GeometryCollection", geometries: [{ type: "MultiPolygon", coordinates: [square(18, 67)] }] },
-    },
-    { id: 14, warningLevel: "message", eventDescription: { sv: "Info" } },
-    { warningLevel: { code: "RED" }, eventDescription: { sv: "Utan id" } },
-  ],
-}, { id: 2 }];
+export const SMHI_WARNINGS: unknown[] = [
+  {
+    id: 1,
+    event: { sv: "Vind", code: "WIND" },
+    warningAreas: [
+      {
+        id: 11,
+        approximateStart: "2026-10-12T06:00:00Z",
+        approximateEnd: "2026-10-13T06:00:00Z",
+        published: "2026-10-11T12:00:00Z",
+        areaName: { sv: "Nordöstra Skåne" },
+        warningLevel: { sv: "Gul", code: "YELLOW" },
+        eventDescription: { sv: "Mycket hårda vindbyar" },
+        affectedAreas: [{ id: 1293, sv: "Hässleholm" }, { sv: "Skåne län" }, { sv: "Osby kommun" }],
+        descriptions: [{ title: { sv: "Vad händer" }, text: { sv: "Vindbyar upp till 25 m/s." } }],
+        area: {
+          type: "FeatureCollection",
+          features: [{ type: "Feature", geometry: { type: "Polygon", coordinates: square(14, 56.1) } }],
+        },
+      },
+      {
+        id: 12,
+        approximateEnd: "2026-10-11T06:00:00Z",
+        warningLevel: { code: "ORANGE" },
+        eventDescription: { sv: "Gammal" },
+      },
+      {
+        id: 13,
+        approximateEnd: "2026-10-13T06:00:00Z",
+        warningLevel: { code: "ORANGE" },
+        eventDescription: { sv: "Snöfall" },
+        areaName: { sv: "Lappland" },
+        area: { type: "GeometryCollection", geometries: [{ type: "MultiPolygon", coordinates: [square(18, 67)] }] },
+      },
+      { id: 14, warningLevel: "message", eventDescription: { sv: "Info" } },
+      { warningLevel: { code: "RED" }, eventDescription: { sv: "Utan id" } },
+    ],
+  },
+  { id: 2 },
+];
 
 /** A Photon feature. */
 export function photonFeature(lon: number, lat: number, properties: Record<string, unknown>): Record<string, unknown> {

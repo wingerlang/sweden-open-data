@@ -74,14 +74,19 @@ const text = (v: unknown, max = 2000): string =>
   typeof v === "string"
     ? v.trim().slice(0, max)
     : v && typeof v === "object" && typeof (v as { sv?: unknown }).sv === "string"
-    ? ((v as { sv: string }).sv).trim().slice(0, max)
-    : "";
+      ? (v as { sv: string }).sv.trim().slice(0, max)
+      : "";
 const iso = (v: unknown): string => {
   const t = Date.parse(String(v ?? ""));
   return Number.isFinite(t) ? new Date(t).toISOString() : "";
 };
 const stripHtml = (s: string): string =>
-  s.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+  s
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * Reads a point from the many shapes sources use: `"56.1,14.0"`, `"14.0 56.1"`, `"POINT (14.0 56.1)"` or
@@ -93,7 +98,9 @@ export function parsePoint(value: unknown): Coordinates | undefined {
     const lon = Number(pick(value, "longitude", "lon", "lng"));
     if (Number.isFinite(lat) && Number.isFinite(lon)) return { latitude: lat, longitude: lon };
   }
-  const nums = String(value ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number);
+  const nums = String(value ?? "")
+    .match(/-?\d+(?:\.\d+)?/g)
+    ?.map(Number);
   if (!nums || nums.length < 2) return undefined;
   const [a, b] = nums;
   if (Math.abs(a) > 90 && Math.abs(b) > 90) return undefined;
@@ -106,15 +113,20 @@ function krisArea(a: Json): AlertArea | null {
   if (!name) return null;
   const t = fold(String(pick(a, "Type") ?? ""));
   const n = fold(name);
-  const type: AlertArea["type"] = t.includes("country") || /^(sverige|hela (sverige|landet))$/.test(n)
-    ? "country"
-    : t.includes("county") || /\blan$/.test(n)
-    ? "county"
-    : t.includes("municipality") || /kommun$/.test(n)
-    ? "municipality"
-    : "other";
+  const type: AlertArea["type"] =
+    t.includes("country") || /^(sverige|hela (sverige|landet))$/.test(n)
+      ? "country"
+      : t.includes("county") || /\blan$/.test(n)
+        ? "county"
+        : t.includes("municipality") || /kommun$/.test(n)
+          ? "municipality"
+          : "other";
   const point = parsePoint(pick(a, "Coordinate", "Coordinates"));
-  return { type, name, ...(point && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180 ? { point } : {}) };
+  return {
+    type,
+    name,
+    ...(point && Math.abs(point.latitude) <= 90 && Math.abs(point.longitude) <= 180 ? { point } : {}),
+  };
 }
 
 /**
@@ -122,7 +134,7 @@ function krisArea(a: Json): AlertArea | null {
  * `items`/`Entries`/`data`. Links that are not `https://` are replaced by the site's front page.
  */
 export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert[] {
-  const list = Array.isArray(json) ? json : pick(json, "items", "Entries", "data") ?? [];
+  const list = Array.isArray(json) ? json : (pick(json, "items", "Entries", "data") ?? []);
   if (!Array.isArray(list)) return [];
   return list.flatMap((x: Json): Alert[] => {
     const id = text(pick(x, "Identifier", "Id"), 200);
@@ -133,22 +145,31 @@ export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert
     const isVma = feed === "vma" || /alert|vma/.test(fold(String(pick(x, "Event") ?? "")));
     let url = text(pick(x, "Web", "Url", "Link"), 500);
     if (!/^https:\/\//.test(url)) url = "https://www.krisinformation.se";
-    return [{
-      id: "kris:" + id,
-      source: "Krisinformation",
-      kind: isVma ? "vma" : "news",
-      ...(isVma ? { level: "red" as const } : {}),
-      title,
-      summary: stripHtml(text(pick(x, "Preamble", "PushMessage", "BodyText"), 1200)).slice(0, 600),
-      url,
-      // The publication date decides freshness. "Updated" is only a fallback: a later edit must not revive old news.
-      published: iso(pick(x, "Published", "Sent")) || iso(pick(x, "Updated")),
-      areas,
-    }];
+    return [
+      {
+        id: "kris:" + id,
+        source: "Krisinformation",
+        kind: isVma ? "vma" : "news",
+        ...(isVma ? { level: "red" as const } : {}),
+        title,
+        summary: stripHtml(text(pick(x, "Preamble", "PushMessage", "BodyText"), 1200)).slice(0, 600),
+        url,
+        // The publication date decides freshness. "Updated" is only a fallback: a later edit must not revive old news.
+        published: iso(pick(x, "Published", "Sent")) || iso(pick(x, "Updated")),
+        areas,
+      },
+    ];
   });
 }
 
-const LEVELS: Record<string, AlertLevel> = { red: "red", orange: "orange", yellow: "yellow", message: "message", rod: "red", gul: "yellow" };
+const LEVELS: Record<string, AlertLevel> = {
+  red: "red",
+  orange: "orange",
+  yellow: "yellow",
+  message: "message",
+  rod: "red",
+  gul: "yellow",
+};
 const LEVEL_TITLES: Record<Locale, Record<AlertLevel, string>> = {
   sv: { red: "Röd varning", orange: "Orange varning", yellow: "Gul varning", message: "Meddelande" },
   en: { red: "Red warning", orange: "Orange warning", yellow: "Yellow warning", message: "Message" },
@@ -193,27 +214,38 @@ export function parseSmhiWarnings(json: unknown, options: SmhiOptions = {}): Ale
       if (!id || !what) return [];
       const descriptions = pick(a, "descriptions");
       const affected = pick(a, "affectedAreas");
-      const areas: AlertArea[] = (Array.isArray(affected) ? affected : []).map((x: Json) => text(x, 120)).filter(Boolean)
-        .map((name: string): AlertArea => ({
-          type: /kommun$/.test(fold(name)) ? "municipality" : /lan$/.test(fold(name)) ? "county" : "other",
-          name,
-        }));
+      const areas: AlertArea[] = (Array.isArray(affected) ? affected : [])
+        .map((x: Json) => text(x, 120))
+        .filter(Boolean)
+        .map(
+          (name: string): AlertArea => ({
+            type: /kommun$/.test(fold(name)) ? "municipality" : /lan$/.test(fold(name)) ? "county" : "other",
+            name,
+          }),
+        );
       const start = iso(pick(a, "approximateStart", "start"));
-      return [{
-        id: "smhi:" + id,
-        source: "SMHI",
-        kind: "warning",
-        level,
-        title: `${titles[level]}: ${what}${areaName ? " – " + areaName : ""}`,
-        // SMHI's terms: warning texts must not be altered, so they are kept in full.
-        summary: Array.isArray(descriptions) ? descriptions.map((d: Json) => text(pick(d, "text"), 4000)).filter(Boolean).join(" ") : "",
-        url: "https://www.smhi.se/vader/varningar-och-brandrisk/varningar-och-meddelanden/varningar",
-        published: iso(pick(a, "published")) || iso(pick(w, "published")),
-        ...(start ? { start } : {}),
-        ...(end ? { end } : {}),
-        areas,
-        polygons: polygonsOf(pick(a, "area")),
-      }];
+      return [
+        {
+          id: "smhi:" + id,
+          source: "SMHI",
+          kind: "warning",
+          level,
+          title: `${titles[level]}: ${what}${areaName ? " – " + areaName : ""}`,
+          // SMHI's terms: warning texts must not be altered, so they are kept in full.
+          summary: Array.isArray(descriptions)
+            ? descriptions
+                .map((d: Json) => text(pick(d, "text"), 4000))
+                .filter(Boolean)
+                .join(" ")
+            : "",
+          url: "https://www.smhi.se/vader/varningar-och-brandrisk/varningar-och-meddelanden/varningar",
+          published: iso(pick(a, "published")) || iso(pick(w, "published")),
+          ...(start ? { start } : {}),
+          ...(end ? { end } : {}),
+          areas,
+          polygons: polygonsOf(pick(a, "area")),
+        },
+      ];
     });
   });
 }
@@ -227,7 +259,11 @@ export interface MatchOptions {
 }
 
 /** Which of `places` an alert concerns, and whether it is national. */
-export function alertPlaces(alert: Alert, places: Region[], options: MatchOptions = {}): { national: boolean; places: number[] } {
+export function alertPlaces(
+  alert: Alert,
+  places: Region[],
+  options: MatchOptions = {},
+): { national: boolean; places: number[] } {
   const national = alert.areas.some((a) => a.type === "country");
   if (national) return { national, places: places.map((_, i) => i) };
   const radius = options.radiusKm ?? 40;
@@ -236,7 +272,13 @@ export function alertPlaces(alert: Alert, places: Region[], options: MatchOption
     if (alert.polygons?.some((poly) => inPolygon(p, poly))) return [i];
     for (const a of alert.areas) {
       if (a.type === "county" && same(a.name, p.county)) return [i];
-      if (options.neighbors && a.type === "county" && p.county && neighboringCounties(p.county).some((c) => same(c, a.name))) return [i];
+      if (
+        options.neighbors &&
+        a.type === "county" &&
+        p.county &&
+        neighboringCounties(p.county).some((c) => same(c, a.name))
+      )
+        return [i];
       if (a.type === "municipality" && same(a.name, p.municipality)) return [i];
       if (a.type === "other" && (same(a.name, p.municipality) || same(a.name, p.county))) return [i];
       if (a.point && a.type !== "county" && distanceKm(p, a.point) <= radius) return [i];
@@ -263,7 +305,8 @@ export interface RelevanceOptions extends MatchOptions {
 
 const KIND_ORDER: Record<AlertKind, number> = { vma: 0, warning: 1, news: 2 };
 const LEVEL_ORDER: Record<AlertLevel, number> = { red: 0, orange: 1, yellow: 2, message: 3 };
-const clampDays = (days: number | undefined): number => Math.max(1, Math.min(30, Number.isFinite(days) ? (days as number) : 7));
+const clampDays = (days: number | undefined): number =>
+  Math.max(1, Math.min(30, Number.isFinite(days) ? (days as number) : 7));
 
 /**
  * Keeps the alerts that concern at least one place and are still current, removes duplicates and sorts them:
@@ -273,24 +316,28 @@ export function relevantAlerts(alerts: Alert[], places: Region[], options: Relev
   const now = options.now ?? Date.now();
   const maxAge = clampDays(options.days) * 86_400_000;
   const seen = new Set<string>();
-  return alerts.flatMap((alert): RelevantAlert[] => {
-    if (seen.has(alert.id)) return [];
-    seen.add(alert.id);
-    const stamp = Date.parse(alert.published || alert.start || "");
-    if (!Number.isFinite(stamp) || now - stamp > maxAge) return [];
-    if (alert.end && Date.parse(alert.end) < now) return [];
-    if (alert.kind === "warning" && alert.level === "message" && !alert.polygons?.length && !alert.areas.length) return [];
-    if (options.kinds && !options.kinds.includes(alert.kind)) return [];
-    if (options.minLevel && alert.level && LEVEL_ORDER[alert.level] > LEVEL_ORDER[options.minLevel]) return [];
-    const match = alertPlaces(alert, places, options);
-    if (!match.places.length) return [];
-    const { polygons: _polygons, areas, ...rest } = alert;
-    return [{ ...rest, areas: areas.map((a) => a.name), national: match.national, places: match.places }];
-  }).sort((a, b) =>
-    KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
-    LEVEL_ORDER[a.level ?? "message"] - LEVEL_ORDER[b.level ?? "message"] ||
-    Date.parse(b.published || "0") - Date.parse(a.published || "0")
-  );
+  return alerts
+    .flatMap((alert): RelevantAlert[] => {
+      if (seen.has(alert.id)) return [];
+      seen.add(alert.id);
+      const stamp = Date.parse(alert.published || alert.start || "");
+      if (!Number.isFinite(stamp) || now - stamp > maxAge) return [];
+      if (alert.end && Date.parse(alert.end) < now) return [];
+      if (alert.kind === "warning" && alert.level === "message" && !alert.polygons?.length && !alert.areas.length)
+        return [];
+      if (options.kinds && !options.kinds.includes(alert.kind)) return [];
+      if (options.minLevel && alert.level && LEVEL_ORDER[alert.level] > LEVEL_ORDER[options.minLevel]) return [];
+      const match = alertPlaces(alert, places, options);
+      if (!match.places.length) return [];
+      const { polygons: _polygons, areas, ...rest } = alert;
+      return [{ ...rest, areas: areas.map((a) => a.name), national: match.national, places: match.places }];
+    })
+    .sort(
+      (a, b) =>
+        KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
+        LEVEL_ORDER[a.level ?? "message"] - LEVEL_ORDER[b.level ?? "message"] ||
+        Date.parse(b.published || "0") - Date.parse(a.published || "0"),
+    );
 }
 
 /**

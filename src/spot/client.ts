@@ -107,7 +107,8 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
     const past = date < swedishDate(ctx.now());
     if (past) {
       const stored = await storeGet(ctx.store, storeKey);
-      if (Array.isArray(stored) && isCompleteSpotDay(stored as SpotPoint[], date)) return toSpotDay(area, date, stored as SpotPoint[]);
+      if (Array.isArray(stored) && isCompleteSpotDay(stored as SpotPoint[], date))
+        return toSpotDay(area, date, stored as SpotPoint[]);
     }
     const [y, m, d] = date.split("-");
     const json = await ctx.http.json("elprisetjustnu", `${ctx.endpoints.spot}/${y}/${m}-${d}_${area}.json`, {
@@ -155,7 +156,9 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
         area,
         current: todaySummary?.current ?? null,
         today: todaySummary,
-        tomorrow: tomorrow ? summarizeSpotPrices(tomorrow.points, { now: stockholmMidnight(tomorrow.date) - 1, windowHours }) : null,
+        tomorrow: tomorrow
+          ? summarizeSpotPrices(tomorrow.points, { now: stockholmMidnight(tomorrow.date) - 1, windowHours })
+          : null,
         fetchedAt,
       };
     },
@@ -176,14 +179,15 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
         while (index < dates.length) {
           const date = dates[index++];
           try {
-            const result = date < today
-            ? await ctx.archive.get(
-              `spot:${area}:${date}`,
-              (v: SpotDay | null) => (v ? ctx.ttl.spotDay : ctx.ttl.spotMissing),
-              (signal) => fetchDay(area, date, signal),
-              { signal: options.signal, source: "elprisetjustnu" },
-            )
-            : await day(area, date, { signal: options.signal });
+            const result =
+              date < today
+                ? await ctx.archive.get(
+                    `spot:${area}:${date}`,
+                    (v: SpotDay | null) => (v ? ctx.ttl.spotDay : ctx.ttl.spotMissing),
+                    (signal) => fetchDay(area, date, signal),
+                    { signal: options.signal, source: "elprisetjustnu" },
+                  )
+                : await day(area, date, { signal: options.signal });
             if (!result) missing.push({ date, reason: "not published" });
             else if (!result.complete) missing.push({ date, reason: "incomplete" });
             else found.set(date, result);

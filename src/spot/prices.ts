@@ -95,7 +95,10 @@ export interface SpotDay {
  */
 export function parseElprisResponse(json: unknown): SpotPoint[] {
   if (!Array.isArray(json)) {
-    throw new SourceError("Unexpected response from elprisetjustnu.se", { code: "invalid-response", source: "elprisetjustnu" });
+    throw new SourceError("Unexpected response from elprisetjustnu.se", {
+      code: "invalid-response",
+      source: "elprisetjustnu",
+    });
   }
   const out: SpotPoint[] = [];
   for (const row of json as Record<string, unknown>[]) {
@@ -121,11 +124,12 @@ export function normalizeSpotDay(points: SpotPoint[], date: string): SpotPoint[]
   if (!sorted.length) return sorted;
   const from = stockholmMidnight(date);
   const step = (stockholmMidnight(addDays(date, 1)) - from) / sorted.length;
-  if (![900_000, 3_600_000].includes(step) || !sorted.every((p, i) => Date.parse(p.start) === from + i * step)) return sorted;
+  if (![900_000, 3_600_000].includes(step) || !sorted.every((p, i) => Date.parse(p.start) === from + i * step))
+    return sorted;
   return sorted.map((p) =>
     Date.parse(p.end) === Date.parse(p.start) + step
       ? p
-      : { ...p, end: new Date(Date.parse(p.start) + step).toISOString(), sourceEnd: p.end }
+      : { ...p, end: new Date(Date.parse(p.start) + step).toISOString(), sourceEnd: p.end },
   );
 }
 
@@ -325,5 +329,7 @@ export function withVat(sek: number, rate: number = VAT_RATE): number {
  */
 export function formatOre(sek: number): string {
   const ore = sek * 100;
-  return (Math.abs(ore) < 10 ? ore.toFixed(1) : Math.round(ore).toString()).replace(".", ",").replace("-", "−") + " öre";
+  return (
+    (Math.abs(ore) < 10 ? ore.toFixed(1) : Math.round(ore).toString()).replace(".", ",").replace("-", "−") + " öre"
+  );
 }

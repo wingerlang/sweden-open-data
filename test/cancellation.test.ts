@@ -29,10 +29,14 @@ test("cancellation: the shared load is aborted only when every waiting caller ha
     loadSignal = signal;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => resolve("value"), 200);
-      signal.addEventListener("abort", () => {
-        clearTimeout(timer);
-        reject(signal.reason);
-      }, { once: true });
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          reject(signal.reason);
+        },
+        { once: true },
+      );
     });
   };
   const one = new AbortController();
@@ -58,7 +62,10 @@ test("cancellation: an already aborted signal never starts a load, and a caller 
     await later(20);
     return 42;
   };
-  await assert.rejects(cache.get("k", 1000, load, { signal: AbortSignal.abort() }), (e: SourceError) => e.code === "aborted");
+  await assert.rejects(
+    cache.get("k", 1000, load, { signal: AbortSignal.abort() }),
+    (e: SourceError) => e.code === "aborted",
+  );
   assert.equal(loads, 0);
   const cancelled = new AbortController();
   const a = cache.get("k", 1000, load, { signal: cancelled.signal });
