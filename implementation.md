@@ -521,7 +521,7 @@ Utifrån det tog agenten fram en plan på 34 steg i fem faser, med en kontroll p
 Ja. Läget efter steg 34, 2026-10-21:
 
 - `npm run check` (typkontroll, lint, exportkontroll, täckning per fil): grönt.
-- `npm test`: 133 tester, alla gröna (Node; Bun 132 gröna och 1 överhoppat, eftersom dev-servertestet bara körs i Node).
+- `npm test`: 134 tester, alla gröna (Node; Bun 133 gröna och 1 överhoppat, eftersom dev-servertestet bara körs i Node).
 - Täckning: alla 36 filer i `src/` över 95 % rader, 90 % grenar och 95 % funktioner.
 - `npm run load`: 100 samtidiga anrop per metod, ett anrop per URL och noll i andra vågen.
 - `npm run check:package`: npm-arkivet typkontrolleras och importeras i ett vanligt TypeScript-projekt.
