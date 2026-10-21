@@ -31,10 +31,18 @@ interface Problem {
   message: string;
 }
 
-/** A line that may be long: a comment, a string on its own, or a line holding a URL. */
+/**
+ * A line that may be long: a comment, a line holding a URL, or one that is only long because of a single string
+ * (a test name, a message) – the formatter cannot break those.
+ */
 const mayBeLong = (text: string): boolean => {
   const t = text.trim();
-  return /^(\/\/|\/\*|\*)/.test(t) || /^["'`]/.test(t) || /https?:\/\//.test(t);
+  if (/^(\/\/|\/\*|\*)/.test(t) || /https?:\/\//.test(t)) return true;
+  const longest = Math.max(
+    0,
+    ...(text.match(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`[^`]*`/g) ?? []).map((m) => m.length),
+  );
+  return text.length - longest <= MAX_LINE;
 };
 
 export function lint(base: string = root): Problem[] {
@@ -52,7 +60,12 @@ export function lint(base: string = root): Problem[] {
       lines.forEach((text, i) => {
         // Step 11–12: readable lines. The formatter keeps code within 120 characters; this catches the rest.
         if (text.length > MAX_LINE && !mayBeLong(text)) {
-          problems.push({ file, line: i + 1, rule: "max-line", message: `${text.length} characters (max ${MAX_LINE})` });
+          problems.push({
+            file,
+            line: i + 1,
+            rule: "max-line",
+            message: `${text.length} characters (max ${MAX_LINE})`,
+          });
         }
       });
     }
