@@ -333,7 +333,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 24 · Belastningstest
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `npm run load` kör 100 samtidiga anrop mot 11 metoder: högst ett anrop per URL, noll anrop i andra vågen och högst 2 samtidiga mot Photon. Testet krävde fakes för fyra källor som saknade dem; de gjordes här (se steg 27).
 
 **Gör**
 1. Skapa `scripts/load.ts`: 100 samtidiga anrop per metod mot `createFakeSources()`.

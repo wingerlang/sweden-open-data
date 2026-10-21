@@ -477,6 +477,118 @@ export function fakeSmhiWarnings(now: number = Date.now()): Record<string, unkno
   ];
 }
 
+/**
+ * Hourly temperatures in the Open-Meteo archive format (`timeformat=unixtime`) for `from`–`to`, with a daily cycle.
+ * Demo data – never real observations.
+ */
+export function fakeWeatherArchive(position: Coordinates, from: string, to: string): Record<string, unknown> {
+  const start = Date.parse(from + "T00:00:00Z") / 1000;
+  const hours = Math.max(
+    0,
+    Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 3_600_000) + 24,
+  );
+  const base = 12 - (position.latitude - 55) * 1.2;
+  return {
+    latitude: position.latitude,
+    longitude: position.longitude,
+    hourly: {
+      time: Array.from({ length: hours }, (_, i) => start + i * 3600),
+      temperature_2m: Array.from({ length: hours }, (_, i) =>
+        Number((base + 5 * Math.sin(((i % 24) - 9) * (Math.PI / 12))).toFixed(1)),
+      ),
+    },
+  };
+}
+
+/**
+ * An Open-Meteo / CAMS air-quality answer for the requested `hourly` variables, `days` days from the current hour.
+ * Demo data – never a real forecast.
+ */
+export function fakeAirQuality(
+  position: Coordinates,
+  variables: string[],
+  days: number,
+  now: number = Date.now(),
+): Record<string, unknown> {
+  const start = Math.floor(now / 3_600_000) * 3600;
+  const hours = Math.max(1, Math.min(4, days)) * 24;
+  const series = (name: string, i: number): number => {
+    const day = Math.sin(((i % 24) - 6) * (Math.PI / 12));
+    if (name === "uv_index") return Math.max(0, Number((4 * day).toFixed(1)));
+    if (name.endsWith("_pollen")) return Math.max(0, Math.round(30 + 25 * day));
+    if (name === "european_aqi") return 20 + (i % 7);
+    return Number((5 + (i % 5) * 0.8).toFixed(1));
+  };
+  return {
+    latitude: position.latitude,
+    longitude: position.longitude,
+    hourly: Object.fromEntries([
+      ["time", Array.from({ length: hours }, (_, i) => start + i * 3600)],
+      ...variables.map((name) => [name, Array.from({ length: hours }, (_, i) => series(name, i))]),
+    ]),
+  };
+}
+
+/**
+ * IBIndex-format answers for one read endpoint (`companies/getCompanies`, `index/getProducts`, `company/…`), for two
+ * invented companies. Demo data – never real prices or holdings.
+ */
+export function fakeIbindex(path: string, body: unknown, now: number = Date.now()): unknown {
+  const companies = [
+    { product: "DEMO A", productName: "Demo Investment A", marketWeight: 60 },
+    { product: "DEMO B", productName: "Demo Investment B", marketWeight: 40 },
+  ];
+  const day = Math.floor(now / 86_400_000) * 86_400_000;
+  if (path.endsWith("companies/getCompanies")) return companies;
+  if (path.endsWith("index/getProducts")) {
+    return companies.map((c, i) => ({
+      product: c.product,
+      price: 200 + 50 * i,
+      netAssetValue: 230 + 50 * i,
+      netAssetValueCalculated: 225 + 50 * i,
+      netAssetValueChangeDate: day - 7 * 86_400_000,
+    }));
+  }
+  if (path.endsWith("company/getChartDataPrice")) {
+    return Array.from({ length: 30 }, (_, i) => ({
+      date: day - (29 - i) * 86_400_000,
+      productPrice: 200 + i,
+      netAssetValuePrice: 230 + i,
+      netAssetValueCalculatedPrice: 228 + i,
+    }));
+  }
+  if (path.endsWith("company/getHoldings")) {
+    return [
+      { holdingProduct: "X", holdingName: "Exempel Industri", holdingValue: 600, category: "LST" },
+      { holdingProduct: "Y", holdingName: "Exempel Teknik", holdingValue: 400, category: "UNL" },
+      { holdingProduct: "", holdingName: "Kassa", holdingValue: 50, category: "C&D" },
+    ];
+  }
+  if (path.endsWith("company/getHoldingsDate")) return day - 30 * 86_400_000;
+  if (path.endsWith("company/getNetAssetValue"))
+    return { product: body, netAssetValueChangeDate: day - 7 * 86_400_000 };
+  return undefined;
+}
+
+/**
+ * A Transportstyrelsen-style vehicle page for a registration number, with labelled fields only. Explicitly synthetic –
+ * never a real vehicle.
+ */
+export function fakeVehiclePage(registrationNumber: string = "ABC123"): string {
+  const field = (label: string, value: string): string => `<p><strong>${label}</strong><br>${value}</p>`;
+  return [
+    "<html><body>",
+    field("Registreringsnummer", registrationNumber),
+    field("Fabrikat", "EXEMPEL"),
+    field("Handelsbeteckning", "Testmodell"),
+    field("Fordonsår", "2021"),
+    field("Årsskatt", "1 234 kronor"),
+    field("Mätarställning", "48 500 km"),
+    field("Besiktas senast", "2027-04-30"),
+    "</body></html>",
+  ].join("");
+}
+
 /** Options for {@link createFakeSources}. */
 export interface FakeSourcesOptions {
   /** Clock. Tomorrow's prices are "published" at 13:00 Swedish time. Default `Date.now`. */
@@ -491,7 +603,7 @@ export interface FakeSourcesOptions {
 export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch {
   const now = options.now ?? Date.now;
   const json = (body: unknown): Response => Response.json(body);
-  const inner = async (input: string | URL | Request): Promise<Response> => {
+  const inner = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = new URL(input instanceof Request ? input.url : String(input));
     const p = url.searchParams;
     switch (sourceOf(url)) {
@@ -529,6 +641,34 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         return json(fakeSmhiWarnings(now()));
       case "biluppgifter":
         return json(fakeVehicleResponse(decodeURIComponent(url.pathname.split("/").at(-1)!)));
+      case "open-meteo-archive":
+        return json(
+          fakeWeatherArchive(
+            { latitude: Number(p.get("latitude")), longitude: Number(p.get("longitude")) },
+            p.get("start_date") ?? "",
+            p.get("end_date") ?? "",
+          ),
+        );
+      case "open-meteo-air-quality":
+        return json(
+          fakeAirQuality(
+            { latitude: Number(p.get("latitude")), longitude: Number(p.get("longitude")) },
+            (p.get("hourly") ?? "").split(",").filter(Boolean),
+            Number(p.get("forecast_days") ?? 4),
+            now(),
+          ),
+        );
+      case "ibindex": {
+        const body = typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+        const answer = fakeIbindex(url.pathname.replace(/\.req$/, ""), body, now());
+        if (answer !== undefined) return json(answer);
+        break;
+      }
+      case "transportstyrelsen": {
+        const plate = p.get("Registreringsnummer");
+        if (plate) return new Response(fakeVehiclePage(plate), { headers: { "content-type": "text/html" } });
+        break;
+      }
       case "scb": {
         const m = url.pathname.match(/\/tables\/(TAB\d+)\/data$/);
         const content = p.get("valueCodes[ContentsCode]");
