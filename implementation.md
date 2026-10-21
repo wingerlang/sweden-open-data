@@ -18,7 +18,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 1 · Skapa arbetsgren och baslinje
 
-- [ ] Klart
+- [x] Klart (2026-10-21: 93/93 tester, täckning 99,86 % rader / 95,24 % grenar / 98,45 % funktioner)
 
 **Gör**
 1. `git switch -c refactor/kodgranskning`
