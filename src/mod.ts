@@ -111,6 +111,7 @@ export {
   type Ttl,
 } from "./core/cache.ts";
 export { type HttpOptions, parseRetryAfter, type RequestEvent } from "./core/http.ts";
+export { DEFAULT_LIMITS, type SourceLimit } from "./core/limit.ts";
 export type { ClientStats, SourceStats } from "./core/stats.ts";
 export * from "./core/geo.ts";
 export * from "./core/time.ts";

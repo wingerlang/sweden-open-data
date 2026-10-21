@@ -104,7 +104,10 @@ export function createWeatherHistoryClient(options: ClientOptions | Context = {}
         `weather-history:${p.latitude},${p.longitude}:${from}:${to}`,
         ctx.ttl.weatherHistory,
         async (signal) =>
-          parseWeatherHistory(await ctx.http.json("open-meteo-archive", url, { signal }), new Date(ctx.now()).toISOString()),
+          parseWeatherHistory(
+            await ctx.http.json("open-meteo-archive", url, { signal }),
+            new Date(ctx.now()).toISOString(),
+          ),
         { signal: historyOptions.signal, source: "open-meteo-archive" },
       );
     },

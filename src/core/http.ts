@@ -5,6 +5,7 @@
  * @module
  */
 import { SourceError } from "./errors.ts";
+import { createLimiter, type SourceLimit } from "./limit.ts";
 
 /** Reported to {@link HttpOptions.onRequest} after every attempt. */
 export interface RequestEvent {
@@ -49,6 +50,13 @@ export interface HttpOptions {
    * code `"invalid-response"`, so a misbehaving mirror or proxy cannot fill the memory. Default `5000000` (5 MB).
    */
   maxResponseBytes?: number;
+  /**
+   * Limits per source name, merged over {@link DEFAULT_LIMITS} (Photon: two requests at a time). Requests beyond a
+   * limit wait in a queue – and can still be cancelled there – instead of hitting the source.
+   *
+   * @example `{ photon: { concurrency: 4 }, "open-meteo": { perMinute: 500 } }`
+   */
+  limits?: Record<string, SourceLimit>;
 }
 
 /** Per-request options. */
@@ -146,6 +154,7 @@ export function createHttp(options: HttpOptions = {}): Http {
   const maxRetryDelayMs = Math.max(0, options.maxRetryDelayMs ?? 10_000);
   const maxResponseBytes = options.maxResponseBytes ?? 5_000_000;
   if (!(maxResponseBytes > 0)) throw new RangeError("maxResponseBytes must be positive");
+  const limiter = createLimiter(options.limits);
   const baseHeaders: Record<string, string> = {};
   if (options.userAgent) baseHeaders["user-agent"] = options.userAgent;
 
@@ -248,17 +257,28 @@ export function createHttp(options: HttpOptions = {}): Http {
   async function run(source: string, url: string | URL, request: RequestOptions, kind: Kind): Promise<unknown> {
     const href = String(url);
     for (let n = 1; ; n++) {
+      let release: () => void;
+      try {
+        release = await limiter.acquire(source, request.signal);
+      } catch (cause) {
+        throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
+      }
+      let error: unknown;
       try {
         return await attempt(source, href, request, n, kind);
-      } catch (error) {
-        if (!(error instanceof SourceError) || !error.transient || n > retries) throw error;
-        const delay = Math.max(retryDelayMs * 2 ** (n - 1), error.retryAfterMs ?? 0);
-        if (delay > maxRetryDelayMs) throw error;
-        try {
-          await sleep(delay, request.signal);
-        } catch (cause) {
-          throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
-        }
+      } catch (cause) {
+        error = cause;
+      } finally {
+        // The slot is free again before any backoff, so a waiting retry never blocks other requests.
+        release();
+      }
+      if (!(error instanceof SourceError) || !error.transient || n > retries) throw error;
+      const delay = Math.max(retryDelayMs * 2 ** (n - 1), error.retryAfterMs ?? 0);
+      if (delay > maxRetryDelayMs) throw error;
+      try {
+        await sleep(delay, request.signal);
+      } catch (cause) {
+        throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
       }
     }
   }

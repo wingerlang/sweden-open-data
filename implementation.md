@@ -273,7 +273,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 19 · Gräns per källa (P3)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `src/core/limit.ts` med samtidighet och anrop per minut per källa, inkopplat i `http`. Platsen släpps före backoff, och en väntande begäran kan avbrytas. Standardvärdet är Photon med två åt gången, och README beskriver hur gränserna sätts. Tester i `test/limit.test.ts`.
 
 **Gör** i `src/core/http.ts`:
 1. Lägg `limits?: Record<string, { concurrency?: number; perMinute?: number }>` i `HttpOptions`.

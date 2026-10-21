@@ -209,6 +209,7 @@ const se = createClient({
   retryDelayMs: 500,         // doubled per retry (default 500)
   maxRetryDelayMs: 10_000,   // a longer Retry-After from a source is reported, not slept through
   maxResponseBytes: 5_000_000, // larger answers are refused as invalid-response (default 5 MB)
+  limits: { photon: { concurrency: 4 }, "open-meteo": { perMinute: 500 } }, // per source; default: Photon 2 at a time
   cache: {                   // or false
     maxEntries: 1000,
     archiveEntries: 400,     // past days kept by spot.history, in a cache of their own (default 400)
@@ -230,6 +231,13 @@ Default cache lifetimes (`DEFAULT_TTL`): published spot day 12 h, unpublished da
 
 Every method also accepts `{ signal }` to cancel. Concurrent identical requests share one load; cancelling only ends
 your own wait, and the load is aborted when every caller waiting for it has cancelled.
+
+### Being kind to free sources
+
+Requests beyond a source's limit wait in a queue instead of reaching the source, and can be cancelled while they wait.
+The only default is two concurrent requests to Photon, whose public instance asks for moderate use. Set limits that match
+each source's own terms for your traffic, for example `limits: { "open-meteo": { perMinute: 500 } }`. For autocomplete,
+wait about 300 ms after the last keystroke and cancel the previous request with its `signal`.
 
 ### Staying up when a source is down
 
