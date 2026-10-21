@@ -1,0 +1,87 @@
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+new file mode 100644
+index 0000000..4f15453
+--- /dev/null
++++ b/.github/dependabot.yml
+@@ -0,0 +1,11 @@
++# Keeps the pinned GitHub Actions (commit SHAs) and the development dependencies up to date.
++version: 2
++updates:
++  - package-ecosystem: github-actions
++    directory: /
++    schedule:
++      interval: weekly
++  - package-ecosystem: npm
++    directory: /
++    schedule:
++      interval: weekly
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 7f079b2..2d16b36 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -20,13 +20,26 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: ${{ matrix.node }}
+-      - name: Install development dependencies
+-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
++      - run: npm ci
+       - run: npm test
+-      - name: Coverage (≥ 95 % lines)
++      - name: Coverage per file (95 % lines, 90 % branches, 95 % functions)
+         if: matrix.node == 24
+         run: npm run coverage
+ 
++  quality:
++    name: Format, lint, exports and npm archive
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-node@v4
++        with:
++          node-version: 24
++      - run: npm ci
++      - run: npm run fmt:check
++      - run: npm run lint
++      - run: npm run check:exports
++      - run: npm run check:package
++
+   types:
+     name: Types, versions and JSR dry run
+     runs-on: ubuntu-latest
+@@ -35,8 +48,7 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
+-      - name: Install development dependencies
+-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
++      - run: npm ci
+       - run: npx tsc -p .
+       - name: package.json and jsr.json have the same version
+         run: node -e "const a=require('./package.json').version,b=require('./jsr.json').version;if(a!==b){console.error('package.json '+a+' ≠ jsr.json '+b);process.exit(1)}"
+diff --git a/.github/workflows/live.yml b/.github/workflows/live.yml
+index cfb1d70..d0920dd 100644
+--- a/.github/workflows/live.yml
++++ b/.github/workflows/live.yml
+@@ -18,6 +18,5 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
+-      - name: Install development dependencies
+-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
++      - run: npm ci
+       - run: npm run test:live
+diff --git a/.github/workflows/publish.yml b/.github/workflows/publish.yml
+index a7f7c0a..e4f37f4 100644
+--- a/.github/workflows/publish.yml
++++ b/.github/workflows/publish.yml
+@@ -15,8 +15,7 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
+-      - name: Install development dependencies
+-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
++      - run: npm ci
+       - run: npm test
+       - name: Tag matches version
+         run: node -e "const v=require('./jsr.json').version;if('v'+v!==process.env.GITHUB_REF_NAME){console.error('tag '+process.env.GITHUB_REF_NAME+' ≠ v'+v);process.exit(1)}"

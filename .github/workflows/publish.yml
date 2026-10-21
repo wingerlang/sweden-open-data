@@ -11,12 +11,11 @@ jobs:
       contents: read
       id-token: write # JSR authenticates GitHub Actions with OIDC – no secret needed – and records provenance
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-      - name: Install development dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - run: npm ci
       - run: npm test
       - name: Tag matches version
         run: node -e "const v=require('./jsr.json').version;if('v'+v!==process.env.GITHUB_REF_NAME){console.error('tag '+process.env.GITHUB_REF_NAME+' ≠ v'+v);process.exit(1)}"

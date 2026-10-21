@@ -16,27 +16,39 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Install development dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - run: npm ci
       - run: npm test
-      - name: Coverage (≥ 95 % lines)
+      - name: Coverage per file (95 % lines, 90 % branches, 95 % functions)
         if: matrix.node == 24
         run: npm run coverage
+
+  quality:
+    name: Format, lint, exports and npm archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run fmt:check
+      - run: npm run lint
+      - run: npm run check:exports
+      - run: npm run check:package
 
   types:
     name: Types, versions and JSR dry run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-      - name: Install development dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - run: npm ci
       - run: npx tsc -p .
       - name: package.json and jsr.json have the same version
         run: node -e "const a=require('./package.json').version,b=require('./jsr.json').version;if(a!==b){console.error('package.json '+a+' ≠ jsr.json '+b);process.exit(1)}"
@@ -46,8 +58,8 @@ jobs:
     name: Deno
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2
         with:
           deno-version: v2.x
       - run: deno test --no-check --allow-read --allow-write --allow-env test/ # types are checked in the Types job
@@ -56,6 +68,6 @@ jobs:
     name: Bun
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun test test/
