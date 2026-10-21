@@ -28,7 +28,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 2 · Lås verktygsversionerna (S4)
 
-- [ ] Klart
+- [ ] Klart. Delvis gjort 2026-10-21: `devDependencies` (typescript 5.9.3, @types/node 22.20.1) är tillagda och en patch för CI finns. Kvar: kör `npm install` lokalt, checka in `package-lock.json` och applicera CI-patchen (`git apply steg2-ci.patch`). CI-steget använder `npm ci` automatiskt så fort låsfilen finns.
 
 **Varför:** TypeScript saknas i `package.json`. Lokalt används 7.0.2, i CI 5.9, och det finns ingen låsfil.
 
@@ -42,7 +42,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 3 · Säkra dev-servern (S2)
 
-- [ ] Klart
+- [x] Klart (2026-10-21). Utöver planen: `Host`-headern kontrolleras (skydd mot DNS rebinding), fault-objekt valideras, upptagen port ger ett tydligt fel, och `test/devServer.test.ts` kontrollerar allt automatiskt.
 
 **Varför:** Servern lyssnar på alla nätverkskort och tar emot POST från vilken webbsida som helst.
 

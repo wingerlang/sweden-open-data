@@ -29,6 +29,20 @@ import { createFakeSources, type Fault, type FaultyFetch, SOURCE_IDS, type Sourc
 const args = process.argv.slice(2);
 const port = Number(args[args.indexOf("--port") + 1]) || Number(process.env.PORT) || 5174;
 const here = dirname(fileURLToPath(import.meta.url));
+// Only this computer can reach the board: it has no authentication and can switch sources and faults.
+const host = "127.0.0.1";
+const allowedHosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
+const allowedOrigins = new Set([...allowedHosts].map((h) => `http://${h}`));
+const MAX_BODY_BYTES = 64 * 1024;
+
+/** An error with the HTTP status the board should answer with. */
+class HttpError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
 
 interface Config {
   mode: "live" | "fake";
@@ -128,14 +142,86 @@ const json = (res: ServerResponse, status: number, body: unknown): void => {
   res.end(JSON.stringify(body));
 };
 const body = async (req: IncomingMessage): Promise<Record<string, unknown>> => {
-  let raw = "";
-  for await (const chunk of req) raw += chunk;
-  return raw ? JSON.parse(raw) : {};
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) throw new HttpError(413, `body larger than ${MAX_BODY_BYTES} bytes`);
+    chunks.push(chunk);
+  }
+  const raw = Buffer.concat(chunks).toString("utf8");
+  if (!raw) return {};
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new HttpError(400, "body is not JSON");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new HttpError(400, "body must be a JSON object");
+  return parsed as Record<string, unknown>;
 };
+
+/** Copies only known config fields with the right types; anything else is a 400. */
+function parseConfig(input: Record<string, unknown>): Partial<Config> {
+  const out: Partial<Config> = {};
+  for (const [key, value] of Object.entries(input)) {
+    const fail = (): never => {
+      throw new HttpError(400, `invalid config field: ${key}`);
+    };
+    switch (key) {
+      case "mode":
+        if (value !== "live" && value !== "fake") fail();
+        out.mode = value as Config["mode"];
+        break;
+      case "locale":
+        if (value !== "sv" && value !== "en") fail();
+        out.locale = value as Config["locale"];
+        break;
+      case "cache":
+        if (typeof value !== "boolean") fail();
+        out.cache = value as boolean;
+        break;
+      case "timeoutMs":
+      case "retries":
+      case "staleIfErrorMs":
+        if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 86_400_000) fail();
+        out[key] = value as number;
+        break;
+      default:
+        fail();
+    }
+  }
+  return out;
+}
+
+/** A fault is `null` or an object with the known fields of {@link Fault}. */
+function parseFault(input: unknown): Fault | null {
+  if (input === null) return null;
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new HttpError(400, "fault must be an object or null");
+  const numbers = new Set(["delayMs", "status", "retryAfter", "rate"]);
+  const flags = new Set(["hang", "offline", "invalidJson"]);
+  for (const [key, value] of Object.entries(input)) {
+    const ok = numbers.has(key) ? typeof value === "number" && Number.isFinite(value) && value >= 0 : flags.has(key) && typeof value === "boolean";
+    if (!ok) throw new HttpError(400, `invalid fault field: ${key}`);
+  }
+  return input as Fault;
+}
+
+/** Blocks other web pages (CSRF) and other host names (DNS rebinding) from driving the board. */
+function guard(req: IncomingMessage, pathname: string): void {
+  if (!allowedHosts.has(req.headers.host ?? "")) throw new HttpError(403, "unexpected Host header");
+  if (req.method !== "POST" || !pathname.startsWith("/api/")) return;
+  const origin = req.headers.origin;
+  if (origin !== undefined && !allowedOrigins.has(origin)) throw new HttpError(403, "cross-origin request");
+  if (!String(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+    throw new HttpError(415, "content-type must be application/json");
+  }
+}
 
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   try {
+    guard(req, url.pathname);
     if (url.pathname === "/" || url.pathname === "/index.html") {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
       return res.end(await readFile(join(here, "board.html")));
@@ -149,15 +235,16 @@ createServer(async (req, res) => {
     }
     if (url.pathname === "/api/state") return json(res, 200, { config, faults: faulty.faults(), sources: SOURCE_IDS, stats: se.stats(), calls: Object.keys(CALLS) });
     if (url.pathname === "/api/config" && req.method === "POST") {
-      const next = await body(req);
-      config = { ...config, ...next } as Config;
+      const next = parseConfig(await body(req));
+      config = { ...config, ...next };
       build();
       return json(res, 200, { config });
     }
     if (url.pathname === "/api/fault" && req.method === "POST") {
-      const { source, fault } = await body(req) as { source: SourceId; fault: Fault | null };
+      const input = await body(req);
+      const source = input.source as SourceId;
       if (!SOURCE_IDS.includes(source)) return json(res, 400, { error: "unknown source" });
-      faulty.setFault(source, fault);
+      faulty.setFault(source, parseFault(input.fault ?? null));
       return json(res, 200, { faults: faulty.faults() });
     }
     if (url.pathname === "/api/cache/clear" && req.method === "POST") {
@@ -188,8 +275,12 @@ createServer(async (req, res) => {
     }
     json(res, 404, { error: "not found" });
   } catch (error) {
-    json(res, 500, { error: String(error) });
+    if (error instanceof HttpError) json(res, error.status, { error: error.message });
+    else json(res, 500, { error: String(error) });
   }
-}).listen(port, () => {
-  console.log(`sweden-open-data dev board: http://localhost:${port}  (${config.mode === "fake" ? "fake sources" : "live sources"})`);
+}).on("error", (error: NodeJS.ErrnoException) => {
+  console.error(error.code === "EADDRINUSE" ? `Port ${port} is in use – start with --port <another port>` : error);
+  process.exit(1);
+}).listen(port, host, () => {
+  console.log(`sweden-open-data dev board: http://localhost:${port}  (${config.mode === "fake" ? "fake sources" : "live sources"}, only this computer)`);
 });
