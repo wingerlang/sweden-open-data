@@ -224,3 +224,32 @@ test("region: county, municipality and locality; nearest-county fallback; roundi
   mode = "ok";
   await assert.rejects(geo.region({ latitude: 57, longitude: 15 }, { signal: AbortSignal.abort() }));
 });
+
+test("address search: an unrelated 400 keeps the country filter, and a dropped filter returns after an hour", async () => {
+  let now = Date.parse("2026-10-21T12:00:00Z");
+  let filterRejected = false;
+  const seen: string[] = [];
+  const fetch = fakeFetch((url) => {
+    seen.push(url.search);
+    if (url.searchParams.has("countrycode") && filterRejected) return new Response("unknown parameter", { status: 400 });
+    if (url.searchParams.get("q") === "bad query") return new Response("bad", { status: 400 });
+    return json([araslov]);
+  });
+  const geo = createGeoClient({ fetch, ...quick, now: () => now, cache: false });
+  // 400 with and without the filter: the source rejects the query, not the filter.
+  await assert.rejects(geo.addresses("bad query"), (e: SourceError) => e.status === 400);
+  seen.length = 0;
+  await geo.addresses("Åraslöv 1105");
+  assert.ok(seen.every((s) => s.includes("countrycode")), "the filter is still used");
+  // The source rejects the filter: dropped for an hour, then tried again.
+  filterRejected = true;
+  await geo.addresses("Åraslöv 1105");
+  filterRejected = false;
+  seen.length = 0;
+  await geo.addresses("Åraslöv 1105");
+  assert.ok(seen.every((s) => !s.includes("countrycode")), "filter off within the hour");
+  now += 3_600_001;
+  seen.length = 0;
+  await geo.addresses("Åraslöv 1105");
+  assert.ok(seen.some((s) => s.includes("countrycode")), "filter used again after an hour");
+});

@@ -96,8 +96,9 @@ const text = (v: unknown): string | undefined => (typeof v === "string" && v.tri
  */
 export function createGeoClient(options: ClientOptions | Context = {}): GeoClient {
   const ctx = createContext(options);
-  // Some Photon deployments reject the countrycode filter; then we filter ourselves.
-  let countryFilter = true;
+  // Some Photon deployments reject the countrycode filter; then we filter ourselves for an hour and try again. The
+  // filter is only switched off when the same request without it succeeds, so an unrelated 400 changes nothing.
+  let countryFilterOffUntil = -Infinity;
 
   async function photon(
     term: string,
@@ -117,12 +118,14 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
       if (extra.localities) for (const layer of ["city", "district", "locality"]) url.searchParams.append("layer", layer);
       return url;
     };
+    const useFilter = ctx.now() >= countryFilterOffUntil;
     try {
-      return await ctx.http.json("photon", build(countryFilter), { signal: extra.signal });
+      return await ctx.http.json("photon", build(useFilter), { signal: extra.signal });
     } catch (error) {
-      if (!(error instanceof SourceError && error.status === 400 && countryFilter && country)) throw error;
-      countryFilter = false;
-      return ctx.http.json("photon", build(false), { signal: extra.signal });
+      if (!(error instanceof SourceError && error.status === 400 && useFilter && country)) throw error;
+      const unfiltered = await ctx.http.json("photon", build(false), { signal: extra.signal });
+      countryFilterOffUntil = ctx.now() + 3_600_000;
+      return unfiltered;
     }
   }
 

@@ -137,7 +137,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 9 · Gör `countryFilter` säkrare (P4)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): filtret stängs bara av när samma anrop utan filter lyckas, och bara i en timme. Test i `test/geo.test.ts`.
 
 **Gör** i `src/geo/client.ts`:
 1. Ersätt `let countryFilter = true` med `let countryFilterOffUntil = 0`.
