@@ -6,6 +6,7 @@ import {
   annualAverage,
   averageAnnualInflation,
   cpiAt,
+  cpiRange,
   createEconomyClient,
   deflate,
   inflationRate,
@@ -228,4 +229,39 @@ test("hela klienten och testkällorna har KPI, KPIF och KPIF-XE", async () => {
   assert.ok(Math.abs((annualAverage(kpi, 2020) ?? 0) - 100) < 0.1);
   for (const index of ["KPIF", "KPIF-XE"] as const)
     assert.equal((await se.economy.cpi(index)).points[0].month, "1987-01");
+});
+
+test("edge cases: empty series, extra dimensions, missing update time, invalid periods", () => {
+  const empty = { index: "KPI" as const, points: [] };
+  assert.throws(() => adjustForInflation(empty, 100, "2020-01"), /empty/);
+  assert.deepEqual(deflate(empty, [{ amount: 1, month: "2020-01" }]), []);
+  assert.equal(latestCpi(empty), undefined);
+  assert.equal(cpiRange(empty), undefined);
+  const one = { points: [{ month: "2020-01", value: 100 }] };
+  assert.throws(() => inflationRate(one, "2020-01", 0), RangeError);
+  assert.throws(
+    () => adjustForInflation({ ...one, index: "KPI" as const }, 1, "1999-01"),
+    /no value for 1999-01 \(2020-01–2020-01\)/,
+  );
+  assert.throws(() => adjustForInflation(one as never, 1, "1999-01"), /The index has no value/);
+  // A third dimension (fixed at its first category) and no "updated" field.
+  const parsed = parseScbMonthly(
+    {
+      id: ["Region", "ContentsCode", "Tid"],
+      size: [1, 1, 2],
+      value: [100, 101],
+      dimension: {
+        Region: { category: { index: { "00": 0 } } },
+        ContentsCode: { category: { index: ["X"] } },
+        Tid: { category: { index: ["2020M01", "2020M02"] } },
+      },
+    },
+    "X",
+  );
+  assert.deepEqual(parsed, {
+    points: [
+      { month: "2020-01", value: 100 },
+      { month: "2020-02", value: 101 },
+    ],
+  });
 });

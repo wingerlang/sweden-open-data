@@ -359,7 +359,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 26 · Täckning per fil (T4)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `npm run coverage` skriver `coverage/lcov.info`, och `scripts/check-coverage.ts` kräver per fil minst 95 % rader, 90 % grenar och 95 % funktioner. Efter formateringen i steg 12 visade `vehicles/free.ts` sin verkliga täckning, 89,6 % rader och 77 % grenar. Nya tester lyfte den och tre andra filer över gränsen, så inga undantag behövdes. Alla 36 filer klarar gränserna.
 
 **Gör**
 1. Kör täckningen med `--test-reporter=lcov --test-reporter-destination=coverage/lcov.info`.

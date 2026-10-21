@@ -92,7 +92,11 @@ async function readText(response: Response, limit: number, tooLarge: () => Sourc
       if (done) break;
       size += value.byteLength;
       if (size > limit) {
-        await reader.cancel().catch(() => {});
+        try {
+          await reader.cancel();
+        } catch {
+          // The body is abandoned either way.
+        }
         throw tooLarge();
       }
       chunks.push(value);

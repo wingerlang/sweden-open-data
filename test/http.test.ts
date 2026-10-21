@@ -69,3 +69,18 @@ test("free vehicle lookup: pages over 2 MB are refused without exposing the regi
       e.code === "invalid-response" && !String(e.url).includes("ABC123") && !e.message.includes("ABC123"),
   );
 });
+
+test("http: a cancellation during the retry wait ends it at once", async () => {
+  const cancel = new AbortController();
+  const http = createHttp({
+    retries: 3,
+    retryDelayMs: 5_000,
+    maxRetryDelayMs: 10_000,
+    fetch: async () => new Response("down", { status: 503 }),
+  });
+  const started = Date.now();
+  const pending = http.json("s", "https://x.test/", { signal: cancel.signal });
+  setTimeout(() => cancel.abort(), 20);
+  await assert.rejects(pending, (e: SourceError) => e.code === "aborted");
+  assert.ok(Date.now() - started < 1000);
+});

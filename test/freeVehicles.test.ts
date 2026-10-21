@@ -42,3 +42,34 @@ test("free lookup needs no API key, caches concurrent requests, and redacts regi
   await client.lookup("ABC123");
   assert.equal(calls, 2);
 });
+
+test("free page parser: HTML entities, Swedish mil, missing values, and errors without the registration", async () => {
+  const page = [
+    "<p><strong>Registreringsnummer</strong><br>ABC123</p>",
+    "<p><strong>Fabrikat</strong><br>K&ouml;ping &amp; S&#246;ner &#x41;B &lt;3&gt; &quot;x&quot; &nbsp;&Aring;&Auml;&Ouml;&aring;&auml;&#0;</p>",
+    "<p><strong>Mätarställning</strong><br>4 850 mil</p>",
+    "<p><strong>Årsskatt</strong><br>uppgift saknas</p>",
+    "<p><strong>Fordonsår</strong><br>1700</p>",
+  ].join("");
+  const v = parseTransportstyrelsenVehicle(page, "ABC123", "2026-10-21");
+  assert.equal(v.make, 'Köping & Söner AB <3> "x" ÅÄÖåä');
+  assert.equal(v.mileageKm, 48_500);
+  assert.equal(v.annualTaxKr, undefined, "no digits: missing, never 0");
+  assert.equal(v.modelYear, undefined);
+  assert.throws(
+    () => parseTransportstyrelsenVehicle("<p><strong>Registreringsnummer</strong><br>ABC123</p>", "ABC123", "x"),
+    /no observations/,
+  );
+  assert.throws(() => parseTransportstyrelsenVehicle("x".repeat(2_000_001), "ABC123", "x"), RangeError);
+
+  const failing = createFreeVehicleClient({
+    retries: 0,
+    fetch: async () => new Response("<html>captcha</html>", { status: 200 }),
+  });
+  await assert.rejects(failing.lookup("ABC123"), (e: Error) => !e.message.includes("ABC123"));
+  const missing = createFreeVehicleClient({ retries: 0, fetch: async () => new Response("", { status: 404 }) });
+  assert.equal(await missing.lookup("ABC123"), null);
+  assert.equal(missing.stats().requests, 1);
+  missing.resetStats();
+  assert.equal(missing.stats().requests, 0);
+});

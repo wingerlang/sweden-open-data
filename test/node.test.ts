@@ -90,3 +90,21 @@ test("memoryStore: values with ttlMs expire", async () => {
   assert.equal(await store.get("k"), undefined);
   assert.equal(await store.get("keep"), "v");
 });
+
+test("fileStore: values that are not JSON, other JSON, and pruning an empty or foreign directory", async () => {
+  const { writeFile } = await import("node:fs/promises");
+  const dir = await mkdtemp(join(tmpdir(), "sod-"));
+  try {
+    const store = fileStore(join(dir, "missing"));
+    assert.equal(await store.prune(), 0, "a directory that does not exist yet");
+    const real = fileStore(dir);
+    await writeFile(join(dir, "plain.json"), "not json at all");
+    await writeFile(join(dir, "other.json"), '{"a":1}');
+    await writeFile(join(dir, "broken.json"), "{");
+    assert.equal(await real.get("plain"), "not json at all");
+    assert.equal(await real.get("other"), '{"a":1}');
+    assert.equal(await real.prune(), 0, "files that are not ours are left alone");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

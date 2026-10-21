@@ -145,6 +145,19 @@ test("http: works without AbortSignal.any", async () => {
       createHttp({ fetch }).json("s", "https://x.test", { signal: AbortSignal.abort() }),
       (e: SourceError) => e.code === "aborted",
     );
+    // A fetch that, like the real one, rejects when its (combined) signal aborts.
+    const slow: typeof globalThis.fetch = (_input, init) =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve(Response.json({ ok: true })), 200);
+        init?.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(init.signal?.reason);
+        });
+      });
+    const later = new AbortController();
+    const pending = createHttp({ fetch: slow }).json("s", "https://x.test", { signal: later.signal });
+    setTimeout(() => later.abort(), 10);
+    await assert.rejects(pending, (e: SourceError) => e.code === "aborted");
   } finally {
     AbortSignal.any = original;
   }

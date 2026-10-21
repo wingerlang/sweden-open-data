@@ -120,7 +120,11 @@ export function fileStore(directory: string, options: FileStoreOptions = {}): Fi
       }
       if (!isEnvelope(parsed)) return raw;
       if (parsed.expires !== null && parsed.expires <= now()) {
-        await unlink(file).catch(() => {});
+        try {
+          await unlink(file);
+        } catch {
+          // Already removed by another process.
+        }
         return undefined;
       }
       return parsed.data;
