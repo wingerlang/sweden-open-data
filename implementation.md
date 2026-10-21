@@ -348,7 +348,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 25 · Kontroll av exportlistor (T1)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `scripts/check-exports.ts` (`npm run check:exports`, ingår i `npm run check`) jämför exporterna i `package.json` och `jsr.json`, kontrollerar att filerna finns och att `dist`-sökvägarna matchar, och att varje standard-endpoint har en källa i `sourceOf()`. Test i `test/checkExports.test.ts`. CI-steget ligger i `ci-steg11-29.patch`.
 
 **Gör**
 1. Skapa `scripts/check-exports.ts` som jämför nycklarna i `package.json` `exports` och `jsr.json` `exports`, och kontrollerar att varje fil finns i `src/`.
