@@ -391,7 +391,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 29 · Säkra CI-kedjan (S4)
 
-- [ ] Klart
+- [ ] Klart. Förberett 2026-10-21; **kvar för dig**, eftersom `.github` är skyddad för mig: (1) `git apply ci-steg11-29.patch` lägger till jobbet `quality` (`fmt:check`, `lint`, `check:exports`, `check:package`), täckning per fil, `npm ci` överallt och `.github/dependabot.yml`; (2) `node scripts/pin-actions.ts` slår upp varje actions riktiga commit-SHA med `git ls-remote` och pinnar den. Jag kunde inte nå GitHub härifrån och har inte hittat på några SHA:er.
 
 **Gör**
 1. Byt `actions/checkout@v4`, `actions/setup-node@v4`, `denoland/setup-deno@v2` och `oven-sh/setup-bun@v2` mot sina commit-SHA (behåll versionen som kommentar).
