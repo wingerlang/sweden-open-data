@@ -28,8 +28,13 @@ npm run typecheck   # strict TypeScript, no slow types
 npm run test:live   # contract tests against the real sources
 ```
 
-A new source or field needs three things: a parser with offline tests, a fake in `src/testing.ts`, and a check in
-`live/live.test.ts`.
+A new source needs all of these (`npm run check` catches a missing source name or export entry):
+
+1. A parser with offline tests, reading data through the helpers in `src/core/parse.ts`.
+2. Its address in `Endpoints` / `DEFAULT_ENDPOINTS` and its lifetime in `CacheTtl` / `DEFAULT_TTL` (`src/core/context.ts`).
+3. A source name in `SourceId`, `SOURCE_IDS` and `sourceOf()`, and a fake in `createFakeSources()` (`src/testing.ts`).
+4. A contract test in `live/live.test.ts`.
+5. Its entry point in both `package.json` and `jsr.json`, if it has one.
 
 Write commit messages in the [Conventional Commits](https://www.conventionalcommits.org) style
 (`feat(spot): …`, `fix(geo): …`) and add a line to `CHANGELOG.md` under *Unreleased*.

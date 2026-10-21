@@ -370,7 +370,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 27 · Fakes och live-tester för alla källor (T5)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): fakes för fyra källor (från steg 24) och live-tester för arkivet, luftkvaliteten, antalet Photon-anrop och, med `LIVE_SCRAPED=1`, IBIndex och Transportstyrelsen. `CONTRIBUTING.md` listar de fem sakerna en ny källa kräver. Live-testerna är inte körda härifrån eftersom nätet är spärrat; kör `npm run test:live`.
 
 **Gör**
 1. Lägg fakes i `src/testing.ts` för `open-meteo-archive`, `open-meteo-air-quality`, och (om de finns kvar efter steg 4) `ibindex` och `transportstyrelsen`.

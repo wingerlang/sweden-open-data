@@ -105,3 +105,54 @@ test("SCB: KPI, KPIF och KPIF-XE är hela, sammanfogade och rimliga", async (t) 
     if (s) assert.equal(s.points[0].month, "1987-01");
   }
 });
+
+test("Open-Meteo archive: a week of hourly temperatures", async (t) => {
+  const r = await live(t, () => se.weather.history(stockholm, "2026-01-01", "2026-01-07"));
+  if (!r) return;
+  assert.equal(r.hours.length, 7 * 24);
+  assert.ok(r.hours.every((h) => h.celsius > -40 && h.celsius < 30));
+});
+
+test("Open-Meteo air quality: UV, pollen and AQI per hour", async (t) => {
+  const r = await live(t, () => se.weather.environment(stockholm, { days: 1 }));
+  if (!r) return;
+  assert.ok(r.hours.length >= 24);
+  assert.ok(r.hours.some((h) => h.uvIndex !== null));
+  assert.ok(r.hours.some((h) => h.europeanAqi !== null));
+});
+
+test("Photon: a rural address costs at most four requests", async (t) => {
+  const calls: string[] = [];
+  const counted = createClient({
+    userAgent: "sweden-open-data contract tests (https://github.com/wingerlang/sweden-open-data)",
+    retries: 2,
+    onRequest: (e) => calls.push(e.source),
+  });
+  const r = await live(t, () => counted.geo.addresses("Åraslöv 1105, 28890 Vinslöv"));
+  if (!r) return;
+  assert.ok(r.length > 0);
+  assert.ok(calls.filter((s) => s === "photon").length <= 4, calls.join(", "));
+});
+
+// The scraped sources are experimental and only checked on request: LIVE_SCRAPED=1 npm run test:live
+const scraped = process.env.LIVE_SCRAPED === "1" ? false : "set LIVE_SCRAPED=1 to check the experimental sources";
+
+test("IBIndex (experimental): overview and one company", { skip: scraped }, async (t) => {
+  const { createInvestmentClient } = await import("../src/investments/mod.ts");
+  const ib = createInvestmentClient({ retries: 2, timeoutMs: 15_000 });
+  const overview = await live(t, () => ib.overview());
+  if (!overview) return;
+  assert.ok(overview.companies.length > 5);
+  const investor = overview.companies.find((c) => c.product.startsWith("INVE"));
+  assert.ok(investor, "Investor is listed");
+  const detail = await live(t, () => ib.company(investor.product));
+  assert.ok(!detail || detail.history.length > 100);
+});
+
+test("Transportstyrelsen (experimental): the page format is still readable", { skip: scraped }, async (t) => {
+  const plate = process.env.VEHICLE_LIVE_TEST_REGISTRATION;
+  if (!plate) return t.skip("set VEHICLE_LIVE_TEST_REGISTRATION to a registration you may look up");
+  const { createFreeVehicleClient } = await import("../src/vehicles/free.ts");
+  const vehicle = await live(t, () => createFreeVehicleClient({ retries: 1 }).lookup(plate));
+  assert.ok(vehicle === undefined || vehicle === null || vehicle.make || vehicle.model);
+});
