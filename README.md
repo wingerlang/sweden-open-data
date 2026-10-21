@@ -258,7 +258,7 @@ try {
 
 | Import | Contents |
 |---|---|
-| `@wingerlang/sweden-open-data` | Everything, plus `createClient` |
+| `@wingerlang/sweden-open-data` | Everything except the experimental sources, plus `createClient` |
 | `@wingerlang/sweden-open-data/spot` | Spot prices |
 | `@wingerlang/sweden-open-data/weather` | Weather |
 | `@wingerlang/sweden-open-data/alerts` | Alerts |
@@ -266,6 +266,9 @@ try {
 | `@wingerlang/sweden-open-data/economy` | Consumer price indices and inflation arithmetic |
 | `@wingerlang/sweden-open-data/node` | `fileStore` (needs a file system) |
 | `@wingerlang/sweden-open-data/testing` | Fakes of every source and fault injection, for your own tests |
+| `@wingerlang/sweden-open-data/vehicles` | Authenticated vehicle lookup (Biluppgifter, needs an API key) |
+| `@wingerlang/sweden-open-data/vehicles/free` | **Experimental:** Transportstyrelsen public-page lookup |
+| `@wingerlang/sweden-open-data/investments` | **Experimental:** IBIndex investment companies |
 
 ## Testing your code
 
@@ -365,9 +368,12 @@ This module is currently unreleased. Existing installations of 0.2.0 keep workin
 before switching consumers to the new export. No changes to users' personal vehicles, sharing or reminders are
 performed by the library; those belong to the consuming application.
 
-### Free vehicle lookup
+### Free vehicle lookup (experimental)
 
-`createFreeVehicleClient()` from `/vehicles` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
+> **Experimental.** Transportstyrelsen publishes this page for people, not as an API, and no agreement covers automated reading. Registration numbers can be personal data under GDPR. Until the terms are confirmed in writing it lives in its own entry point,
+> `@wingerlang/sweden-open-data/vehicles/free`, and is not exported from the main package or `/vehicles`.
+
+`createFreeVehicleClient()` from `/vehicles/free` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
 
 ## Higher education reference catalogue
 
@@ -384,8 +390,11 @@ const suggestions = searchSwedishInstitutions("kth");
 
 The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.
 
-### Investment companies (IBIndex)
+### Investment companies (IBIndex, experimental)
 
-The optional `/investments` entry point provides `createInvestmentClient()`, also exposed as `createClient().investments`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
+> **Experimental.** IBIndex offers no public API or agreement for these endpoints; availability and data terms are decided by IBIndex. Until the terms are confirmed in writing it is only available from
+> `@wingerlang/sweden-open-data/investments` and is not part of `createClient()`.
+
+The optional `/investments` entry point provides `createInvestmentClient()`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
 
 Responses share a six-hour cache and can persist in the existing store. Failed refreshes retain the last complete result marked stale. This is an unofficial adapter to public IBIndex read endpoints; availability and third-party data terms are determined by IBIndex, not this package's MIT source-code license. Always show source and dates. Reports are handled by the application's existing company-report source. No private portfolio inputs are accepted.

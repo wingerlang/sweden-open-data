@@ -40,6 +40,10 @@
       "types": "./src/vehicles/mod.ts",
       "default": "./dist/vehicles/mod.js"
     },
+    "./vehicles/free": {
+      "types": "./src/vehicles/free.ts",
+      "default": "./dist/vehicles/free.js"
+    },
     "./sports": {
       "types": "./src/sports/mod.ts",
       "default": "./dist/sports/mod.js"

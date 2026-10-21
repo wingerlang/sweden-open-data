@@ -12,6 +12,7 @@
     "./node": "./src/node.ts",
     "./testing": "./src/testing.ts",
     "./vehicles": "./src/vehicles/mod.ts",
+    "./vehicles/free": "./src/vehicles/free.ts",
     "./sports": "./src/sports/mod.ts",
     "./education": "./src/education/mod.ts",
     "./economy": "./src/economy/mod.ts",

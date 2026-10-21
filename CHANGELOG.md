@@ -3,6 +3,23 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## Unreleased (0.11.0)
+
+Breaking:
+
+- `createClient()` no longer has `investments`. Use `createInvestmentClient()` from `/investments`, which is now marked
+  experimental: IBIndex offers no public API or agreement for the endpoints used.
+- `createFreeVehicleClient`, `parseTransportstyrelsenVehicle` and `vehicleLookupLinks` moved from `/vehicles` (and the
+  main entry point) to the new `/vehicles/free` entry point, marked experimental: the Transportstyrelsen page is not an
+  API, no agreement covers automated reading, and registration numbers can be personal data.
+
+Both stay out of the main entry point until their terms are confirmed in writing.
+
+Security:
+
+- The dev board listens on 127.0.0.1 only and rejects cross-origin, non-JSON, oversized and unknown requests.
+- TypeScript and `@types/node` are pinned as development dependencies with a lockfile; CI installs with `npm ci`.
+
 ## 0.9.0 – 2026-10-20
 
 - New **`/economy`** export and `se.economy`: consumer price indices KPI (from 1980), KPIF and KPIF-XE (from 1987) month by month from SCB's PxWebApi v2, 2020=100. KPI joins the 1980 figures rebased to 2020=100 with the official figures after SCB's base change in January 2026.

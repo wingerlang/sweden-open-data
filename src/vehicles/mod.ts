@@ -1,4 +1,3 @@
-export {createFreeVehicleClient,parseTransportstyrelsenVehicle,vehicleLookupLinks} from './free.ts';
 /** Optional authenticated vehicle lookup; unlike the open sources, this requires a provider agreement. @module */
 import {createContext,type ClientOptions} from '../core/context.ts';
 import {SourceError} from '../core/errors.ts';

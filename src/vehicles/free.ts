@@ -1,4 +1,13 @@
-/** Free public-page lookup. No credentials, owner data or access-control bypass. */
+/**
+ * Free public-page vehicle lookup from Transportstyrelsen. No credentials, owner data or access-control bypass.
+ *
+ * @experimental Transportstyrelsen publishes this page for people, not as an API, and no agreement covers
+ * automated reading. Registration numbers can be personal data under GDPR. Kept out of the main entry point until
+ * the terms are confirmed in writing;
+ * import it from `@wingerlang/sweden-open-data/vehicles/free`.
+ *
+ * @module
+ */
 import {createContext,type ClientOptions} from '../core/context.ts';
 import {SourceError} from '../core/errors.ts';
 import {normalizeVehicleRegistration,type VehicleClient,type VehicleRecord} from './mod.ts';

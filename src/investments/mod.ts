@@ -1,4 +1,12 @@
-/** Public investment-company data from IBIndex. No personal holdings are accepted. */
+/**
+ * Public investment-company data from IBIndex. No personal holdings are accepted.
+ *
+ * @experimental IBIndex offers no public API or agreement for these endpoints; availability and data terms are
+ * decided by IBIndex. Not part of `createClient()` until the terms are confirmed in writing;
+ * import it from `@wingerlang/sweden-open-data/investments`.
+ *
+ * @module
+ */
 import {createContext,storeGet,storeSet,type ClientOptions,type Context} from '../core/context.ts';
 import {SourceError} from '../core/errors.ts';
 export interface InvestmentCompany {product:string;name:string;symbol:string;marketWeight?:number|null}
