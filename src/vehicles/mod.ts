@@ -16,6 +16,7 @@
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
 import { finiteNumber, isoDay, text } from "../core/parse.ts";
+import { type Redaction, redactError, redactedHooks } from "../core/source.ts";
 import type { ClientStats } from "../core/stats.ts";
 
 /** Registry observations only. No owner, VIN, credit, or address data is retained. */
@@ -67,14 +68,13 @@ const year = (v: unknown): number | undefined => {
   const n = number(v);
   return n !== undefined && Number.isInteger(n) && n >= 1886 && n <= 2200 ? n : undefined;
 };
-const publicError = (e: SourceError): SourceError =>
-  new SourceError("Vehicle lookup failed (" + e.code + ")", {
-    source: SOURCE,
-    code: e.code,
-    status: e.status,
-    retryAfterMs: e.retryAfterMs,
-    url: REDACTED,
-  });
+const redaction: Redaction = {
+  source: SOURCE,
+  url: REDACTED,
+  message: "Vehicle lookup failed",
+  cacheKey: "vehicle:[redacted]",
+};
+const publicError = (e: SourceError): SourceError => redactError(e, redaction);
 /**
  * Parses documented Biluppgifter v1 basic/status/inspection packages, preserving missing values and zero tax.
  * Throws SourceError for an empty or mismatched response. No inspection dates are calculated.
@@ -149,9 +149,7 @@ export function createVehicleClient(options: VehicleClientOptions): VehicleClien
       headers.set("Authorization", "Bearer " + apiKey.trim());
       return request(input, { ...init, headers, redirect: "error" });
     },
-    onRequest: (event) =>
-      options.onRequest?.({ ...event, url: REDACTED, error: event.error ? publicError(event.error) : undefined }),
-    onCacheEvent: (event) => options.onCacheEvent?.({ ...event, key: "vehicle:[redacted]" }),
+    ...redactedHooks(options, redaction),
   });
   const load = async (plate: string, signal?: AbortSignal): Promise<VehicleRecord | null> => {
     try {

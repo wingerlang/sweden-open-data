@@ -4,7 +4,8 @@
  *
  * @module
  */
-import { type ClientOptions, type Context, createContext, storeGet, storeSet } from "../core/context.ts";
+import { type ClientOptions, type Context, createContext } from "../core/context.ts";
+import { cachedWithStore } from "../core/source.ts";
 import {
   CPI_SOURCE,
   CPI_TABLES,
@@ -63,47 +64,39 @@ export function createEconomyClient(options: ClientOptions | Context = {}): Econ
     cpi(index = "KPI", options = {}) {
       if (!isCpiIndex(index)) return Promise.reject(new RangeError(`Unknown index ${String(index)}`));
       const key = `cpi:${index}`;
-      return ctx.cache.get(
+      return cachedWithStore(
+        ctx,
         key,
         ctx.ttl.cpi,
+        (v): v is CpiSeries => isSeries(v, index),
         async (signal) => {
-          const stored = await storeGet(ctx.store, key);
-          const kept = isSeries(stored, index) ? stored : undefined;
-          if (kept && ctx.now() - Date.parse(kept.fetchedAt) < ctx.ttl.cpi) return { ...kept, stale: undefined };
-          try {
-            const def = CPI_TABLES[index];
-            const parts = await Promise.all(
-              def.parts.map(async (part) =>
-                parseScbMonthly(
-                  await ctx.http.json("scb", scbDataUrl(ctx.endpoints.scb, part.table, part.content), { signal }),
-                  part.content,
-                ),
+          const def = CPI_TABLES[index];
+          const parts = await Promise.all(
+            def.parts.map(async (part) =>
+              parseScbMonthly(
+                await ctx.http.json("scb", scbDataUrl(ctx.endpoints.scb, part.table, part.content), { signal }),
+                part.content,
               ),
-            );
-            const points = spliceSeries(parts.map((p) => p.points));
-            if (!points.length) throw new RangeError(`SCB returned no values for ${index}`);
-            const updated = parts
-              .map((p) => p.updated)
-              .filter((u): u is string => !!u)
-              .sort()
-              .at(-1);
-            const series: CpiSeries = {
-              index,
-              label: def.label,
-              base: "2020=100",
-              points,
-              ...(updated ? { updated } : {}),
-              fetchedAt: new Date(ctx.now()).toISOString(),
-              source: CPI_SOURCE.name,
-              sourceUrl: CPI_SOURCE.url,
-              tables: def.parts.map((p) => p.table),
-            };
-            await storeSet(ctx.store, key, series);
-            return series;
-          } catch (error) {
-            if (kept && !signal.aborted) return { ...kept, stale: true };
-            throw error;
-          }
+            ),
+          );
+          const points = spliceSeries(parts.map((p) => p.points));
+          if (!points.length) throw new RangeError(`SCB returned no values for ${index}`);
+          const updated = parts
+            .map((p) => p.updated)
+            .filter((u): u is string => !!u)
+            .sort()
+            .at(-1);
+          return {
+            index,
+            label: def.label,
+            base: "2020=100",
+            points,
+            ...(updated ? { updated } : {}),
+            fetchedAt: new Date(ctx.now()).toISOString(),
+            source: CPI_SOURCE.name,
+            sourceUrl: CPI_SOURCE.url,
+            tables: def.parts.map((p) => p.table),
+          };
         },
         { signal: options.signal, source: "scb" },
       );

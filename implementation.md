@@ -221,7 +221,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 15 · Delade mönster för cache med lagring och maskning
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `src/core/source.ts` med `cachedWithStore`, som används av economy och investments, samt `redactError` och `redactedHooks`, som används av båda fordonsklienterna. Färsk data har aldrig `stale`. Tester i `test/source.test.ts`.
 
 **Gör**
 1. Skapa `src/core/source.ts` med `cachedWithStore(ctx, key, ttl, isValid, load, options)`: läs lagret, returnera färskt värde, annars ladda, spara och returnera; vid fel returnera lagrat värde med `stale: true`.

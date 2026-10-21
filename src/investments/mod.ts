@@ -15,7 +15,8 @@
  *
  * @module
  */
-import { createContext, storeGet, storeSet, type ClientOptions, type Context } from "../core/context.ts";
+import { createContext, type ClientOptions, type Context } from "../core/context.ts";
+import { cachedWithStore, type Dated } from "../core/source.ts";
 import { dayFromEpochMs, finiteNumber, invalidResponse } from "../core/parse.ts";
 /** An investment company as IBIndex lists it. */
 export interface InvestmentCompany {
@@ -91,6 +92,9 @@ export interface InvestmentClient {
 /** Where the data comes from – show it next to the data. */
 export const IBINDEX_SOURCE: string = "https://ibindex.se/ibi/";
 const productPattern = /^[A-Z0-9][A-Z0-9 .&-]{0,39}$/;
+const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const isCompanyList = <T extends Dated>(v: unknown): v is T =>
+  isRecord(v) && Array.isArray(v.companies) && v.companies.length > 0 && typeof v.fetchedAt === "string";
 const number = (v: unknown): number | null => finiteNumber(v);
 const date = (v: unknown): string | null => dayFromEpochMs(v) ?? null;
 const bad = (): never => {
@@ -201,43 +205,24 @@ export function createInvestmentClient(options: ClientOptions | Context = {}): I
     ttl = 6 * 3600000;
   const post = (path: string, body: unknown): Promise<unknown> =>
     ctx.http.json("ibindex", IBINDEX_SOURCE + path + ".req", { method: "POST", body });
-  const cached = <T extends { fetchedAt: string }>(
+  const cached = <T extends Dated>(
     key: string,
-    valid: (v: any) => v is T,
+    valid: (v: unknown) => v is T,
     load: () => Promise<T>,
-    duration = ttl,
-  ): Promise<T> =>
-    ctx.cache.get(key, duration, async () => {
-      const old = await storeGet(ctx.store, key),
-        kept = valid(old) ? old : undefined;
-      if (kept && ctx.now() - Date.parse(kept.fetchedAt) < duration) return kept;
-      try {
-        const value = await load();
-        await storeSet(ctx.store, key, value);
-        return value;
-      } catch (error) {
-        if (kept) return { ...kept, stale: true };
-        throw error;
-      }
-    });
+    duration: number = ttl,
+  ): Promise<T> => cachedWithStore(ctx, key, duration, valid, load, { source: "ibindex" });
   const companies = (): Promise<InvestmentCompanies> =>
-    cached(
-      "ibindex:companies:v2",
-      (v: any): v is InvestmentCompanies =>
-        !!v && Array.isArray(v.companies) && v.companies.length > 0 && typeof v.fetchedAt === "string",
-      async () => ({
-        companies: parseInvestmentCompanies(await post("companies/getCompanies", {})),
-        fetchedAt: new Date(ctx.now()).toISOString(),
-        sourceUrl: IBINDEX_SOURCE,
-      }),
-    );
+    cached("ibindex:companies:v2", isCompanyList<InvestmentCompanies>, async () => ({
+      companies: parseInvestmentCompanies(await post("companies/getCompanies", {})),
+      fetchedAt: new Date(ctx.now()).toISOString(),
+      sourceUrl: IBINDEX_SOURCE,
+    }));
   return {
     companies,
     overview: () =>
       cached(
         "ibindex:overview:v1",
-        (v: any): v is InvestmentOverview =>
-          !!v && Array.isArray(v.companies) && v.companies.length > 0 && typeof v.fetchedAt === "string",
+        isCompanyList<InvestmentOverview>,
         async () => {
           const [catalog, rows] = await Promise.all([companies(), post("index/getProducts", {})]);
           return {
@@ -256,9 +241,10 @@ export function createInvestmentClient(options: ClientOptions | Context = {}): I
       if (!company) throw new RangeError("Unknown investment company");
       return cached(
         "ibindex:company:v2:" + product,
-        (v: any): v is InvestmentDetail =>
-          !!v &&
-          v.company?.product === product &&
+        (v: unknown): v is InvestmentDetail =>
+          isRecord(v) &&
+          isRecord(v.company) &&
+          v.company.product === product &&
           Array.isArray(v.history) &&
           v.history.length > 0 &&
           Array.isArray(v.holdings) &&
@@ -275,7 +261,7 @@ export function createInvestmentClient(options: ClientOptions | Context = {}): I
             history: parseInvestmentHistory(history),
             holdings: parseInvestmentHoldings(holdings),
             holdingsDate: date(holdingsDate),
-            reportedNavDate: date((nav as any)?.netAssetValueChangeDate),
+            reportedNavDate: date(isRecord(nav) ? nav.netAssetValueChangeDate : undefined),
             fetchedAt: new Date(ctx.now()).toISOString(),
             sourceUrl: IBINDEX_SOURCE + "#/company/" + encodeURIComponent(product),
           };

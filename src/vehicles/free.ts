@@ -11,6 +11,7 @@
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
 import { finiteNumber, invalidResponse, isoDay } from "../core/parse.ts";
+import { type Redaction, redactError, redactedHooks } from "../core/source.ts";
 import { normalizeVehicleRegistration, type VehicleClient, type VehicleRecord } from "./mod.ts";
 const source = "transportstyrelsen",
   base = "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter";
@@ -108,20 +109,19 @@ export function parseTransportstyrelsenVehicle(
 /** Best effort public HTML, not an official API contract. Falls back to a user-opened page when its format changes. */
 export function createFreeVehicleClient(options: Omit<ClientOptions, "endpoints" | "store"> = {}): VehicleClient {
   const redacted = base + "?Registreringsnummer=[redacted]";
-  const clean = (e: SourceError) =>
-    new SourceError("Public vehicle lookup failed (" + e.code + ")", {
-      source,
-      code: e.code,
-      status: e.status,
-      url: redacted,
-    });
+  const redaction: Redaction = {
+    source,
+    url: redacted,
+    message: "Public vehicle lookup failed",
+    cacheKey: "vehicle:[redacted]",
+  };
+  const clean = (e: SourceError): SourceError => redactError(e, redaction);
   // Pages are read with the shared HTTP layer: timeouts, retries, the response size limit (2 MB here) and statistics.
   const ctx = createContext({
     maxResponseBytes: 2_000_000,
     ...options,
     userAgent: options.userAgent || "sweden-open-data",
-    onRequest: (e) => options.onRequest?.({ ...e, url: redacted, error: e.error ? clean(e.error) : undefined }),
-    onCacheEvent: (e) => options.onCacheEvent?.({ ...e, key: "vehicle:[redacted]" }),
+    ...redactedHooks(options, redaction),
   });
   const load = async (plate: string, signal?: AbortSignal): Promise<VehicleRecord | null> => {
     try {
