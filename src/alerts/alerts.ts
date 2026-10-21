@@ -12,7 +12,7 @@
  * @module
  */
 import { type Coordinates, type Polygon, distanceKm, fold, inPolygon } from "../core/geo.ts";
-import { text as parseText } from "../core/parse.ts";
+import { list, record, text as parseText } from "../core/parse.ts";
 import { type Region, neighboringCounties, regionKey } from "../geo/regions.ts";
 import type { Locale } from "../core/context.ts";
 
@@ -59,10 +59,9 @@ export interface RelevantAlert extends Omit<Alert, "polygons" | "areas"> {
   places: number[];
 }
 
-type Json = any;
-
-const pick = (o: Json, ...keys: string[]): Json => {
-  if (!o || typeof o !== "object") return undefined;
+/** The first of `keys` that `value` has (also in another letter case), or `undefined`. */
+const pick = (value: unknown, ...keys: string[]): unknown => {
+  const o = record(value);
   for (const k of keys) {
     if (o[k] != null) return o[k];
     const hit = Object.keys(o).find((x) => x.toLowerCase() === k.toLowerCase());
@@ -105,7 +104,7 @@ export function parsePoint(value: unknown): Coordinates | undefined {
   return latFirst ? { latitude: a, longitude: b } : { latitude: b, longitude: a };
 }
 
-function krisArea(a: Json): AlertArea | null {
+function krisArea(a: unknown): AlertArea | null {
   const name = text(pick(a, "Description", "Name"), 120);
   if (!name) return null;
   const t = fold(String(pick(a, "Type") ?? ""));
@@ -131,9 +130,8 @@ function krisArea(a: Json): AlertArea | null {
  * `items`/`Entries`/`data`. Links that are not `https://` are replaced by the site's front page.
  */
 export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert[] {
-  const list = Array.isArray(json) ? json : (pick(json, "items", "Entries", "data") ?? []);
-  if (!Array.isArray(list)) return [];
-  return list.flatMap((x: Json): Alert[] => {
+  const entries = Array.isArray(json) ? json : list(pick(json, "items", "Entries", "data"));
+  return entries.flatMap((x): Alert[] => {
     const id = text(pick(x, "Identifier", "Id"), 200);
     const title = text(pick(x, "Headline", "PushMessage", "Title"), 300);
     if (!id || !title) return [];
@@ -172,14 +170,23 @@ const LEVEL_TITLES: Record<Locale, Record<AlertLevel, string>> = {
   en: { red: "Red warning", orange: "Orange warning", yellow: "Yellow warning", message: "Message" },
 };
 
-function polygonsOf(geo: Json): Polygon[] {
-  if (!geo) return [];
-  if (geo.type === "FeatureCollection") return (geo.features ?? []).flatMap((f: Json) => polygonsOf(f?.geometry));
-  if (geo.type === "Feature") return polygonsOf(geo.geometry);
-  if (geo.type === "Polygon" && Array.isArray(geo.coordinates)) return [geo.coordinates];
-  if (geo.type === "MultiPolygon" && Array.isArray(geo.coordinates)) return geo.coordinates;
-  if (geo.type === "GeometryCollection") return (geo.geometries ?? []).flatMap(polygonsOf);
-  return [];
+/** The polygons of any GeoJSON object (feature collection, feature, polygon, multipolygon, geometry collection). */
+function polygonsOf(value: unknown): Polygon[] {
+  const geo = record(value);
+  switch (geo.type) {
+    case "FeatureCollection":
+      return list(geo.features).flatMap((f) => polygonsOf(record(f).geometry));
+    case "Feature":
+      return polygonsOf(geo.geometry);
+    case "Polygon":
+      return Array.isArray(geo.coordinates) ? [geo.coordinates as Polygon] : [];
+    case "MultiPolygon":
+      return Array.isArray(geo.coordinates) ? (geo.coordinates as Polygon[]) : [];
+    case "GeometryCollection":
+      return list(geo.geometries).flatMap((g) => polygonsOf(g));
+    default:
+      return [];
+  }
 }
 
 /** Options for {@link parseSmhiWarnings}. */
@@ -195,11 +202,11 @@ export function parseSmhiWarnings(json: unknown, options: SmhiOptions = {}): Ale
   const now = options.now ?? Date.now();
   const titles = LEVEL_TITLES[options.locale ?? "sv"];
   if (!Array.isArray(json)) return [];
-  return json.flatMap((w: Json): Alert[] => {
+  return json.flatMap((w: unknown): Alert[] => {
     const event = text(pick(w, "event"), 120);
     const warningAreas = pick(w, "warningAreas");
     if (!Array.isArray(warningAreas)) return [];
-    return warningAreas.flatMap((a: Json): Alert[] => {
+    return warningAreas.flatMap((a: unknown): Alert[] => {
       const end = iso(pick(a, "approximateEnd", "end"));
       if (end && Date.parse(end) < now) return [];
       const rawLevel = pick(a, "warningLevel");
@@ -212,7 +219,7 @@ export function parseSmhiWarnings(json: unknown, options: SmhiOptions = {}): Ale
       const descriptions = pick(a, "descriptions");
       const affected = pick(a, "affectedAreas");
       const areas: AlertArea[] = (Array.isArray(affected) ? affected : [])
-        .map((x: Json) => text(x, 120))
+        .map((x: unknown) => text(x, 120))
         .filter(Boolean)
         .map(
           (name: string): AlertArea => ({
@@ -231,7 +238,7 @@ export function parseSmhiWarnings(json: unknown, options: SmhiOptions = {}): Ale
           // SMHI's terms: warning texts must not be altered, so they are kept in full.
           summary: Array.isArray(descriptions)
             ? descriptions
-                .map((d: Json) => text(pick(d, "text"), 4000))
+                .map((d: unknown) => text(pick(d, "text"), 4000))
                 .filter(Boolean)
                 .join(" ")
             : "",

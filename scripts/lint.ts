@@ -91,6 +91,17 @@ export function lint(base: string = root): Problem[] {
             }
           });
         }
+        // Step 17: untrusted data is `unknown` and read through core/parse.ts, never `any`.
+        lines.forEach((text, i) => {
+          if (!/^\s*(\*|\/\/)/.test(text) && /(?::|<|\bas)\s*any\b|\bany\[\]|deno-lint-ignore/.test(text)) {
+            problems.push({
+              file,
+              line: i + 1,
+              rule: "no-any",
+              message: "use unknown and the helpers in core/parse.ts",
+            });
+          }
+        });
         // Step 13: everything exported is documented.
         lines.forEach((text, i) => {
           const exported = /^export (?:async )?(?:function|const|interface|type|class) (\w+)/.exec(text);

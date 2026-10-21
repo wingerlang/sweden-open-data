@@ -5,7 +5,7 @@
  * @module
  */
 import { type Coordinates, fold, isCoordinates } from "../core/geo.ts";
-import { text } from "../core/parse.ts";
+import { list, record, text } from "../core/parse.ts";
 
 /** An address (or, with `precision: "locality"`, a town or village) found for a query. */
 export interface AddressSuggestion extends Coordinates {
@@ -120,24 +120,22 @@ export function approximateAddress(query: string, anchor: AddressSuggestion): Ad
   };
 }
 
-type Json = any;
 const str = (v: unknown): string => text(v, 200) ?? "";
-const point = (f: Json): Coordinates | null => {
-  const c = f?.geometry?.type === "Point" ? f.geometry.coordinates : null;
+const point = (feature: unknown): Coordinates | null => {
+  const geometry = record(record(feature).geometry);
+  const c = geometry.type === "Point" ? geometry.coordinates : null;
   const p = Array.isArray(c) ? { latitude: c[1], longitude: c[0] } : null;
   return isCoordinates(p) ? p : null;
 };
 
 /** Parses a Photon response into address suggestions (duplicates and invalid coordinates removed, at most 12). */
 export function parsePhotonAddresses(json: unknown): AddressSuggestion[] {
-  const features = (json as Json)?.features;
-  if (!Array.isArray(features)) return [];
   const seen = new Set<string>();
-  return features
-    .flatMap((f: Json): AddressSuggestion[] => {
-      const p = f?.properties;
+  return list(record(json).features)
+    .flatMap((f): AddressSuggestion[] => {
+      const p = record(record(f).properties);
       const position = point(f);
-      if (!p || !position) return [];
+      if (!position) return [];
       const house = str(p.housenumber);
       const street = str(p.street) || (house ? str(p.name) : "");
       const address = [street, house].filter(Boolean).join(" ");
@@ -160,30 +158,31 @@ export function parsePhotonAddresses(json: unknown): AddressSuggestion[] {
 
 /** Parses a Photon response into named places (points of interest, villages, cities). */
 export function parsePhotonPlaces(json: unknown): Place[] {
-  const features = (json as Json)?.features;
-  if (!Array.isArray(features)) return [];
-  return features.flatMap((f: Json): Place[] => {
-    const p = f?.properties ?? {};
+  return list(record(json).features).flatMap((f): Place[] => {
+    const p = record(record(f).properties);
     const position = point(f);
     const countryCode = str(p.countrycode).toUpperCase();
-    if (typeof p.name !== "string" || !/^[A-Z]{2}$/.test(countryCode) || !position) return [];
-    const region = [p.city, p.state].filter((v: unknown) => typeof v === "string" && v !== p.name).join(" · ");
-    return [{ name: p.name, region, countryCode, ...position, source: "OpenStreetMap / Photon" }];
+    const name = p.name;
+    if (typeof name !== "string" || !/^[A-Z]{2}$/.test(countryCode) || !position) return [];
+    const region = [p.city, p.state].filter((v) => typeof v === "string" && v !== name).join(" · ");
+    return [{ name, region, countryCode, ...position, source: "OpenStreetMap / Photon" }];
   });
 }
 
 /** Parses an Open-Meteo geocoding response into places. */
 export function parseOpenMeteoPlaces(json: unknown): Place[] {
-  const results = (json as Json)?.results;
-  if (!Array.isArray(results)) return [];
-  return results.flatMap((r: Json): Place[] => {
-    const position = { latitude: r?.latitude, longitude: r?.longitude };
-    if (typeof r?.name !== "string" || !/^[A-Z]{2}$/.test(r.country_code) || !isCoordinates(position)) return [];
+  return list(record(json).results).flatMap((item): Place[] => {
+    const r = record(item);
+    const position = { latitude: r.latitude, longitude: r.longitude };
+    const name = r.name;
+    const countryCode = r.country_code;
+    if (typeof name !== "string" || typeof countryCode !== "string" || !/^[A-Z]{2}$/.test(countryCode)) return [];
+    if (!isCoordinates(position)) return [];
     return [
       {
-        name: r.name,
+        name,
         region: typeof r.admin1 === "string" ? r.admin1 : "",
-        countryCode: r.country_code,
+        countryCode,
         ...position,
         source: "Open-Meteo / GeoNames",
       },

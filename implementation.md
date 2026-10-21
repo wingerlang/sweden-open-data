@@ -247,7 +247,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 17 · Ta bort `any`
 
-- [ ] Klart
+- [x] Klart (2026-10-21): ingen `any` kvar i `src/`. Parsrarna läser okänd data med `record()`, `list()` och `pick()`. Lintregeln `no-any` gäller i stället för `deno lint`, som inte kunde köras här.
 
 **Gör**
 1. Ersätt `any` med `unknown` i `alerts/alerts.ts`, `geo/address.ts`, `geo/client.ts`, `weather/forecast.ts` och `investments/mod.ts`.

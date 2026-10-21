@@ -10,7 +10,7 @@
 import { type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { type Coordinates, assertCoordinates, distanceKm, fold, roundCoordinates } from "../core/geo.ts";
 import { SourceError } from "../core/errors.ts";
-import { text } from "../core/parse.ts";
+import { list, record, text } from "../core/parse.ts";
 import {
   type AddressSuggestion,
   type Place,
@@ -272,8 +272,8 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
             const url = new URL(ctx.endpoints.photonReverse);
             url.searchParams.set("lat", String(p.latitude));
             url.searchParams.set("lon", String(p.longitude));
-            const json: any = await ctx.http.json("photon", url, { signal });
-            const props = json?.features?.[0]?.properties ?? {};
+            const json = await ctx.http.json("photon", url, { signal });
+            const props = record(record(list(record(json).features)[0]).properties);
             const locality = [props.city, props.town, props.village, props.district].map((v) => text(v)).find(Boolean);
             const county = [props.state, props.county].map((v) => text(v)).find((x) => x && /län$/i.test(x));
             const municipality = [props.county, props.city, props.district]

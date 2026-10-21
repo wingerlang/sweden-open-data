@@ -62,6 +62,16 @@ export function dayFromEpochMs(value: unknown): string | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10);
 }
 
+/** The fields of a JSON object, or an empty object for anything else (arrays, `null`, primitives). */
+export function record(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+/** A JSON array, or an empty array for anything else. */
+export function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 /** The error every parser throws when a source answers in an unexpected format. */
 export function invalidResponse(source: string, message: string = `Unexpected response from ${source}`): SourceError {
   return new SourceError(message, { code: "invalid-response", source });

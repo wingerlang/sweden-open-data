@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { finiteNumber, invalidResponse } from "../core/parse.ts";
+import { finiteNumber, invalidResponse, list, record } from "../core/parse.ts";
 import { type Coordinates, assertCoordinates } from "../core/geo.ts";
 import { TIME_ZONE } from "../core/time.ts";
 import { DEFAULT_ENDPOINTS, type Locale } from "../core/context.ts";
@@ -196,52 +196,56 @@ const num = (v: unknown): number | null => finiteNumber(v, { strings: true });
  *
  * @throws {SourceError} with code `"invalid-response"` when there are no current conditions.
  */
-export function parseOpenMeteo(json: any, now: number = Date.now()): Forecast {
-  const c = json?.current;
-  const h = json?.hourly ?? {};
-  const d = json?.daily ?? {};
-  if (!c || num(c.temperature_2m) === null) {
-    throw invalidResponse("open-meteo", "Unexpected response from Open-Meteo");
-  }
+export function parseOpenMeteo(json: unknown, now: number = Date.now()): Forecast {
+  const root = record(json);
+  const c = record(root.current);
+  const h = record(root.hourly);
+  const d = record(root.daily);
+  if (num(c.temperature_2m) === null) throw invalidResponse("open-meteo", "Unexpected response from Open-Meteo");
   // Open-Meteo returns local times without a zone ("2026-10-12T14:00"); the response carries the offset.
-  const offset = Number(json.utc_offset_seconds) || 0;
+  const offset = Number(root.utc_offset_seconds) || 0;
   const abs = (t: unknown): string => new Date(Date.parse(String(t) + "Z") - offset * 1000).toISOString();
+  const at = (series: unknown, i: number): unknown => list(series)[i];
   const hours: HourlyWeather[] = [];
-  for (let i = 0; i < (h.time?.length ?? 0); i++) {
-    const time = abs(h.time[i]);
-    const temperature = num(h.temperature_2m?.[i]);
+  const hourTimes = list(h.time);
+  for (let i = 0; i < hourTimes.length; i++) {
+    const time = abs(hourTimes[i]);
+    const temperature = num(at(h.temperature_2m, i));
     if (Date.parse(time) < now - 3_600_000 || temperature === null) continue;
     hours.push({
       time,
       temperature,
-      code: num(h.weather_code?.[i]) ?? 3,
-      precipitation: num(h.precipitation?.[i]),
-      precipitationProbability: num(h.precipitation_probability?.[i]),
-      wind: num(h.wind_speed_10m?.[i]),
-      isDay: h.is_day?.[i] !== 0,
+      code: num(at(h.weather_code, i)) ?? 3,
+      precipitation: num(at(h.precipitation, i)),
+      precipitationProbability: num(at(h.precipitation_probability, i)),
+      wind: num(at(h.wind_speed_10m, i)),
+      isDay: at(h.is_day, i) !== 0,
     });
   }
   const days: DailyWeather[] = [];
-  for (let i = 0; i < (d.time?.length ?? 0); i++) {
-    const max = num(d.temperature_2m_max?.[i]);
-    const min = num(d.temperature_2m_min?.[i]);
+  const dayTimes = list(d.time);
+  for (let i = 0; i < dayTimes.length; i++) {
+    const max = num(at(d.temperature_2m_max, i));
+    const min = num(at(d.temperature_2m_min, i));
     if (max === null || min === null) continue;
+    const sunrise = at(d.sunrise, i);
+    const sunset = at(d.sunset, i);
     days.push({
-      date: String(d.time[i]),
-      code: num(d.weather_code?.[i]) ?? 3,
+      date: String(dayTimes[i]),
+      code: num(at(d.weather_code, i)) ?? 3,
       max,
       min,
-      precipitation: num(d.precipitation_sum?.[i]),
-      precipitationProbability: num(d.precipitation_probability_max?.[i]),
-      sunrise: d.sunrise?.[i] ? abs(d.sunrise[i]) : null,
-      sunset: d.sunset?.[i] ? abs(d.sunset[i]) : null,
-      wind: num(d.wind_speed_10m_max?.[i]),
+      precipitation: num(at(d.precipitation_sum, i)),
+      precipitationProbability: num(at(d.precipitation_probability_max, i)),
+      sunrise: sunrise ? abs(sunrise) : null,
+      sunset: sunset ? abs(sunset) : null,
+      wind: num(at(d.wind_speed_10m_max, i)),
     });
   }
   return {
-    latitude: Number(json.latitude),
-    longitude: Number(json.longitude),
-    timezone: String(json.timezone || TIME_ZONE),
+    latitude: Number(root.latitude),
+    longitude: Number(root.longitude),
+    timezone: String(root.timezone || TIME_ZONE),
     current: {
       time: abs(c.time),
       temperature: num(c.temperature_2m) as number,

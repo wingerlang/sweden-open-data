@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dayFromEpochMs, finiteNumber, fold, invalidResponse, isoDay, text } from "../src/core/parse.ts";
+import { dayFromEpochMs, finiteNumber, fold, invalidResponse, isoDay, list, record, text } from "../src/core/parse.ts";
 import { SourceError } from "../src/core/errors.ts";
 
 test("parse: fold", () => {
@@ -53,4 +53,11 @@ test("parse: invalidResponse", () => {
   assert.equal(e.source, "scb");
   assert.equal(e.message, "Unexpected response from scb");
   assert.equal(invalidResponse("scb", "SCB lacks Tid").message, "SCB lacks Tid");
+});
+
+test("parse: record and list", () => {
+  assert.deepEqual(record({ a: 1 }), { a: 1 });
+  for (const v of [null, undefined, [], "x", 1]) assert.deepEqual(record(v), {});
+  assert.deepEqual(list([1]), [1]);
+  for (const v of [null, undefined, {}, "x"]) assert.deepEqual(list(v), []);
 });
