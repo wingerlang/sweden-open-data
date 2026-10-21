@@ -76,3 +76,25 @@ test("cancellation: an already aborted signal never starts a load, and a caller 
   assert.equal(await cache.get("k", 1000, load, { signal: new AbortController().signal }), 42, "cached value");
   assert.equal(loads, 1);
 });
+
+test("cancellation: a caller arriving after everyone else cancelled starts a fresh load", async () => {
+  const cache = createMemoryCache();
+  let loads = 0;
+  const load = (signal: AbortSignal): Promise<number> => {
+    const n = ++loads;
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => resolve(n), 20);
+      signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        setTimeout(() => reject(signal.reason), 5); // the abandoned load fails a little later
+      });
+    });
+  };
+  const first = new AbortController();
+  const a = cache.get("k", 1000, load, { signal: first.signal });
+  first.abort();
+  const b = cache.get("k", 1000, load);
+  await assert.rejects(a);
+  assert.equal(await b, 2, "the newcomer got its own load, not the abandoned one");
+  assert.equal(await cache.get("k", 1000, load), 2, "and its result is cached");
+});

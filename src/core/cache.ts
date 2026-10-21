@@ -158,7 +158,8 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
       if (getOptions.signal?.aborted)
         return Promise.reject(aborted(getOptions.source ?? "cache", getOptions.signal.reason));
       const hit = entries.get(key);
-      if (hit && hit.expires > now()) {
+      // A load every caller has abandoned is not joined: it is about to fail with "aborted".
+      if (hit && hit.expires > now() && !hit.flight?.controller.signal.aborted) {
         remember(key, hit);
         emit({ type: "hit", key });
         return wait<V>(hit, getOptions);
