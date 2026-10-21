@@ -126,7 +126,7 @@ export interface ClientOptions extends HttpOptions {
   onCacheEvent?: (event: CacheEvent) => void;
   /** Durable storage: complete historical spot-price days, and the last good consumer price index series. */
   store?: PersistentStore;
-  /** Override individual upstream URLs. */
+  /** Override individual upstream URLs (`https:`, or `http:` for localhost). Treat them as trusted configuration. */
   endpoints?: Partial<Endpoints>;
   /**
    * Decimals that positions are rounded to before they are sent to a source (and used as cache keys).
@@ -214,13 +214,33 @@ export function createContext(options: ClientOptions | Context = {}): Context {
     }),
     ttl: { ...DEFAULT_TTL, ...tuning.ttl },
     store: o.store,
-    endpoints: { ...DEFAULT_ENDPOINTS, ...o.endpoints },
+    endpoints: checkEndpoints({ ...DEFAULT_ENDPOINTS, ...o.endpoints }),
     precision,
     now,
     locale: o.locale === "en" ? "en" : "sv",
     stats,
   };
   return context;
+}
+
+/**
+ * Endpoints are trusted configuration: they decide where positions and queries are sent. Only `https:` is accepted,
+ * and `http:` only for this computer (`localhost`, `127.0.0.1`, `[::1]`) – for local mirrors and fakes.
+ */
+function checkEndpoints(endpoints: Endpoints): Endpoints {
+  for (const [name, value] of Object.entries(endpoints)) {
+    let url: URL | undefined;
+    try {
+      url = new URL(String(value));
+    } catch {
+      url = undefined;
+    }
+    const local = url?.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (!url || !(url.protocol === "https:" || local) || url.username || url.password) {
+      throw new RangeError(`endpoints.${name} must be an https:// URL (or http://localhost): ${String(value)}`);
+    }
+  }
+  return endpoints;
 }
 
 /** Reads from a {@link PersistentStore}, treating failures as a miss. */

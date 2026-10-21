@@ -412,7 +412,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 31 · Validera endpoints (S7)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `createContext` godkänner bara `https:`, och `http:` enbart för `localhost`, `127.0.0.1` och `[::1]`. Adresser med inloggningsuppgifter avvisas. Felet namnger endpointen. Test i `test/context.test.ts`.
 
 **Gör** i `createContext` (`src/core/context.ts`):
 1. Tolka varje endpoint med `new URL()`.

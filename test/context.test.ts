@@ -65,3 +65,17 @@ test("stats: every source is counted under its own name", async () => {
   await se.weather.environment(here, { metrics: ["uv"] });
   assert.deepEqual(Object.keys(se.stats().sources).sort(), ["open-meteo-air-quality", "open-meteo-archive"]);
 });
+
+test("endpoints: https, or http for this computer only", () => {
+  createClient({ endpoints: { spot: "https://mirror.example/prices" } });
+  createClient({ endpoints: { spot: "http://localhost:8080/prices", weather: "http://127.0.0.1:9/x" } });
+  for (const spot of [
+    "file:///etc/passwd",
+    "http://mirror.example/prices",
+    "ftp://x",
+    "not a url",
+    "https://u:p@x.example/",
+  ]) {
+    assert.throws(() => createClient({ endpoints: { spot } }), /endpoints\.spot must be an https/);
+  }
+});
