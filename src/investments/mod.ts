@@ -5,24 +5,40 @@
  * decided by IBIndex. Not part of `createClient()` until the terms are confirmed in writing;
  * import it from `@wingerlang/sweden-open-data/investments`.
  *
+ * ```ts
+ * import { createInvestmentClient } from "@wingerlang/sweden-open-data/investments";
+ *
+ * const ib = createInvestmentClient();
+ * const { companies } = await ib.overview(); // price, NAV and discount per company
+ * const investor = await ib.company("INVE B"); // history and holdings
+ * ```
+ *
  * @module
  */
 import { createContext, storeGet, storeSet, type ClientOptions, type Context } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
+/** An investment company as IBIndex lists it. */
 export interface InvestmentCompany {
+  /** IBIndex product code, for example `"INVE B"`. */
   product: string;
   name: string;
+  /** Stock symbol, for example `"INVE-B.ST"`. */
   symbol: string;
+  /** Weight in the IBIndex index, %, when published. */
   marketWeight?: number | null;
 }
+/** One day of price and net asset value (NAV). Discounts are % of NAV; negative means a premium. */
 export interface InvestmentPoint {
+  /** `YYYY-MM-DD`. */
   date: string;
+  /** Share price, SEK. */
   price: number;
   reportedNav: number | null;
   estimatedNav: number | null;
   reportedDiscount: number | null;
   estimatedDiscount: number | null;
 }
+/** An underlying holding. `weightPct` excludes cash and debt, like IBIndex. */
 export interface InvestmentHolding {
   product: string;
   name: string;
@@ -31,6 +47,7 @@ export interface InvestmentHolding {
   value: number;
   weightPct: number | null;
 }
+/** History, holdings and dates for one company. `stale` is `true` when IBIndex failed and an older copy is shown. */
 export interface InvestmentDetail {
   company: InvestmentCompany;
   history: InvestmentPoint[];
@@ -41,12 +58,14 @@ export interface InvestmentDetail {
   sourceUrl: string;
   stale?: boolean;
 }
+/** All companies IBIndex lists. */
 export interface InvestmentCompanies {
   companies: InvestmentCompany[];
   fetchedAt: string;
   sourceUrl: string;
   stale?: boolean;
 }
+/** Today's price, NAV and discount per company, from one request. */
 export interface InvestmentOverview {
   companies: (InvestmentCompany & {
     price: number;
@@ -60,12 +79,17 @@ export interface InvestmentOverview {
   sourceUrl: string;
   stale?: boolean;
 }
+/** Investment companies from IBIndex. */
 export interface InvestmentClient {
+  /** Price, NAV and discount for every company – for lists. Cached 15 minutes. */
   overview(): Promise<InvestmentOverview>;
+  /** The companies IBIndex lists. Cached 6 hours. */
   companies(): Promise<InvestmentCompanies>;
+  /** History and holdings for one company by product code. Cached 6 hours. */
   company(product: string): Promise<InvestmentDetail>;
 }
-export const IBINDEX_SOURCE = "https://ibindex.se/ibi/";
+/** Where the data comes from – show it next to the data. */
+export const IBINDEX_SOURCE: string = "https://ibindex.se/ibi/";
 const productPattern = /^[A-Z0-9][A-Z0-9 .&-]{0,39}$/;
 const number = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const date = (v: unknown): string | null =>
@@ -79,6 +103,7 @@ const bad = (): never => {
 export function navDiscount(price: number, nav: number | null): number | null {
   return nav !== null && nav > 0 && price >= 0 && Number.isFinite(price) ? (1 - price / nav) * 100 : null;
 }
+/** Parses IBIndex `getCompanies`. @throws {SourceError} `"invalid-response"` for an empty or malformed list. */
 export function parseInvestmentCompanies(input: unknown): InvestmentCompany[] {
   if (!Array.isArray(input) || !input.length) return bad();
   const map = new Map<string, InvestmentCompany>();
@@ -100,6 +125,7 @@ export function parseInvestmentCompanies(input: unknown): InvestmentCompany[] {
   }
   return [...map.values()];
 }
+/** Parses IBIndex `getChartDataPrice`, one point per day in date order. @throws {SourceError} for malformed rows. */
 export function parseInvestmentHistory(input: unknown): InvestmentPoint[] {
   if (!Array.isArray(input) || !input.length) return bad();
   const map = new Map<string, InvestmentPoint>();
@@ -120,6 +146,7 @@ export function parseInvestmentHistory(input: unknown): InvestmentPoint[] {
   }
   return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
+/** Parses IBIndex `getHoldings`, with weights computed over assets except cash and debt. */
 export function parseInvestmentHoldings(input: unknown): InvestmentHolding[] {
   if (!Array.isArray(input)) return bad();
   const values: InvestmentHolding[] = input.map((v) => {
@@ -171,6 +198,7 @@ export function parseInvestmentOverview(
     ];
   });
 }
+/** Creates an {@link InvestmentClient}. With a `store`, the last complete answer survives restarts and outages. */
 export function createInvestmentClient(options: ClientOptions | Context = {}): InvestmentClient {
   const ctx = createContext(options),
     ttl = 6 * 3600000;

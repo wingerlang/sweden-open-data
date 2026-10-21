@@ -13,6 +13,7 @@ import { SourceError } from "../core/errors.ts";
 import { normalizeVehicleRegistration, type VehicleClient, type VehicleRecord } from "./mod.ts";
 const source = "transportstyrelsen",
   base = "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter";
+/** Links for opening a vehicle in an ordinary browser tab, when automatic reading is not possible. */
 export function vehicleLookupLinks(registrationNumber: string): { transportstyrelsen: string; biluppgifter: string } {
   const plate = normalizeVehicleRegistration(registrationNumber);
   return {

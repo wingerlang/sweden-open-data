@@ -272,7 +272,6 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
             const url = new URL(ctx.endpoints.photonReverse);
             url.searchParams.set("lat", String(p.latitude));
             url.searchParams.set("lon", String(p.longitude));
-            // deno-lint-ignore no-explicit-any
             const json: any = await ctx.http.json("photon", url, { signal });
             const props = json?.features?.[0]?.properties ?? {};
             const locality = [props.city, props.town, props.village, props.district].map(text).find(Boolean);

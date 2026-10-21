@@ -190,7 +190,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 13 · Dokumentation och importer i de nya filerna
 
-- [ ] Klart
+- [x] Klart (2026-10-21): alla filer i `src/` börjar med en modulkommentar med exempel, och allt som exporteras har JSDoc. Två nya regler i `npm run lint` (`module-doc`, `export-doc`) håller det så. `deno-lint-ignore`-kommentarerna är borttagna; dubbelimporten i `spot/client.ts` slogs ihop redan i steg 8.
 
 **Gör**
 1. Flytta importerna under modulens JSDoc i `src/mod.ts`, `src/weather/client.ts` och `src/vehicles/mod.ts`.

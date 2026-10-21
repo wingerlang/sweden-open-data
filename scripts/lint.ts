@@ -56,7 +56,26 @@ export function lint(base: string = root): Problem[] {
     }
     for (const path of list) {
       const file = relative(base, path).replaceAll("\\", "/");
-      const lines = readFileSync(path, "utf8").split("\n");
+      const source = readFileSync(path, "utf8");
+      const lines = source.split("\n");
+      if (file.startsWith("src/")) {
+        // Step 13: every module starts with its documentation, before any import.
+        if (!/^\/\*\*[\s\S]*?@module[\s\S]*?\*\//.test(source)) {
+          problems.push({
+            file,
+            line: 1,
+            rule: "module-doc",
+            message: "start the file with a /** … @module */ comment",
+          });
+        }
+        // Step 13: everything exported is documented.
+        lines.forEach((text, i) => {
+          const exported = /^export (?:async )?(?:function|const|interface|type|class) (\w+)/.exec(text);
+          if (exported && !/\*\/\s*$/.test(lines[i - 1] ?? "")) {
+            problems.push({ file, line: i + 1, rule: "export-doc", message: `document ${exported[1]} with /** … */` });
+          }
+        });
+      }
       lines.forEach((text, i) => {
         // Step 11–12: readable lines. The formatter keeps code within 120 characters; this catches the rest.
         if (text.length > MAX_LINE && !mayBeLong(text)) {

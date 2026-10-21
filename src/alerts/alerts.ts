@@ -58,7 +58,6 @@ export interface RelevantAlert extends Omit<Alert, "polygons" | "areas"> {
   places: number[];
 }
 
-// deno-lint-ignore no-explicit-any
 type Json = any;
 
 const pick = (o: Json, ...keys: string[]): Json => {

@@ -1,16 +1,41 @@
+/**
+ * Historical hourly temperatures from the [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api)
+ * (ERA5 reanalysis, CC BY 4.0) – for example to compare energy use or spot prices with the weather of a period.
+ * Reanalysis is a model of the past, not a station observation at the address.
+ *
+ * ```ts
+ * import { createWeatherHistoryClient } from "@wingerlang/sweden-open-data/weather";
+ *
+ * const { hours } = await createWeatherHistoryClient().history({ latitude: 59.33, longitude: 18.07 }, "2026-01-01", "2026-01-31");
+ * ```
+ *
+ * @module
+ */
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { assertCoordinates, roundCoordinates, type Coordinates } from "../core/geo.ts";
 import { SourceError } from "../core/errors.ts";
+/** One hour of the archive. */
 export interface HistoricalTemperature {
+  /** Start of the hour, milliseconds since the epoch (UTC). */
   at: number;
+  /** Air temperature 2 m above ground, °C. */
   celsius: number;
 }
+/** Hourly temperatures for a period. Hours without a value are left out, never filled in. */
 export interface WeatherHistory {
+  /** In time order. */
   hours: HistoricalTemperature[];
+  /** When the data was fetched (ISO 8601). */
   fetchedAt: string;
+  /** Name of the source, for attribution. */
   source: string;
   sourceUrl: string;
 }
+/**
+ * Converts an Open-Meteo archive response (`timeformat=unixtime`) into a {@link WeatherHistory}.
+ *
+ * @throws {SourceError} with code `"invalid-response"` when the series are missing, of different lengths or too long.
+ */
 export function parseWeatherHistory(raw: unknown, fetchedAt: string): WeatherHistory {
   const h = (raw as { hourly?: { time?: unknown[]; temperature_2m?: unknown[] } })?.hourly;
   if (
@@ -34,6 +59,10 @@ export function parseWeatherHistory(raw: unknown, fetchedAt: string): WeatherHis
     sourceUrl: "https://open-meteo.com/en/docs/historical-weather-api",
   };
 }
+/**
+ * Creates a client for historical temperatures: 1–31 calendar days per request, positions rounded like every other
+ * request, results cached for six hours.
+ */
 export function createWeatherHistoryClient(options: ClientOptions = {}): {
   history: (position: Coordinates, from: string, to: string) => Promise<WeatherHistory>;
 } {

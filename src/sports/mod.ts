@@ -1,4 +1,19 @@
-/** Public sport names only. Organisations, participation and training histories belong to the consumer. */
+/**
+ * A curated vocabulary of sports with stable ids, Swedish names, aliases and a category – for autocomplete and for
+ * storing a sport by id. Public sport names only: organisations, participation and training histories belong to the
+ * consuming application. No network.
+ *
+ * ```ts
+ * import { findSport, searchSports } from "@wingerlang/sweden-open-data/sports";
+ *
+ * searchSports("brott", 5); // [{ id: "sport:wrestling", name: "Brottning", … }]
+ * findSport("wrestling")?.id; // "sport:wrestling"
+ * ```
+ *
+ * @module
+ */
+
+/** A sport. */
 export interface Sport {
   readonly id: string;
   readonly name: string;

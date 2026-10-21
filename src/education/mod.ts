@@ -1,4 +1,17 @@
-/** A dated reference snapshot, not personal education records or a live accreditation API. */
+/**
+ * Swedish universities and other higher education institutions listed by UKÄ: a dated reference snapshot with stable
+ * ids, for autocomplete and lookups. Not personal education records and not a live accreditation API. No network.
+ *
+ * ```ts
+ * import { searchSwedishInstitutions } from "@wingerlang/sweden-open-data/education";
+ *
+ * searchSwedishInstitutions("kth")[0].name; // "Kungliga Tekniska högskolan"
+ * ```
+ *
+ * @module
+ */
+
+/** A higher education institution. */
 export interface SwedishInstitution {
   readonly id: string;
   readonly name: string;

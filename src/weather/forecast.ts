@@ -200,7 +200,6 @@ const num = (v: unknown): number | null => {
  *
  * @throws {SourceError} with code `"invalid-response"` when there are no current conditions.
  */
-// deno-lint-ignore no-explicit-any
 export function parseOpenMeteo(json: any, now: number = Date.now()): Forecast {
   const c = json?.current;
   const h = json?.hourly ?? {};

@@ -1,4 +1,18 @@
-/** Optional authenticated vehicle lookup; unlike the open sources, this requires a provider agreement. @module */
+/**
+ * Optional authenticated vehicle lookup from Biluppgifter. Unlike the open sources it needs your own provider
+ * agreement and API key, so use it on a server only. Registry observations only: no owner, address, VIN or finance data.
+ *
+ * ```ts
+ * import { createVehicleClient } from "@wingerlang/sweden-open-data/vehicles";
+ *
+ * const vehicles = createVehicleClient({ apiKey: process.env.BILUPPGIFTER_API_KEY! });
+ * const vehicle = await vehicles.lookup("ABC123"); // null when the registry has no such vehicle
+ * ```
+ *
+ * The free, experimental Transportstyrelsen lookup lives in `/vehicles/free`.
+ *
+ * @module
+ */
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
 import type { ClientStats } from "../core/stats.ts";

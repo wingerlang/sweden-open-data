@@ -1,4 +1,3 @@
-import { createWeatherEnvironmentClient, type WeatherEnvironmentClient } from "./environment.ts";
 /**
  * Weather client backed by [Open-Meteo](https://open-meteo.com) – free, no API key, data under CC BY 4.0.
  *
@@ -6,6 +5,7 @@ import { createWeatherEnvironmentClient, type WeatherEnvironmentClient } from ".
  */
 import { type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { type Coordinates, assertCoordinates, roundCoordinates } from "../core/geo.ts";
+import { createWeatherEnvironmentClient, type WeatherEnvironmentClient } from "./environment.ts";
 import { type Forecast, openMeteoUrl, parseOpenMeteo } from "./forecast.ts";
 
 /** Where forecasts come from – show it next to the data (required by the CC BY licence). */

@@ -119,7 +119,6 @@ export function approximateAddress(query: string, anchor: AddressSuggestion): Ad
   };
 }
 
-// deno-lint-ignore no-explicit-any
 type Json = any;
 const str = (v: unknown): string => (typeof v === "string" ? v.slice(0, 200) : "");
 const point = (f: Json): Coordinates | null => {
