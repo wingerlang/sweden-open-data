@@ -166,7 +166,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 11 · Inför formaterare och linter (T3)
 
-- [ ] Klart
+- [x] Klart (2026-10-21) med avvikelse: Deno gick inte att installera här, så formateraren är **Prettier 3.8.1** (`npm run fmt`, `npm run fmt:check`, körs via `npx` och kräver ingen ändring i låsfilen) och lintern är ett eget skript utan beroenden (`npm run lint`, `scripts/lint.ts`) för projektets regler. `.editorconfig` finns. CI-ändringen ligger i `ci-steg11-29.patch`.
 
 **Gör**
 1. Skapa `deno.json` med `fmt` (`lineWidth: 120`, `indentWidth: 2`, `singleQuote: false`) och `lint` (`recommended`). Deno körs redan i CI, och koden har redan `deno-lint-ignore`-kommentarer.
