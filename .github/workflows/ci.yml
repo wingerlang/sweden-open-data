@@ -20,6 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - name: Install development dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
       - run: npm test
       - name: Coverage (≥ 95 % lines)
         if: matrix.node == 24
@@ -33,7 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: npm install --no-save typescript@5.9 @types/node@22
+      - name: Install development dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
       - run: npx tsc -p .
       - name: package.json and jsr.json have the same version
         run: node -e "const a=require('./package.json').version,b=require('./jsr.json').version;if(a!==b){console.error('package.json '+a+' ≠ jsr.json '+b);process.exit(1)}"

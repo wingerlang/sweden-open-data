@@ -1,0 +1,47 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index ea5890e..7f079b2 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -20,6 +20,8 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: ${{ matrix.node }}
++      - name: Install development dependencies
++        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+       - run: npm test
+       - name: Coverage (≥ 95 % lines)
+         if: matrix.node == 24
+@@ -33,7 +35,8 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
+-      - run: npm install --no-save typescript@5.9 @types/node@22
++      - name: Install development dependencies
++        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+       - run: npx tsc -p .
+       - name: package.json and jsr.json have the same version
+         run: node -e "const a=require('./package.json').version,b=require('./jsr.json').version;if(a!==b){console.error('package.json '+a+' ≠ jsr.json '+b);process.exit(1)}"
+diff --git a/.github/workflows/live.yml b/.github/workflows/live.yml
+index 8c8576a..cfb1d70 100644
+--- a/.github/workflows/live.yml
++++ b/.github/workflows/live.yml
+@@ -18,4 +18,6 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
++      - name: Install development dependencies
++        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+       - run: npm run test:live
+diff --git a/.github/workflows/publish.yml b/.github/workflows/publish.yml
+index 5a5cdf4..a7f7c0a 100644
+--- a/.github/workflows/publish.yml
++++ b/.github/workflows/publish.yml
+@@ -15,6 +15,8 @@ jobs:
+       - uses: actions/setup-node@v4
+         with:
+           node-version: 24
++      - name: Install development dependencies
++        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+       - run: npm test
+       - name: Tag matches version
+         run: node -e "const v=require('./jsr.json').version;if('v'+v!==process.env.GITHUB_REF_NAME){console.error('tag '+process.env.GITHUB_REF_NAME+' ≠ v'+v);process.exit(1)}"
