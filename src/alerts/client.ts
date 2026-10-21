@@ -113,7 +113,7 @@ export function createAlertsClient(options: ClientOptions | Context = {}): Alert
     }
     const chosen = options.feeds ? feeds.filter((f) => options.feeds?.includes(f.id)) : feeds;
     const results = await Promise.all(chosen.map((f) =>
-      ctx.cache.get(`alerts:${f.id}:${locale}`, ctx.ttl.alerts, () => f.load(options.signal)).then(
+      ctx.cache.get(`alerts:${f.id}:${locale}`, ctx.ttl.alerts, (signal) => f.load(signal), { signal: options.signal, source: f.id === "smhi" ? "smhi" : "krisinformation" }).then(
         (alerts) => ({ ok: true, alerts }),
         (error: unknown) => ({ ok: false, alerts: [] as Alert[], error }),
       )

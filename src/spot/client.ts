@@ -128,7 +128,8 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
     return ctx.cache.get(
       `spot:${area}:${date}`,
       (v: SpotDay | null) => (v ? ctx.ttl.spotDay : ctx.ttl.spotMissing),
-      () => fetchDay(area, date, options.signal),
+      (signal) => fetchDay(area, date, signal),
+      { signal: options.signal, source: "elprisetjustnu" },
     );
   };
 

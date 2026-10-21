@@ -87,7 +87,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 6 · Skriv regressionstest för P1 (ska först misslyckas)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `test/cancellation.test.ts`. Alla tre testerna misslyckades mot den gamla cachen och checkades in tillsammans med rättningen i steg 7, så att varje commit är grön.
 
 **Varför:** När två anrop delar en laddning och den första anroparen avbryter, får även den andra `aborted`.
 
@@ -102,7 +102,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 7 · Rätta P1 i cachen
 
-- [ ] Klart
+- [x] Klart (2026-10-21): varje laddning har en egen `AbortController`; anroparens signal avslutar bara dess egen väntan. Fordonsklienternas cache-bypass är borttagen.
 
 **Gör** i `src/core/cache.ts`:
 1. Ändra signaturen till

@@ -47,8 +47,12 @@ export function createWeatherClient(options: ClientOptions | Context = {}): Weat
       const p = roundCoordinates(position, ctx.precision);
       const days = options.days ?? 7;
       const url = openMeteoUrl(p, { base: ctx.endpoints.weather, days, precision: ctx.precision });
-      return ctx.cache.get(`weather:${p.latitude},${p.longitude}:${days}`, ctx.ttl.weather, async () =>
-        parseOpenMeteo(await ctx.http.json("open-meteo", url, { signal: options.signal }), ctx.now()));
+      return ctx.cache.get(
+        `weather:${p.latitude},${p.longitude}:${days}`,
+        ctx.ttl.weather,
+        async (signal) => parseOpenMeteo(await ctx.http.json("open-meteo", url, { signal }), ctx.now()),
+        { signal: options.signal, source: "open-meteo" },
+      );
     },
   };
 }

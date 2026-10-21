@@ -56,7 +56,8 @@ test('separate credentials have separate caches and cancellation never poisons a
  const fake=createFakeSources();assert.equal(sourceOf('https://api.biluppgifter.se/api/v1/vehicle/regno/ABC123'),'biluppgifter');
  const a=createVehicleClient({...opts,fetch:fake.fetch}),b=createVehicleClient({...opts,apiKey:'other-test-only',fetch:fake.fetch});await a.lookup('ABC123');await b.lookup('ABC123');assert.equal(fake.calls.length,2);
  const abort=new AbortController();abort.abort();await assert.rejects(a.lookup('ABC123',{signal:abort.signal}));assert.equal(fake.calls.length,2);
- const signal=new AbortController().signal;await a.lookup('ABC123',{signal});assert.equal(fake.calls.length,3);
+ // A caller with its own signal now shares the cache instead of bypassing it (step 7 of implementation.md).
+ const signal=new AbortController().signal;await a.lookup('ABC123',{signal});assert.equal(fake.calls.length,2);
  fake.setFault('biluppgifter',{status:503});a.clearCache();await assert.rejects(a.lookup('ABC123'),SourceError);fake.setFault('biluppgifter',null);assert.ok(await a.lookup('ABC123'));
 });
 test('cache=false disables reuse; network retries still use common retry policy',async()=>{

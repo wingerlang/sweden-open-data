@@ -71,7 +71,7 @@ export function createWeatherEnvironmentClient(options:ClientOptions|Context={})
   if(!Number.isInteger(days)||days<1||days>4)throw new RangeError('Use 1–4 forecast days');
   const p=roundCoordinates(position,ctx.precision),url=new URL(ctx.endpoints.airQuality);
   url.search=new URLSearchParams({latitude:String(p.latitude),longitude:String(p.longitude),hourly:metrics.flatMap(metric=>variables[metric]).join(','),forecast_days:String(days),timezone:'UTC',timeformat:'unixtime'}).toString();
-  return ctx.cache.get(`weather-environment:${p.latitude},${p.longitude}:${days}:${metrics.join(',')}`,ctx.ttl.weather,async()=>parseWeatherEnvironment(await ctx.http.json('open-meteo-air-quality',url,{signal:options.signal}),metrics,ctx.now()));
+  return ctx.cache.get(`weather-environment:${p.latitude},${p.longitude}:${days}:${metrics.join(',')}`,ctx.ttl.weather,async(signal)=>parseWeatherEnvironment(await ctx.http.json('open-meteo-air-quality',url,{signal}),metrics,ctx.now()),{signal:options.signal,source:'open-meteo-air-quality'});
  }};
 }
 

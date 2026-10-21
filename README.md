@@ -354,8 +354,8 @@ Missing values stay undefined; owner, address, VIN and finance fields are exclud
 
 Instantiate once per credential scope. Positive answers live in a bounded private memory cache for 6h (override
 `ttlMs`); 404 answers for at most 5 minutes. No disk cache or public client's cache is used. `cache: false` disables
-reuse; concurrent identical requests still share a load. Calls with a cancellation signal bypass cache so one
-caller cannot cancel another caller's lookup. `clearCache()`, `stats()` and `resetStats()` are available.
+reuse; concurrent identical requests still share a load. A caller's cancellation signal only
+ends that caller's wait; the shared lookup is aborted when every waiting caller has cancelled. `clearCache()`, `stats()` and `resetStats()` are available.
 Request/cache hooks and returned SourceErrors redact plates and credentials; your custom `fetch` can see the
 actual request, so do not log URLs or headers there. Authenticated redirects are rejected.
 

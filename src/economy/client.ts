@@ -49,14 +49,14 @@ export function createEconomyClient(options: ClientOptions | Context = {}): Econ
     cpi(index = "KPI", options = {}) {
       if (!isCpiIndex(index)) return Promise.reject(new RangeError(`Unknown index ${String(index)}`));
       const key = `cpi:${index}`;
-      return ctx.cache.get(key, ctx.ttl.cpi, async () => {
+      return ctx.cache.get(key, ctx.ttl.cpi, async (signal) => {
         const stored = await storeGet(ctx.store, key);
         const kept = isSeries(stored, index) ? stored : undefined;
         if (kept && ctx.now() - Date.parse(kept.fetchedAt) < ctx.ttl.cpi) return { ...kept, stale: undefined };
         try {
           const def = CPI_TABLES[index];
           const parts = await Promise.all(def.parts.map(async (part) =>
-            parseScbMonthly(await ctx.http.json("scb", scbDataUrl(ctx.endpoints.scb, part.table, part.content), { signal: options.signal }), part.content)));
+            parseScbMonthly(await ctx.http.json("scb", scbDataUrl(ctx.endpoints.scb, part.table, part.content), { signal }), part.content)));
           const points = spliceSeries(parts.map((p) => p.points));
           if (!points.length) throw new RangeError(`SCB returned no values for ${index}`);
           const updated = parts.map((p) => p.updated).filter((u): u is string => !!u).sort().at(-1);
@@ -74,10 +74,10 @@ export function createEconomyClient(options: ClientOptions | Context = {}): Econ
           await storeSet(ctx.store, key, series);
           return series;
         } catch (error) {
-          if (kept && !options.signal?.aborted) return { ...kept, stale: true };
+          if (kept && !signal.aborted) return { ...kept, stale: true };
           throw error;
         }
-      });
+      }, { signal: options.signal, source: "scb" });
     },
   };
 }

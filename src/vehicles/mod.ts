@@ -79,7 +79,7 @@ export function createVehicleClient(options:VehicleClientOptions):VehicleClient 
     catch(error){if(error instanceof SourceError)throw publicError(error);throw error;}
   };
   return Object.freeze({
-    lookup:async(registrationNumber:string,lookupOptions?:{signal?:AbortSignal}):Promise<VehicleRecord|null>=>{const plate=normalizeVehicleRegistration(registrationNumber);if(lookupOptions?.signal){lookupOptions.signal.throwIfAborted();return load(plate,lookupOptions.signal);}return ctx.cache.get('vehicle:'+plate,v=>v===null?Math.min(ttl,300_000):ttl,()=>load(plate));},
+    lookup:async(registrationNumber:string,lookupOptions?:{signal?:AbortSignal}):Promise<VehicleRecord|null>=>{const plate=normalizeVehicleRegistration(registrationNumber);return ctx.cache.get('vehicle:'+plate,v=>v===null?Math.min(ttl,300_000):ttl,signal=>load(plate,signal),{signal:lookupOptions?.signal,source:SOURCE});},
     clearCache:()=>ctx.cache.clear(),stats:()=>ctx.stats.snapshot(),resetStats:()=>ctx.stats.reset(),
   });
 }

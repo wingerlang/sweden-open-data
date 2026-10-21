@@ -4,6 +4,7 @@
  *
  * @module
  */
+import { SourceError } from "./errors.ts";
 
 /**
  * Durable key–value storage for immutable data. Implement it on top of whatever you have – a directory
@@ -41,10 +42,24 @@ export interface CacheEvent {
   key: string;
 }
 
+/** Per-call options for {@link MemoryCache.get}. */
+export interface CacheGetOptions {
+  /**
+   * Cancels this caller's wait. The shared load is only aborted when every caller waiting for it has cancelled, so
+   * one caller can never cancel another caller's request.
+   */
+  signal?: AbortSignal;
+  /** Name of the source, used in the {@link SourceError} a cancelled caller receives. Default `"cache"`. */
+  source?: string;
+}
+
 /** A bounded, expiring cache where concurrent requests for the same key share one load. */
 export interface MemoryCache {
-  /** Returns the cached value for `key`, or runs `load` (once, however many callers ask at the same time). */
-  get<V>(key: string, ttl: Ttl<V>, load: () => Promise<V>): Promise<V>;
+  /**
+   * Returns the cached value for `key`, or runs `load` (once, however many callers ask at the same time). `load`
+   * receives a signal that is aborted when nobody is waiting for its result any more.
+   */
+  get<V>(key: string, ttl: Ttl<V>, load: (signal: AbortSignal) => Promise<V>, options?: CacheGetOptions): Promise<V>;
   /** Forgets everything. */
   clear(): void;
   /** Number of entries, including loads in flight. */
@@ -75,6 +90,32 @@ interface Entry {
   staleUntil: number;
   value: Promise<unknown>;
   data?: { value: unknown };
+  /** Set while the load runs: aborted when the last waiting caller cancels. */
+  flight?: { controller: AbortController; waiting: number };
+}
+
+const aborted = (source: string, cause: unknown): SourceError =>
+  new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, cause });
+
+/**
+ * Lets one caller wait for a shared load with its own signal. A caller without a signal waits until the end and so
+ * keeps the load alive; a caller with one leaves when it is aborted, and the last caller to leave aborts the load.
+ */
+function wait<V>(entry: Entry, options: CacheGetOptions): Promise<V> {
+  const value = entry.value as Promise<V>;
+  const flight = entry.flight;
+  const signal = options.signal;
+  if (!flight) return value;
+  flight.waiting++;
+  if (!signal) return value;
+  return new Promise<V>((resolve, reject) => {
+    const leave = (): void => {
+      reject(aborted(options.source ?? "cache", signal.reason));
+      if (--flight.waiting === 0) flight.controller.abort(signal.reason);
+    };
+    signal.addEventListener("abort", leave, { once: true });
+    value.then(resolve, reject).finally(() => signal.removeEventListener("abort", leave));
+  });
 }
 
 /** Creates a {@link MemoryCache}. Failed loads are never cached. */
@@ -93,18 +134,21 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
   };
 
   return {
-    get<V>(key: string, ttl: Ttl<V>, load: () => Promise<V>): Promise<V> {
+    get<V>(key: string, ttl: Ttl<V>, load: (signal: AbortSignal) => Promise<V>, getOptions: CacheGetOptions = {}): Promise<V> {
+      if (getOptions.signal?.aborted) return Promise.reject(aborted(getOptions.source ?? "cache", getOptions.signal.reason));
       const hit = entries.get(key);
       if (hit && hit.expires > now()) {
         remember(key, hit);
         emit({ type: "hit", key });
-        return hit.value as Promise<V>;
+        return wait<V>(hit, getOptions);
       }
       const previous = hit?.data && hit.staleUntil > now() ? hit : undefined;
       emit({ type: "miss", key });
-      const entry: Entry = { expires: Infinity, staleUntil: Infinity, value: Promise.resolve() };
-      const value = Promise.resolve().then(load).then(
+      const controller = new AbortController();
+      const entry: Entry = { expires: Infinity, staleUntil: Infinity, value: Promise.resolve(), flight: { controller, waiting: 0 } };
+      const value = Promise.resolve(controller.signal).then(load).then(
         (v) => {
+          entry.flight = undefined;
           const ms = typeof ttl === "function" ? ttl(v) : ttl;
           if (!enabled || !(ms > 0)) {
             if (entries.get(key) === entry) entries.delete(key);
@@ -116,8 +160,9 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
           return v;
         },
         (error: unknown) => {
+          entry.flight = undefined;
           if (entries.get(key) === entry) entries.delete(key);
-          if (!previous) throw error;
+          if (!previous || controller.signal.aborted) throw error;
           // Serve the last good value, and wait a minute before asking the failing source again.
           previous.expires = Math.min(previous.staleUntil, now() + 60_000);
           previous.value = Promise.resolve(previous.data?.value);
@@ -126,9 +171,11 @@ export function createMemoryCache(options: MemoryCacheOptions = {}): MemoryCache
           return previous.data?.value as V;
         },
       );
+      // Nobody may be listening when every caller has left; the rejection is then expected and not an error.
+      value.catch(() => {});
       entry.value = value;
       remember(key, entry);
-      return value;
+      return wait<V>(entry, getOptions);
     },
     clear() {
       entries.clear();

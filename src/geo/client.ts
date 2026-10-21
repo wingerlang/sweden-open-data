@@ -181,7 +181,7 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
       const q = checkQuery(query, 200);
       const country = checkCountry(options.country, "SE");
       const limit = checkLimit(options.limit);
-      const all = await ctx.cache.get(`address:${country ?? ""}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, () => searchAddresses(q, country, options.signal));
+      const all = await ctx.cache.get(`address:${country ?? ""}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, (signal) => searchAddresses(q, country, signal), { signal: options.signal, source: "photon" });
       return all.slice(0, limit);
     },
 
@@ -190,39 +190,39 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
       const country = checkCountry(options.country, null);
       const poi = !!options.pointsOfInterest;
       const limit = checkLimit(options.limit);
-      const found = await ctx.cache.get(`places:${country ?? ""}:${poi ? 1 : 0}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, async () => {
+      const found = await ctx.cache.get(`places:${country ?? ""}:${poi ? 1 : 0}:${q.toLocaleLowerCase("sv")}`, ctx.ttl.search, async (signal) => {
         const url = new URL(ctx.endpoints.geocoding);
         url.searchParams.set("name", q);
         url.searchParams.set("language", "sv");
         url.searchParams.set("count", "8");
         if (country) url.searchParams.set("countryCode", country);
-        let results = parseOpenMeteoPlaces(await ctx.http.json("open-meteo-geocoding", url, { signal: options.signal })).slice(0, 8);
+        let results = parseOpenMeteoPlaces(await ctx.http.json("open-meteo-geocoding", url, { signal })).slice(0, 8);
         if (!results.length || poi) {
           try {
-            const more = parsePhotonPlaces(await photon(q, country, { signal: options.signal }))
+            const more = parsePhotonPlaces(await photon(q, country, { signal }))
               .filter((p) => !country || p.countryCode === country);
             results = [...new Map([...results, ...more].map((p) => [`${p.name}:${p.countryCode}:${p.latitude.toFixed(2)}`, p])).values()].slice(0, 12);
           } catch (error) {
             // Points of interest are a bonus: cities from the first source are still a good answer.
-            if (options.signal?.aborted) throw error;
+            if (signal.aborted) throw error;
           }
         }
         return results;
-      });
+      }, { signal: options.signal, source: "open-meteo-geocoding" });
       return found.slice(0, limit);
     },
 
     async region(position, options = {}) {
       assertCoordinates(position, "position");
       const p = roundCoordinates(position, ctx.precision);
-      return ctx.cache.get(`region:${p.latitude},${p.longitude}`, (r: Region) => (r.guessed ? Math.min(ctx.ttl.region, 15 * 60_000) : ctx.ttl.region), async () => {
+      return ctx.cache.get(`region:${p.latitude},${p.longitude}`, (r: Region) => (r.guessed ? Math.min(ctx.ttl.region, 15 * 60_000) : ctx.ttl.region), async (signal) => {
         const fallback: Region = { ...p, county: nearestCounty(p), guessed: true };
         try {
           const url = new URL(ctx.endpoints.photonReverse);
           url.searchParams.set("lat", String(p.latitude));
           url.searchParams.set("lon", String(p.longitude));
           // deno-lint-ignore no-explicit-any
-          const json: any = await ctx.http.json("photon", url, { signal: options.signal });
+          const json: any = await ctx.http.json("photon", url, { signal });
           const props = json?.features?.[0]?.properties ?? {};
           const locality = [props.city, props.town, props.village, props.district].map(text).find(Boolean);
           const county = [props.state, props.county].map(text).find((x) => x && /län$/i.test(x));
@@ -230,10 +230,10 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
           if (!county) return { ...fallback, ...(municipality ? { municipality } : {}) };
           return { ...p, county, ...(municipality ? { municipality } : {}), ...(locality ? { locality } : {}) };
         } catch (error) {
-          if (options.signal?.aborted) throw error;
+          if (signal.aborted) throw error;
           return fallback;
         }
-      });
+      }, { signal: options.signal, source: "photon" });
     },
   };
 }
