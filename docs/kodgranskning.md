@@ -2,7 +2,7 @@
 
 2026-10-21 · Johannes Winger-Lang · granskad version 0.10.1 (commit `5e7d9e5`)
 
-Åtgärderna finns steg för steg i [`implementation.md`](../implementation.md).
+Åtgärderna finns steg för steg i [`implementation.md`](../implementation.md). **Status 2026-10-21:** steg 1–34 är genomförda i version 0.11.0, utom de beslut och nätverkssteg som står som kvar i planen.
 
 ## Sammanfattning
 

@@ -7,10 +7,6 @@
     "rootDir": "src",
     "rewriteRelativeImportExtensions": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "dist"
-  ]
+  "include": ["src"],
+  "exclude": ["dist"]
 }

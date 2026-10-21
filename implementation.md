@@ -442,7 +442,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 34 · Släpp
 
-- [ ] Klart
+- [ ] Klart. Förberett 2026-10-21: versionen är 0.11.0 i `package.json` och `jsr.json`. `npm run check`, `npm run load` och `npm run check:package` är gröna. **Kvar för dig:** kör `npm run test:live` (nätet var spärrat här), sätt datum på `## 0.11.0` i CHANGELOG, slå ihop grenen, tagga `v0.11.0` och pusha.
 
 **Gör**
 1. Höj versionen till `0.11.0` i `package.json` och `jsr.json`.
@@ -518,9 +518,13 @@ Utifrån det tog agenten fram en plan på 34 steg i fem faser, med en kontroll p
 
 ### Är projektet körbart efter implementationen?
 
-Ja. Hittills är bara steg 1 genomfört (gren och baslinje, inga kodändringar):
+Ja. Läget efter steg 34, 2026-10-21:
 
-- `npm test`: 93 av 93 tester passerar.
-- `npm run coverage`: 99,86 % rader, 95,24 % grenar, 98,45 % funktioner, över gränsvärdena.
-- Dev-servern startar och svarar (`/api/state` gav HTTP 200 på port 5199).
-- `npm run typecheck` går inte att köra lokalt på grund av TypeScript-installationen. Det åtgärdas i steg 2.
+- `npm run check` (typkontroll, lint, exportkontroll, täckning per fil): grönt.
+- `npm test`: 133 tester, alla gröna (Node; Bun 132 gröna och 1 överhoppat, eftersom dev-servertestet bara körs i Node).
+- Täckning: alla 36 filer i `src/` över 95 % rader, 90 % grenar och 95 % funktioner.
+- `npm run load`: 100 samtidiga anrop per metod, ett anrop per URL och noll i andra vågen.
+- `npm run check:package`: npm-arkivet typkontrolleras och importeras i ett vanligt TypeScript-projekt.
+- Dev-tavlan startar och svarar (`npm run dev -- --port 5199`) och nås bara från den egna datorn.
+
+Inte verifierat härifrån: live-testerna mot de riktiga källorna och CI-jobben i Deno, eftersom nätet var spärrat och Deno saknades. Kvar för dig: steg 4 (fråga källorna om villkor), 29 (applicera CI-patchen och pinna actions), 32 (beslut om omfång) och 34 (live-test, tagg och push).
