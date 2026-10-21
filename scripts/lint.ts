@@ -102,6 +102,15 @@ export function lint(base: string = root): Problem[] {
             });
           }
         });
+        // Step 22: times are parsed once, not in every comparison of a sort.
+        for (const match of source.matchAll(/\.sort\(/g)) {
+          const body = source.slice(match.index, source.indexOf(")", source.indexOf("=>", match.index) + 2) + 200);
+          const comparator = body.slice(0, body.search(/\)\s*(?:\.|;|$)/m) + 1);
+          if (/Date\.parse/.test(comparator)) {
+            const line = source.slice(0, match.index).split("\n").length;
+            problems.push({ file, line, rule: "parse-in-sort", message: "parse times once before sorting" });
+          }
+        }
         // Step 13: everything exported is documented.
         lines.forEach((text, i) => {
           const exported = /^export (?:async )?(?:function|const|interface|type|class) (\w+)/.exec(text);

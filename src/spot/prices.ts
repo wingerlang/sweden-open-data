@@ -87,6 +87,14 @@ export interface SpotDay {
   complete: boolean;
 }
 
+/** A sorted copy by start time; each start is parsed once, not in every comparison. */
+function sortByStart<T extends { start: string }>(items: readonly T[]): T[] {
+  return items
+    .map((item) => ({ item, at: Date.parse(item.start) }))
+    .sort((a, b) => a.at - b.at)
+    .map((x) => x.item);
+}
+
 /**
  * Parses the elprisetjustnu.se response (`[{ SEK_per_kWh, EUR_per_kWh, time_start, time_end }]`).
  * Rows that are not valid prices are skipped; a response that is not a list is an error.
@@ -108,7 +116,7 @@ export function parseElprisResponse(json: unknown): SpotPoint[] {
     const eur = row.EUR_per_kWh == null ? NaN : Number(row.EUR_per_kWh);
     out.push({ start, end, sek, eur: Number.isFinite(eur) ? eur : null });
   }
-  return out.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  return sortByStart(out);
 }
 
 /**
@@ -117,7 +125,7 @@ export function parseElprisResponse(json: unknown): SpotPoint[] {
  * spaced grid for the day. Prices are never filled in, averaged, duplicated or invented.
  */
 export function normalizeSpotDay(points: SpotPoint[], date: string): SpotPoint[] {
-  const sorted = points.slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const sorted = sortByStart(points);
   if (!sorted.length) return sorted;
   const from = stockholmMidnight(date);
   const step = (stockholmMidnight(addDays(date, 1)) - from) / sorted.length;
@@ -133,7 +141,7 @@ export function normalizeSpotDay(points: SpotPoint[], date: string): SpotPoint[]
 /** `true` when the intervals cover the Swedish day `date` exactly, without gaps or overlaps. */
 export function isCompleteSpotDay(points: SpotPoint[], date: string): boolean {
   if (!points.length || !isCalendarDate(date)) return false;
-  const sorted = points.slice().sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  const sorted = sortByStart(points);
   let cursor = stockholmMidnight(date);
   for (const p of sorted) {
     if (!Number.isFinite(p.sek) || Date.parse(p.start) !== cursor || Date.parse(p.end) <= cursor) return false;
@@ -217,11 +225,14 @@ export function cheapestWindow(points: SpotPoint[], hours: number, options: Wind
 export function cheapestHours(points: SpotPoint[], count: number, options: WindowOptions = {}): SpotPoint[] {
   if (!Number.isInteger(count) || count < 1) throw new RangeError("count must be a positive integer");
   const from = options.from ?? -Infinity;
-  return hourlyAverages(points)
+  const hours = hourlyAverages(points)
     .filter((p) => Date.parse(p.end) > from)
-    .sort((a, b) => a.sek - b.sek || Date.parse(a.start) - Date.parse(b.start))
+    .map((p) => ({ p, start: Date.parse(p.start) }));
+  return hours
+    .sort((a, b) => a.p.sek - b.p.sek || a.start - b.start)
     .slice(0, count)
-    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+    .sort((a, b) => a.start - b.start)
+    .map((h) => h.p);
 }
 
 /** Where a price sits within the day's range. */

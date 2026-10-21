@@ -359,12 +359,14 @@ export function relevantAlerts(alerts: Alert[], places: Region[], options: Relev
       const { polygons: _polygons, areas, ...rest } = alert;
       return [{ ...rest, areas: areas.map((a) => a.name), national: match.national, places: match.places }];
     })
+    .map((alert) => ({ alert, published: Date.parse(alert.published || "0") }))
     .sort(
       (a, b) =>
-        KIND_ORDER[a.kind] - KIND_ORDER[b.kind] ||
-        LEVEL_ORDER[a.level ?? "message"] - LEVEL_ORDER[b.level ?? "message"] ||
-        Date.parse(b.published || "0") - Date.parse(a.published || "0"),
-    );
+        KIND_ORDER[a.alert.kind] - KIND_ORDER[b.alert.kind] ||
+        LEVEL_ORDER[a.alert.level ?? "message"] - LEVEL_ORDER[b.alert.level ?? "message"] ||
+        b.published - a.published,
+    )
+    .map((x) => x.alert);
 }
 
 /**

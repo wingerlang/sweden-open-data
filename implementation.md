@@ -307,7 +307,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 22 · Tolka tider en gång (P6)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): sorteringar i `spot/prices.ts` och `alerts` tolkar varje tid en gång innan de sorterar. De publika typerna är oförändrade. Lintregeln `parse-in-sort` stoppar `Date.parse` i jämförare.
 
 **Gör** i `src/spot/prices.ts` och `src/alerts/alerts.ts`:
 1. I funktioner som filtrerar eller sorterar: räkna ut `Date.parse` en gång per punkt i början och arbeta med talen.
