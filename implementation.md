@@ -177,7 +177,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 12 · Formatera om, utan logikändringar
 
-- [ ] Klart
+- [x] Klart (2026-10-21): hela kodbasen formaterad med Prettier i en ren stilcommit; hashen står i `.git-blame-ignore-revs`. `npm run lint` hittar inga rader över 120 tecken i koden.
 
 **Gör**
 1. Kör `deno fmt src test live dev examples`.
