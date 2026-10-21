@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
   type AlertFeedId,
+  type ClientOptions,
   type AlertKind,
   type AlertLevel,
   type CacheEvent,
@@ -23,7 +24,17 @@ import {
   type RequestEvent,
   SourceError,
   type SwedenOpenData,
+  adjustForInflation,
+  findSport,
+  inflationRate,
+  isCpiIndex,
+  latestCpi,
+  searchSports,
+  searchSwedishInstitutions,
 } from "../src/mod.ts";
+import { createInvestmentClient, type InvestmentClient } from "../src/investments/mod.ts";
+import { createFreeVehicleClient } from "../src/vehicles/free.ts";
+import type { VehicleClient } from "../src/vehicles/mod.ts";
 import {
   createFakeSources,
   type Fault,
@@ -82,11 +93,13 @@ function push(entry: LogEntry): void {
 
 let faulty: FaultyFetch;
 let se: SwedenOpenData;
+let investments: InvestmentClient;
+let vehicles: VehicleClient;
 function build(keepFaults = true): void {
   const faults = keepFaults && faulty ? faulty.faults() : {};
   faulty = config.mode === "fake" ? createFakeSources() : withFaults(globalThis.fetch);
   for (const [source, fault] of Object.entries(faults)) faulty.setFault(source as SourceId, fault as Fault);
-  se = createClient({
+  const options: ClientOptions = {
     fetch: faulty.fetch,
     userAgent: "sweden-open-data dev board (https://github.com/wingerlang/sweden-open-data)",
     timeoutMs: config.timeoutMs,
@@ -103,7 +116,11 @@ function build(keepFaults = true): void {
       });
     },
     onCacheEvent: (e) => push({ kind: "cache", at: new Date().toISOString(), ...e }),
-  });
+  };
+  se = createClient(options);
+  // The experimental sources are separate clients; they share the log, the faults and the settings.
+  investments = createInvestmentClient(options);
+  vehicles = createFreeVehicleClient(options);
 }
 build(false);
 
@@ -179,6 +196,78 @@ const CALLS: Record<string, (q: URLSearchParams) => [Promise<unknown>, string]> 
   "geo.region": (q) => {
     const p = { latitude: Number(q.get("lat")), longitude: Number(q.get("lon")) };
     return [se.geo.region(p), `await se.geo.region(${JSON.stringify(p)})`];
+  },
+  "weather.history": (q) => {
+    const p = { latitude: Number(q.get("lat")), longitude: Number(q.get("lon")) };
+    const from = q.get("from") ?? "";
+    const to = q.get("to") ?? "";
+    return [
+      se.weather.history(p, from, to),
+      `await se.weather.history(${JSON.stringify(p)}, ${JSON.stringify(from)}, ${JSON.stringify(to)})`,
+    ];
+  },
+  "weather.environment": (q) => {
+    const p = { latitude: Number(q.get("lat")), longitude: Number(q.get("lon")) };
+    const options = { days: num(q.get("days"), 1) };
+    return [
+      se.weather.environment(p, options),
+      `await se.weather.environment(${JSON.stringify(p)}, ${JSON.stringify(options)})`,
+    ];
+  },
+  "economy.cpi": (q) => {
+    const index = q.get("index") ?? "KPI";
+    const amount = num(q.get("amount"), 10_000) ?? 10_000;
+    const from = q.get("from") || "2000-01";
+    if (!isCpiIndex(index)) throw new RangeError(`Unknown index ${index}`);
+    const result = se.economy.cpi(index).then((series) => {
+      const latest = latestCpi(series);
+      return {
+        series: {
+          index: series.index,
+          label: series.label,
+          base: series.base,
+          months: series.points.length,
+          stale: series.stale,
+        },
+        latest,
+        annualInflation: latest ? inflationRate(series, latest.month) : null,
+        adjusted: adjustForInflation(series, amount, from),
+        last24: series.points.slice(-24),
+      };
+    });
+    return [
+      result,
+      `const kpi = await se.economy.cpi(${JSON.stringify(index)});\nadjustForInflation(kpi, ${amount}, ${JSON.stringify(from)});`,
+    ];
+  },
+  "investments.overview": () => [investments.overview(), "await createInvestmentClient().overview() // experimental"],
+  "investments.company": (q) => {
+    const product = q.get("product") ?? "";
+    const result = product
+      ? investments.company(product)
+      : investments.companies().then((list) => investments.company(list.companies[0].product));
+    return [
+      result,
+      `await createInvestmentClient().company(${JSON.stringify(product || "<first company>")}) // experimental`,
+    ];
+  },
+  "vehicles.free": (q) => {
+    const plate = q.get("plate") ?? "";
+    return [vehicles.lookup(plate), `await createFreeVehicleClient().lookup(${JSON.stringify(plate)}) // experimental`];
+  },
+  "education.search": (q) => {
+    const query = q.get("q") ?? "";
+    return [
+      Promise.resolve(searchSwedishInstitutions(query, 8)),
+      `searchSwedishInstitutions(${JSON.stringify(query)}, 8)`,
+    ];
+  },
+  "sports.search": (q) => {
+    const query = q.get("q") ?? "";
+    return [
+      Promise.resolve({ matches: searchSports(query, 8), exact: findSport(query) ?? null }),
+      `searchSports(${JSON.stringify(query)}, 8); findSport(${JSON.stringify(query)})`,
+    ];
   },
 };
 
@@ -328,6 +417,7 @@ createServer(async (req, res) => {
     }
     if (url.pathname === "/api/cache/clear" && req.method === "POST") {
       se.clearCache();
+      vehicles.clearCache();
       return json(res, 200, { ok: true });
     }
     if (url.pathname === "/api/stats/reset" && req.method === "POST") {

@@ -447,7 +447,8 @@ npm run examples       # run every example in examples/ offline (see examples/RE
 ```
 
 The **dev board** runs every call of the package from a browser page – spot prices with a chart, weather, alerts,
-address and place search, regions and history – against the real sources or the fakes. It shows the equivalent code
+address and place search, regions, price and temperature history, UV/pollen/air quality, inflation, sports,
+universities and the experimental investment and vehicle sources – against the real sources or the fakes. It shows the equivalent code
 and the raw result for each call, a live log of every request and cache decision, per-source statistics, and lets you
 switch faults on per source (slow, hang, offline, 503, 429 with Retry-After, invalid JSON, flaky) while you change the
 timeout, retries and stale-if-error, so you can watch the client cope. *Run all* is a one-click smoke test.

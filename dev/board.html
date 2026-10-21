@@ -131,6 +131,67 @@ td.num{text-align:right;font-family:var(--mono)}
     </div>
     <div class="view"></div>
   </div>
+
+  <div class="card" data-call="weather.history">
+    <h2>Temperature history <span class="badge"></span></h2>
+    <div class="row">
+      <input name="lat" value="59.33" size="6"><input name="lon" value="18.07" size="6">
+      <input type="date" name="from"><input type="date" name="to">
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="weather.environment">
+    <h2>UV, pollen &amp; air quality <span class="badge"></span></h2>
+    <div class="row">
+      <input name="lat" value="55.60" size="6"><input name="lon" value="13.00" size="6">
+      <label class="inline">days <input type="number" name="days" value="1" min="1" max="4"></label>
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="economy.cpi">
+    <h2>Inflation (KPI) <span class="badge"></span></h2>
+    <div class="row">
+      <select name="index"><option>KPI</option><option>KPIF</option><option>KPIF-XE</option></select>
+      <label class="inline"><input type="number" name="amount" value="10000" size="7"> kr in</label>
+      <input name="from" value="2000-01" size="7" title="YYYY-MM">
+      <button class="primary run">Run</button>
+    </div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="sports.search">
+    <h2>Sports <span class="badge"></span></h2>
+    <div class="row"><input name="q" value="brott" size="16"><button class="primary run">Run</button></div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="education.search">
+    <h2>Universities &amp; colleges <span class="badge"></span></h2>
+    <div class="row"><input name="q" value="tekniska" size="16"><button class="primary run">Run</button></div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="investments.overview">
+    <h2>Investment companies <span class="badge warn">experimental</span> <span class="badge"></span></h2>
+    <div class="row"><button class="primary run">Run</button><span class="muted">IBIndex – no public API or agreement</span></div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="investments.company">
+    <h2>Investment company <span class="badge warn">experimental</span> <span class="badge"></span></h2>
+    <div class="row"><input name="product" placeholder="e.g. INVE B (empty: the first)" size="22"><button class="primary run">Run</button></div>
+    <div class="view"></div>
+  </div>
+
+  <div class="card" data-call="vehicles.free">
+    <h2>Vehicle lookup <span class="badge warn">experimental</span> <span class="badge"></span></h2>
+    <div class="row"><input name="plate" value="ABC123" size="8"><button class="primary run">Run</button><span class="muted">Transportstyrelsen's public page</span></div>
+    <div class="view"></div>
+  </div>
 </section>
 
 <aside>
@@ -166,7 +227,7 @@ function params(card) {
 }
 
 async function run(card) {
-  const call = card.dataset.call, badge = $("h2 .badge", card), view = $(".view", card);
+  const call = card.dataset.call, badge = $("h2 .badge:last-of-type", card), view = $(".view", card);
   badge.className = "badge"; badge.textContent = "…";
   const res = await api(`/api/call/${call}?${params(card)}`);
   badge.className = `badge ${res.ok ? "ok" : "bad"}`; badge.textContent = `${res.ok ? "ok" : res.error.code ?? res.error.name} · ${res.ms} ms`;
@@ -178,6 +239,64 @@ async function run(card) {
 }
 
 const RENDER = {
+  "weather.history"(r) {
+    const box = h("div"), byDay = new Map();
+    for (const x of r.hours) { const d = new Date(x.at).toISOString().slice(0, 10); byDay.set(d, [...(byDay.get(d) ?? []), x.celsius]); }
+    const days = [...byDay].map(([date, t]) => ({ date, min: Math.min(...t), max: Math.max(...t), avg: t.reduce((a, b) => a + b, 0) / t.length }));
+    box.append(h("table", {}, h("tr", {}, h("th", {}, "day"), h("th", {}, "min"), h("th", {}, "mean"), h("th", {}, "max")),
+      days.map((d) => h("tr", {}, h("td", {}, d.date), h("td", {}, deg(d.min)), h("td", {}, deg(d.avg)), h("td", {}, deg(d.max))))));
+    box.append(h("p", { class: "muted" }, `${r.hours.length} hours · ${r.source}`));
+    return box;
+  },
+  "weather.environment"(r) {
+    const max = (pick) => { const v = r.hours.map(pick).filter((x) => x != null); return v.length ? Math.max(...v) : "–"; };
+    const names = { alder: "Al", birch: "Björk", grass: "Gräs", mugwort: "Gråbo", olive: "Oliv", ragweed: "Ambrosia" };
+    return h("dl", { class: "kv" },
+      h("dt", {}, "UV index max"), h("dd", {}, max((x) => x.uvIndex)),
+      h("dt", {}, "European AQI max"), h("dd", {}, max((x) => x.europeanAqi)),
+      h("dt", {}, "PM2.5 / PM10 max"), h("dd", {}, `${max((x) => x.pm25)} / ${max((x) => x.pm10)} µg/m³`),
+      Object.entries(names).flatMap(([k, label]) => [h("dt", {}, label), h("dd", {}, `${max((x) => x.pollen[k])} grains/m³`)]));
+  },
+  "economy.cpi"(r) {
+    const box = h("div");
+    box.append(h("div", { class: "row" }, h("span", { class: "big" }, `${Math.round(r.adjusted.amount).toLocaleString("sv-SE")} kr`),
+      h("span", { class: "muted" }, `${r.adjusted.from} → ${r.adjusted.to} (+${(r.adjusted.change * 100).toFixed(1)} %)`)));
+    box.append(h("dl", { class: "kv" },
+      h("dt", {}, r.series.label), h("dd", {}, `${r.latest?.month}: ${r.latest?.value} (${r.series.base})${r.series.stale ? " · older copy" : ""}`),
+      h("dt", {}, "Annual inflation"), h("dd", {}, r.annualInflation == null ? "–" : `${(r.annualInflation * 100).toFixed(1)} %`)));
+    const pts = r.last24, W = 400, H = 60, v = pts.map((p) => p.value), min = Math.min(...v), mx = Math.max(...v);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Index, last 24 months" });
+    svg.append(s("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${(i / Math.max(1, pts.length - 1)) * W},${H - ((p.value - min) / ((mx - min) || 1)) * (H - 8) - 4}`).join(""), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
+    box.append(svg);
+    return box;
+  },
+  "sports.search"(r) {
+    return h("div", {}, h("ul", { class: "plain" }, r.matches.map((x) => h("li", {}, `${x.emoji} ${x.name} `, h("span", { class: "muted mono" }, x.id)))),
+      h("p", { class: "muted" }, r.exact ? `exact match: ${r.exact.id}` : "no exact match"));
+  },
+  "education.search"(r) {
+    return h("ul", { class: "plain" }, r.map((x) => h("li", {}, h("a", { href: x.website, target: "_blank", rel: "noopener" }, x.name), " ", h("span", { class: "muted mono" }, `${x.id} · ${x.kind}`))));
+  },
+  "investments.overview"(r) {
+    const rows = [...r.companies].sort((a, b) => (b.reportedDiscount ?? -999) - (a.reportedDiscount ?? -999));
+    const pct = (v) => v == null ? "–" : v >= 0 ? `${v.toFixed(1)} %` : `premium ${(-v).toFixed(1)} %`;
+    return h("div", {}, h("table", {}, h("tr", {}, h("th", {}, "company"), h("th", {}, "price"), h("th", {}, "NAV"), h("th", {}, "discount")),
+      rows.map((c) => h("tr", {}, h("td", {}, c.name), h("td", {}, c.price.toFixed(1)), h("td", {}, c.reportedNav?.toFixed(1) ?? "–"), h("td", {}, pct(c.reportedDiscount))))),
+      h("p", { class: "muted" }, `${r.sourceUrl}${r.stale ? " · older copy" : ""}`));
+  },
+  "investments.company"(r) {
+    const last = r.history.at(-1);
+    return h("div", {}, h("div", { class: "row" }, h("span", { class: "big" }, r.company.name), h("span", { class: "muted" }, r.company.symbol)),
+      h("dl", { class: "kv" }, h("dt", {}, "Latest"), h("dd", {}, last ? `${last.date}: ${last.price} kr, NAV ${last.reportedNav ?? "–"}` : "–"),
+        h("dt", {}, "History"), h("dd", {}, `${r.history.length} days`), h("dt", {}, "Holdings"), h("dd", {}, `as of ${r.holdingsDate ?? "–"}`)),
+      h("ul", { class: "plain" }, r.holdings.slice(0, 8).map((x) => h("li", {}, `${x.name} `, h("span", { class: "muted" }, x.weightPct == null ? x.categoryName ?? x.category : `${x.weightPct.toFixed(1)} %`)))));
+  },
+  "vehicles.free"(v) {
+    if (!v) return h("p", { class: "muted" }, "No vehicle with that registration number.");
+    return h("dl", { class: "kv" }, h("dt", {}, "Vehicle"), h("dd", {}, `${v.registrationNumber} · ${v.make ?? ""} ${v.model ?? ""}`),
+      h("dt", {}, "Model year"), h("dd", {}, v.modelYear ?? "–"), h("dt", {}, "Odometer"), h("dd", {}, v.mileageKm == null ? "–" : `${v.mileageKm.toLocaleString("sv-SE")} km`),
+      h("dt", {}, "Annual tax"), h("dd", {}, v.annualTaxKr == null ? "–" : `${v.annualTaxKr} kr`), h("dt", {}, "Inspect by"), h("dd", {}, v.nextInspectionDeadline ?? "–"));
+  },
   "spot.overview"(r, card) {
     const vat = $("#vat").checked ? 1.25 : 1, box = h("div");
     if (!r.today) return h("p", { class: "muted" }, "No prices for today.");
@@ -304,6 +423,8 @@ $("#runAll").onclick = runAll;
 const today = new Date(), iso = (d) => d.toISOString().slice(0, 10);
 $("[data-call='spot.history'] [name=to]").value = iso(new Date(today - 86400000));
 $("[data-call='spot.history'] [name=from]").value = iso(new Date(today - 14 * 86400000));
+$("[data-call='weather.history'] [name=to]").value = iso(new Date(today - 7 * 86400000));
+$("[data-call='weather.history'] [name=from]").value = iso(new Date(today - 13 * 86400000));
 refresh().then(() => run($("[data-call='spot.overview']")));
 </script>
 </body>
