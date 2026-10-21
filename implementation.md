@@ -482,3 +482,45 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 | T5 Kontraktstester | 27 |
 | T6 Omfång | 32 |
 | T7 Dokumentation | 33 |
+
+---
+
+## Deluppgift A · Uppföljning av agentens arbete
+
+### Vad identifierade agenten?
+
+Agenten läste hela `src/`, CI-flödena och dev-servern, körde testerna och verifierade två fel genom att köra koden mot projektets egna fakes. Huvudfynden (detaljer i [`docs/kodgranskning.md`](docs/kodgranskning.md)):
+
+- **Korrekthet:** en avbruten anropare avbryter även alla andra som väntar på samma data (P1, verifierat), och `spot.history` tränger ut resten av cachen (P2, verifierat).
+- **Säkerhet:** två moduler skrapar källor utan avtal (Transportstyrelsen, IBIndex). Dev-servern är öppen mot nätverket och sårbar för CSRF. HTTP-svar läses utan storleksgräns, och verktygsversionerna är inte låsta.
+- **Läsbarhet och duplicering:** sju filer i komprimerad enradsstil (upp till 986 tecken per rad) och samma hjälpfunktioner i 3–7 kopior med olika beteende.
+- **Skalbarhet och teknisk skuld:** ingen gräns per källa, lagring utan TTL, sju ställen att uppdatera per ny källa och en täckningsgräns som inte mäter något i komprimerade filer.
+
+Utifrån det tog agenten fram en plan på 34 steg i fem faser, med en kontroll per steg.
+
+### Vad ville agenten göra som jag stoppade, och varför?
+
+- **Egen gren för dokumentationen.** Agenten lade granskningen och planen på grenen `docs/kodgranskning`. Jag ville ha dem på `main` direkt, eftersom de är underlag för hela teamet och inte en kodändring som behöver granskas.
+- **Mer än ett steg i taget.** Jag lät inte agenten genomföra planen i ett svep. Den får göra ett steg, köra testerna, checka in och sedan vänta på mitt klartecken. Varför: flera steg är brytande ändringar (t.ex. steg 4) eller rör hela kodbasen (steg 12), och jag vill kunna granska och stoppa mellan varje.
+
+[Komplettera här om du stoppade något mer.]
+
+### Vad missade den?
+
+- **Typkontrollen kördes aldrig.** Den lokala TypeScript-installationen (7.0.2) saknar sitt plattformspaket, så `tsc` gick inte att köra. Granskningen bygger på tester och läsning av koden.
+- **Ingen push.** Pushen till GitHub stoppades av nätverksproxyn (HTTP 403), och GitHub var inte kopplat till agenten. Jag fick pusha själv.
+- **Dev-servern kunde inte hållas igång.** Den startade och svarade på port 5199 men stängdes när agentens kommando avslutades. Jag startar den själv med `npm run dev -- --port 5199`.
+- **Live-tester, Deno och Bun kördes inte.** Ingen riktig källa anropades. Det är oklart om källorna fortfarande svarar som förväntat.
+- **Overifierade bedömningar.** Den juridiska bedömningen (GDPR, källornas villkor), tidsuppskattningen på 8–11 dagar och påståendet om hur JSR läser modulkommentarer är agentens bedömningar, inte kontrollerade fakta.
+- **Översiktlig granskning av vissa filer.** `dev/board.html` och README granskades bara översiktligt.
+- **Fel i första versionen.** Dokumentet hade två teckenfel som agenten själv fick rätta i efterhand.
+- **Verktygsval utan förankring.** Planen väljer `deno fmt`/`deno lint` som formaterare; det valet bör teamet ta.
+
+### Är projektet körbart efter implementationen?
+
+Ja. Hittills är bara steg 1 genomfört (gren och baslinje, inga kodändringar):
+
+- `npm test`: 93 av 93 tester passerar.
+- `npm run coverage`: 99,86 % rader, 95,24 % grenar, 98,45 % funktioner, över gränsvärdena.
+- Dev-servern startar och svarar (`/api/state` gav HTTP 200 på port 5199).
+- `npm run typecheck` går inte att köra lokalt på grund av TypeScript-installationen. Det åtgärdas i steg 2.
