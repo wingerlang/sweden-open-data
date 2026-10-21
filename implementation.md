@@ -149,7 +149,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 10 · Storleksgräns för svar och textläsning i kärnan (S3)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `maxResponseBytes` (5 MB) och `http.text()` med `redirect`-val i kärnan; Transportstyrelsen-klienten använder dem (2 MB) i stället för sin egen läsare. Tester i `test/http.test.ts`.
 
 **Gör** i `src/core/http.ts`:
 1. Lägg `maxResponseBytes?: number` i `HttpOptions`, default `5_000_000`.

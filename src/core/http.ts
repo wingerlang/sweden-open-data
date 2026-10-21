@@ -44,6 +44,11 @@ export interface HttpOptions {
   userAgent?: string;
   /** Called after every attempt – for logging, metrics or tracing. Must not throw. */
   onRequest?: (event: RequestEvent) => void;
+  /**
+   * Largest response body accepted, in bytes. A larger answer is cut off and reported as a {@link SourceError} with
+   * code `"invalid-response"`, so a misbehaving mirror or proxy cannot fill the memory. Default `5000000` (5 MB).
+   */
+  maxResponseBytes?: number;
 }
 
 /** Per-request options. */
@@ -55,12 +60,45 @@ export interface RequestOptions {
   signal?: AbortSignal;
   /** Return `undefined` instead of throwing when the source answers 404. */
   allowNotFound?: boolean;
+  /** `"error"` rejects redirects (for sources where a redirect means something is wrong). Default `"follow"`. */
+  redirect?: "follow" | "error";
 }
 
-/** The interface the clients use to fetch JSON. */
+/** The interface the clients use to fetch JSON (and, for HTML sources, text). */
 export interface Http {
   /** Fetches and parses JSON from `url`, attributing failures to `source`. */
   json(source: string, url: string | URL, options?: RequestOptions): Promise<unknown>;
+  /** Fetches `url` as text, with the same timeouts, retries and size limit. */
+  text(source: string, url: string | URL, options?: RequestOptions): Promise<string | undefined>;
+}
+
+/** Reads a body as UTF-8 text, giving up as soon as it grows past `limit` bytes. */
+async function readText(response: Response, limit: number, tooLarge: () => SourceError): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) {
+        await reader.cancel().catch(() => {});
+        throw tooLarge();
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
@@ -106,10 +144,13 @@ export function createHttp(options: HttpOptions = {}): Http {
   const retries = Math.max(0, Math.floor(options.retries ?? 1));
   const retryDelayMs = Math.max(0, options.retryDelayMs ?? 500);
   const maxRetryDelayMs = Math.max(0, options.maxRetryDelayMs ?? 10_000);
-  const headers: Record<string, string> = { accept: "application/json" };
-  if (options.userAgent) headers["user-agent"] = options.userAgent;
+  const maxResponseBytes = options.maxResponseBytes ?? 5_000_000;
+  if (!(maxResponseBytes > 0)) throw new RangeError("maxResponseBytes must be positive");
+  const baseHeaders: Record<string, string> = {};
+  if (options.userAgent) baseHeaders["user-agent"] = options.userAgent;
 
-  async function attempt(source: string, url: string, request: RequestOptions, n: number): Promise<unknown> {
+  type Kind = "json" | "text";
+  async function attempt(source: string, url: string, request: RequestOptions, n: number, kind: Kind): Promise<unknown> {
     const doFetch = options.fetch ?? globalThis.fetch;
     const started = Date.now();
     // An own timer rather than AbortSignal.timeout(): that one is unref'd in Node and cannot be cleared.
@@ -118,7 +159,18 @@ export function createHttp(options: HttpOptions = {}): Http {
     const signal = combine(request.signal ? [timeout.signal, request.signal] : [timeout.signal]);
     let status: number | null = null;
     try {
-      const response = await doFetch(url, { headers: request.body===undefined?headers:{...headers,"content-type":"application/json;charset=UTF-8"}, signal, ...(request.method?{method:request.method}:{}), ...(request.body!==undefined?{body:JSON.stringify(request.body)}:{}) });
+      const headers: Record<string, string> = {
+        ...baseHeaders,
+        accept: kind === "json" ? "application/json" : "text/html, text/plain;q=0.9, */*;q=0.1",
+      };
+      if (request.body !== undefined) headers["content-type"] = "application/json;charset=UTF-8";
+      const response = await doFetch(url, {
+        headers,
+        signal,
+        ...(request.method ? { method: request.method } : {}),
+        ...(request.body !== undefined ? { body: JSON.stringify(request.body) } : {}),
+        ...(request.redirect ? { redirect: request.redirect } : {}),
+      });
       status = response.status;
       if (response.status === 404 && request.allowNotFound) {
         await response.body?.cancel();
@@ -126,7 +178,9 @@ export function createHttp(options: HttpOptions = {}): Http {
         return undefined;
       }
       if (!response.ok) {
-        const retryAfterMs = response.status === 429 || response.status === 503 ? parseRetryAfter(response.headers?.get("retry-after")) : undefined;
+        const retryAfterMs = response.status === 429 || response.status === 503
+          ? parseRetryAfter(response.headers?.get("retry-after"))
+          : undefined;
         await response.body?.cancel();
         throw new SourceError(`${source} answered HTTP ${response.status}`, {
           code: response.status === 429 ? "rate-limited" : "http",
@@ -136,12 +190,15 @@ export function createHttp(options: HttpOptions = {}): Http {
           retryAfterMs,
         });
       }
-      let body: unknown;
-      try {
-        body = await response.json();
-      } catch (cause) {
-        if (signal.aborted) throw cause;
-        throw new SourceError(`${source} did not answer with JSON`, { code: "invalid-response", source, status, url, cause });
+      const text = await readText(response, maxResponseBytes, () =>
+        new SourceError(`${source} answered with more than ${maxResponseBytes} bytes`, { code: "invalid-response", source, status: response.status, url }));
+      let body: unknown = text;
+      if (kind === "json") {
+        try {
+          body = JSON.parse(text);
+        } catch (cause) {
+          throw new SourceError(`${source} did not answer with JSON`, { code: "invalid-response", source, status, url, cause });
+        }
       }
       options.onRequest?.({ source, url, status, ms: Date.now() - started, attempt: n });
       return body;
@@ -158,23 +215,26 @@ export function createHttp(options: HttpOptions = {}): Http {
     }
   }
 
-  return {
-    async json(source, url, request = {}) {
-      const href = String(url);
-      for (let n = 1;; n++) {
+  async function run(source: string, url: string | URL, request: RequestOptions, kind: Kind): Promise<unknown> {
+    const href = String(url);
+    for (let n = 1;; n++) {
+      try {
+        return await attempt(source, href, request, n, kind);
+      } catch (error) {
+        if (!(error instanceof SourceError) || !error.transient || n > retries) throw error;
+        const delay = Math.max(retryDelayMs * 2 ** (n - 1), error.retryAfterMs ?? 0);
+        if (delay > maxRetryDelayMs) throw error;
         try {
-          return await attempt(source, href, request, n);
-        } catch (error) {
-          if (!(error instanceof SourceError) || !error.transient || n > retries) throw error;
-          const delay = Math.max(retryDelayMs * 2 ** (n - 1), error.retryAfterMs ?? 0);
-          if (delay > maxRetryDelayMs) throw error;
-          try {
-            await sleep(delay, request.signal);
-          } catch (cause) {
-            throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
-          }
+          await sleep(delay, request.signal);
+        } catch (cause) {
+          throw new SourceError(`Request to ${source} was aborted`, { code: "aborted", source, url: href, cause });
         }
       }
-    },
+    }
+  }
+
+  return {
+    json: (source, url, request = {}) => run(source, url, request, "json"),
+    text: (source, url, request = {}) => run(source, url, request, "text") as Promise<string | undefined>,
   };
 }

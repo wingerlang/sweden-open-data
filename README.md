@@ -198,6 +198,7 @@ const se = createClient({
   retries: 2,                // extra attempts for timeouts, network errors, 429 and 5xx (default 1)
   retryDelayMs: 500,         // doubled per retry (default 500)
   maxRetryDelayMs: 10_000,   // a longer Retry-After from a source is reported, not slept through
+  maxResponseBytes: 5_000_000, // larger answers are refused as invalid-response (default 5 MB)
   cache: {                   // or false
     maxEntries: 1000,
     archiveEntries: 400,     // past days kept by spot.history, in a cache of their own (default 400)
