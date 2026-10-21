@@ -30,7 +30,11 @@ export type SourceId =
   | "krisinformation"
   | "smhi"
   | "biluppgifter"
-  | "scb";
+  | "scb"
+  | "open-meteo-archive"
+  | "open-meteo-air-quality"
+  | "ibindex"
+  | "transportstyrelsen";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
@@ -42,6 +46,10 @@ export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
   "smhi",
   "biluppgifter",
   "scb",
+  "open-meteo-archive",
+  "open-meteo-air-quality",
+  "ibindex",
+  "transportstyrelsen",
 ] as const);
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
@@ -49,12 +57,16 @@ export function sourceOf(url: string | URL): SourceId | undefined {
   const host = new URL(String(url)).hostname;
   if (host.endsWith("elprisetjustnu.se")) return "elprisetjustnu";
   if (host === "geocoding-api.open-meteo.com") return "open-meteo-geocoding";
+  if (host === "archive-api.open-meteo.com") return "open-meteo-archive";
+  if (host === "air-quality-api.open-meteo.com") return "open-meteo-air-quality";
   if (host.endsWith("open-meteo.com")) return "open-meteo";
   if (host.includes("photon")) return "photon";
   if (host.endsWith("krisinformation.se")) return "krisinformation";
   if (host.endsWith("smhi.se")) return "smhi";
   if (host === "api.biluppgifter.se") return "biluppgifter";
   if (host.endsWith("scb.se")) return "scb";
+  if (host === "ibindex.se") return "ibindex";
+  if (host.endsWith("transportstyrelsen.se")) return "transportstyrelsen";
   return undefined;
 }
 

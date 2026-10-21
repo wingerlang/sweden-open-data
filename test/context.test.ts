@@ -52,3 +52,16 @@ test("vehicles: the API key only ever goes to the default address", async () => 
   assert.equal(await vehicles.lookup("ABC123"), null);
   assert.equal(fetch.calls.length, 1);
 });
+
+test("stats: every source is counted under its own name", async () => {
+  const fetch = fakeFetch((url) =>
+    url.hostname.startsWith("archive")
+      ? { hourly: { time: [1_767_225_600], temperature_2m: [1] } }
+      : { hourly: { time: [1_767_225_600], uv_index: [2] }, latitude: 59.33, longitude: 18.07 },
+  );
+  const se = createClient({ fetch, retries: 0 });
+  const here = { latitude: 59.33, longitude: 18.07 };
+  await se.weather.history(here, "2026-01-01", "2026-01-01");
+  await se.weather.environment(here, { metrics: ["uv"] });
+  assert.deepEqual(Object.keys(se.stats().sources).sort(), ["open-meteo-air-quality", "open-meteo-archive"]);
+});

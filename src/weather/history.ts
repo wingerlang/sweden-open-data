@@ -45,7 +45,7 @@ export function parseWeatherHistory(raw: unknown, fetchedAt: string): WeatherHis
     h.time.length !== h.temperature_2m.length ||
     h.time.length > 1000
   )
-    throw invalidResponse("open-meteo", "Invalid historical weather");
+    throw invalidResponse("open-meteo-archive", "Invalid historical weather");
   return {
     hours: h.time.flatMap((t, i) =>
       typeof t === "number" &&
@@ -104,8 +104,8 @@ export function createWeatherHistoryClient(options: ClientOptions | Context = {}
         `weather-history:${p.latitude},${p.longitude}:${from}:${to}`,
         ctx.ttl.weatherHistory,
         async (signal) =>
-          parseWeatherHistory(await ctx.http.json("open-meteo", url, { signal }), new Date(ctx.now()).toISOString()),
-        { signal: historyOptions.signal, source: "open-meteo" },
+          parseWeatherHistory(await ctx.http.json("open-meteo-archive", url, { signal }), new Date(ctx.now()).toISOString()),
+        { signal: historyOptions.signal, source: "open-meteo-archive" },
       );
     },
   };

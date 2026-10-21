@@ -259,7 +259,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 18 · Unika källnamn
 
-- [ ] Klart
+- [x] Klart (2026-10-21): historik heter `open-meteo-archive`. Alla källor finns i `SourceId`, `SOURCE_IDS` och `sourceOf()`, så fel kan simuleras per källa i dev-tavlan och i tester.
 
 **Gör**
 1. Döp om källorna så att statistiken inte blandas: `open-meteo-archive` (historik), `open-meteo-air-quality` (finns), `ibindex`, `transportstyrelsen`, `biluppgifter`.

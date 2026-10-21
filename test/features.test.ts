@@ -197,9 +197,17 @@ test("testing: faults – status, Retry-After, offline, invalid JSON, delay, han
       "smhi",
       "biluppgifter",
       "scb",
+      "open-meteo-archive",
+      "open-meteo-air-quality",
+      "ibindex",
+      "transportstyrelsen",
     ],
   );
   assert.equal(sourceOf("https://api.open-meteo.com/v1/forecast"), "open-meteo");
+  assert.equal(sourceOf("https://archive-api.open-meteo.com/v1/archive"), "open-meteo-archive");
+  assert.equal(sourceOf("https://air-quality-api.open-meteo.com/v1/air-quality"), "open-meteo-air-quality");
+  assert.equal(sourceOf("https://ibindex.se/ibi/companies/getCompanies.req"), "ibindex");
+  assert.equal(sourceOf("https://fordon-fu-regnr.transportstyrelsen.se/x"), "transportstyrelsen");
   assert.equal(sourceOf("https://geocoding-api.open-meteo.com/v1/search"), "open-meteo-geocoding");
   assert.equal(sourceOf("https://photon.komoot.io/api/"), "photon");
   assert.equal(sourceOf("https://example.com"), undefined);
