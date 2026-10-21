@@ -232,7 +232,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 16 · Alla klienter via `Context`
 
-- [ ] Klart
+- [x] Klart (2026-10-21): fyra nya endpoints och fyra nya TTL:er i `Context`. `weather.history` finns på huvudklienten, tar ett `Context` och har `signal`, liksom alla investments-metoder. Fordonsklienterna läser alltid standardadressen, så en API-nyckel eller ett registreringsnummer aldrig skickas till en överskriven adress. Lintregeln `endpoint` stoppar hårdkodade API-adresser. Tester i `test/context.test.ts`.
 
 **Gör**
 1. I `src/core/context.ts`, lägg till:

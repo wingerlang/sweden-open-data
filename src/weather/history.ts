@@ -11,7 +11,7 @@
  *
  * @module
  */
-import { createContext, type ClientOptions } from "../core/context.ts";
+import { type CacheTtl, type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { assertCoordinates, roundCoordinates, type Coordinates } from "../core/geo.ts";
 import { invalidResponse } from "../core/parse.ts";
 import { isCalendarDate } from "../core/time.ts";
@@ -60,26 +60,37 @@ export function parseWeatherHistory(raw: unknown, fetchedAt: string): WeatherHis
     sourceUrl: "https://open-meteo.com/en/docs/historical-weather-api",
   };
 }
+/** Options for {@link WeatherHistoryClient.history}. */
+export interface WeatherHistoryOptions {
+  /** Cancels this caller's wait. */
+  signal?: AbortSignal;
+}
+
+/** Historical temperatures. */
+export interface WeatherHistoryClient {
+  /** Hourly temperatures for `from`–`to` (inclusive, `YYYY-MM-DD`, at most 31 days) at a position. */
+  history(position: Coordinates, from: string, to: string, options?: WeatherHistoryOptions): Promise<WeatherHistory>;
+}
+
 /**
  * Creates a client for historical temperatures: 1–31 calendar days per request, positions rounded like every other
- * request, results cached for six hours.
+ * request, results cached ({@link CacheTtl.weatherHistory}, default 6 h). Pass a {@link Context} to share its cache.
  */
-export function createWeatherHistoryClient(options: ClientOptions = {}): {
-  history: (position: Coordinates, from: string, to: string) => Promise<WeatherHistory>;
-} {
+export function createWeatherHistoryClient(options: ClientOptions | Context = {}): WeatherHistoryClient {
   const ctx = createContext(options);
   return {
-    async history(position, from, to) {
+    async history(position, from, to, historyOptions = {}) {
       assertCoordinates(position);
       if (
         !isCalendarDate(from) ||
         !isCalendarDate(to) ||
         from > to ||
-        (Date.parse(to) - Date.parse(from)) / 86400000 >= 31
-      )
+        (Date.parse(to) - Date.parse(from)) / 86_400_000 >= 31
+      ) {
         throw new RangeError("Use 1–31 calendar days");
-      const p = roundCoordinates(position, ctx.precision),
-        url = new URL("https://archive-api.open-meteo.com/v1/archive");
+      }
+      const p = roundCoordinates(position, ctx.precision);
+      const url = new URL(ctx.endpoints.weatherArchive);
       url.search = new URLSearchParams({
         latitude: String(p.latitude),
         longitude: String(p.longitude),
@@ -90,9 +101,11 @@ export function createWeatherHistoryClient(options: ClientOptions = {}): {
         timeformat: "unixtime",
       }).toString();
       return ctx.cache.get(
-        "weather-history:" + p.latitude + "," + p.longitude + ":" + from + ":" + to,
-        6 * 3600000,
-        async () => parseWeatherHistory(await ctx.http.json("open-meteo", url), new Date(ctx.now()).toISOString()),
+        `weather-history:${p.latitude},${p.longitude}:${from}:${to}`,
+        ctx.ttl.weatherHistory,
+        async (signal) =>
+          parseWeatherHistory(await ctx.http.json("open-meteo", url, { signal }), new Date(ctx.now()).toISOString()),
+        { signal: historyOptions.signal, source: "open-meteo" },
       );
     },
   };

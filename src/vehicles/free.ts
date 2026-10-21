@@ -8,13 +8,14 @@
  *
  * @module
  */
-import { createContext, type ClientOptions } from "../core/context.ts";
+import { createContext, DEFAULT_ENDPOINTS, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
 import { finiteNumber, invalidResponse, isoDay } from "../core/parse.ts";
 import { type Redaction, redactError, redactedHooks } from "../core/source.ts";
 import { normalizeVehicleRegistration, type VehicleClient, type VehicleRecord } from "./mod.ts";
-const source = "transportstyrelsen",
-  base = "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter";
+const source = "transportstyrelsen";
+// Always the default address: a registration number is never sent to an overridden endpoint.
+const base = DEFAULT_ENDPOINTS.transportstyrelsen;
 /** Links for opening a vehicle in an ordinary browser tab, when automatic reading is not possible. */
 export function vehicleLookupLinks(registrationNumber: string): { transportstyrelsen: string; biluppgifter: string } {
   const plate = normalizeVehicleRegistration(registrationNumber);
@@ -141,7 +142,7 @@ export function createFreeVehicleClient(options: Omit<ClientOptions, "endpoints"
       const plate = normalizeVehicleRegistration(reg);
       return ctx.cache.get<VehicleRecord | null>(
         "vehicle:" + plate,
-        (v) => (v === null ? 60_000 : 6 * 3_600_000),
+        (v) => (v === null ? 60_000 : ctx.ttl.vehicle),
         (signal) => load(plate, signal),
         { signal: o?.signal, source },
       );

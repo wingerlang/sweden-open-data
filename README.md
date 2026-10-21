@@ -93,6 +93,16 @@ console.log(describeWeather(current.code, "en"));                               
 All times are absolute (UTC ISO strings). `forecastAt(forecast, now)` re-bases a saved forecast on a later moment and
 returns `null` rather than presenting stale data as current – useful for offline caches.
 
+### Historical temperatures
+
+```ts
+const { hours } = await se.weather.history({ latitude: 59.33, longitude: 18.07 }, "2026-01-01", "2026-01-31");
+// [{ at: 1767225600000, celsius: -2.5 }, …] – hourly, 1–31 days per request, cached 6 h
+```
+
+ERA5 reanalysis from the [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api): a model of the
+past, not a station reading at the address. Also available on its own as `createWeatherHistoryClient()`.
+
 ### Optional UV, pollen and air quality
 
 Ordinary forecasts make no additional requests. Opt in to environmental data separately:

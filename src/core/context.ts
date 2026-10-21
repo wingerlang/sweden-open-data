@@ -30,6 +30,17 @@ export interface Endpoints {
   smhiWarnings: string;
   /** SCB Statistikdatabasen, PxWebApi v2. */
   scb: string;
+  /** Open-Meteo historical weather (ERA5 archive). */
+  weatherArchive: string;
+  /** IBIndex read endpoints (experimental `/investments`). */
+  ibindex: string;
+  /**
+   * Biluppgifter vehicle API. The vehicle clients always use the default, so an API key or a registration number is
+   * never sent to an overridden address.
+   */
+  biluppgifter: string;
+  /** Transportstyrelsen's public vehicle page (experimental `/vehicles/free`); always the default, as above. */
+  transportstyrelsen: string;
 }
 
 /** The public endpoints used by default. */
@@ -43,6 +54,10 @@ export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
   krisinformation: "https://api.krisinformation.se/v3",
   smhiWarnings: "https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json",
   scb: "https://statistikdatabasen.scb.se/api/v2",
+  weatherArchive: "https://archive-api.open-meteo.com/v1/archive",
+  ibindex: "https://ibindex.se/ibi/",
+  biluppgifter: "https://api.biluppgifter.se/api/v1/vehicle/regno/",
+  transportstyrelsen: "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter",
 });
 
 /** How long results are kept in memory, in milliseconds. */
@@ -61,6 +76,14 @@ export interface CacheTtl {
   search: number;
   /** A consumer price index series (published monthly). Default 6 h. */
   cpi: number;
+  /** A period of historical temperatures. Default 6 h. */
+  weatherHistory: number;
+  /** IBIndex companies and one company's history and holdings. Default 6 h. */
+  investments: number;
+  /** The IBIndex overview of today's prices and NAV. Default 15 min. */
+  investmentsOverview: number;
+  /** A vehicle that was found. Default 6 h (the authenticated client's `ttlMs` overrides it). */
+  vehicle: number;
 }
 
 /** The default {@link CacheTtl}. */
@@ -72,6 +95,10 @@ export const DEFAULT_TTL: Readonly<CacheTtl> = Object.freeze({
   region: 30 * 86_400_000,
   search: 3_600_000,
   cpi: 6 * 3_600_000,
+  weatherHistory: 6 * 3_600_000,
+  investments: 6 * 3_600_000,
+  investmentsOverview: 15 * 60_000,
+  vehicle: 6 * 3_600_000,
 });
 
 /** Options for `createClient` and the individual client factories. All are optional. */

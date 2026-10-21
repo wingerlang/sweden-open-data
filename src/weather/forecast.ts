@@ -7,7 +7,7 @@
 import { finiteNumber, invalidResponse } from "../core/parse.ts";
 import { type Coordinates, assertCoordinates } from "../core/geo.ts";
 import { TIME_ZONE } from "../core/time.ts";
-import type { Locale } from "../core/context.ts";
+import { DEFAULT_ENDPOINTS, type Locale } from "../core/context.ts";
 
 export type { Locale };
 
@@ -167,7 +167,7 @@ export function openMeteoUrl(position: Coordinates, options: OpenMeteoUrlOptions
   const days = options.days ?? 7;
   if (!Number.isInteger(days) || days < 1 || days > 16) throw new RangeError("days must be an integer 1–16");
   const precision = options.precision ?? 2;
-  const url = new URL(options.base ?? "https://api.open-meteo.com/v1/forecast");
+  const url = new URL(options.base ?? DEFAULT_ENDPOINTS.weather);
   url.searchParams.set("latitude", position.latitude.toFixed(precision));
   url.searchParams.set("longitude", position.longitude.toFixed(precision));
   url.searchParams.set(

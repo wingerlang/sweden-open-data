@@ -15,7 +15,7 @@
  *
  * @module
  */
-import { createContext, type ClientOptions, type Context } from "../core/context.ts";
+import { type CacheTtl, type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { cachedWithStore, type Dated } from "../core/source.ts";
 import { dayFromEpochMs, finiteNumber, invalidResponse } from "../core/parse.ts";
 /** An investment company as IBIndex lists it. */
@@ -80,16 +80,23 @@ export interface InvestmentOverview {
   sourceUrl: string;
   stale?: boolean;
 }
+/** Options for every {@link InvestmentClient} method. */
+export interface InvestmentOptions {
+  /** Cancels this caller's wait. */
+  signal?: AbortSignal;
+}
+
 /** Investment companies from IBIndex. */
 export interface InvestmentClient {
-  /** Price, NAV and discount for every company – for lists. Cached 15 minutes. */
-  overview(): Promise<InvestmentOverview>;
-  /** The companies IBIndex lists. Cached 6 hours. */
-  companies(): Promise<InvestmentCompanies>;
-  /** History and holdings for one company by product code. Cached 6 hours. */
-  company(product: string): Promise<InvestmentDetail>;
+  /** Price, NAV and discount for every company – for lists ({@link CacheTtl.investmentsOverview}, default 15 min). */
+  overview(options?: InvestmentOptions): Promise<InvestmentOverview>;
+  /** The companies IBIndex lists ({@link CacheTtl.investments}, default 6 h). */
+  companies(options?: InvestmentOptions): Promise<InvestmentCompanies>;
+  /** History and holdings for one company by product code ({@link CacheTtl.investments}, default 6 h). */
+  company(product: string, options?: InvestmentOptions): Promise<InvestmentDetail>;
 }
-/** Where the data comes from – show it next to the data. */
+
+/** Where the data comes from – link to it next to the data. */
 export const IBINDEX_SOURCE: string = "https://ibindex.se/ibi/";
 const productPattern = /^[A-Z0-9][A-Z0-9 .&-]{0,39}$/;
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -201,46 +208,62 @@ export function parseInvestmentOverview(
 }
 /** Creates an {@link InvestmentClient}. With a `store`, the last complete answer survives restarts and outages. */
 export function createInvestmentClient(options: ClientOptions | Context = {}): InvestmentClient {
-  const ctx = createContext(options),
-    ttl = 6 * 3600000;
-  const post = (path: string, body: unknown): Promise<unknown> =>
-    ctx.http.json("ibindex", IBINDEX_SOURCE + path + ".req", { method: "POST", body });
+  const ctx = createContext(options);
+  const post = (path: string, body: unknown, signal: AbortSignal): Promise<unknown> =>
+    ctx.http.json("ibindex", `${ctx.endpoints.ibindex.replace(/\/?$/, "/")}${path}.req`, {
+      method: "POST",
+      body,
+      signal,
+    });
   const cached = <T extends Dated>(
     key: string,
+    ttlMs: number,
     valid: (v: unknown) => v is T,
-    load: () => Promise<T>,
-    duration: number = ttl,
-  ): Promise<T> => cachedWithStore(ctx, key, duration, valid, load, { source: "ibindex" });
-  const companies = (): Promise<InvestmentCompanies> =>
-    cached("ibindex:companies:v2", isCompanyList<InvestmentCompanies>, async () => ({
-      companies: parseInvestmentCompanies(await post("companies/getCompanies", {})),
-      fetchedAt: new Date(ctx.now()).toISOString(),
-      sourceUrl: IBINDEX_SOURCE,
-    }));
+    load: (signal: AbortSignal) => Promise<T>,
+    signal: AbortSignal | undefined,
+  ): Promise<T> => cachedWithStore(ctx, key, ttlMs, valid, load, { signal, source: "ibindex" });
+  const fetchedAt = (): string => new Date(ctx.now()).toISOString();
+
+  const companies = (companyOptions: InvestmentOptions = {}): Promise<InvestmentCompanies> =>
+    cached(
+      "ibindex:companies:v2",
+      ctx.ttl.investments,
+      isCompanyList<InvestmentCompanies>,
+      async (signal) => ({
+        companies: parseInvestmentCompanies(await post("companies/getCompanies", {}, signal)),
+        fetchedAt: fetchedAt(),
+        sourceUrl: IBINDEX_SOURCE,
+      }),
+      companyOptions.signal,
+    );
+
   return {
     companies,
-    overview: () =>
+    overview: (overviewOptions = {}) =>
       cached(
         "ibindex:overview:v1",
+        ctx.ttl.investmentsOverview,
         isCompanyList<InvestmentOverview>,
-        async () => {
-          const [catalog, rows] = await Promise.all([companies(), post("index/getProducts", {})]);
+        async (signal) => {
+          const [catalog, rows] = await Promise.all([companies({ signal }), post("index/getProducts", {}, signal)]);
           return {
             companies: parseInvestmentOverview(rows, catalog.companies),
-            fetchedAt: new Date(ctx.now()).toISOString(),
+            fetchedAt: fetchedAt(),
             sourceUrl: IBINDEX_SOURCE,
             ...(catalog.stale ? { stale: true } : {}),
           };
         },
-        15 * 60000,
+        overviewOptions.signal,
       ),
-    async company(product: string): Promise<InvestmentDetail> {
-      if (typeof product !== "string" || !productPattern.test(product))
+    async company(product, companyOptions = {}) {
+      if (typeof product !== "string" || !productPattern.test(product)) {
         throw new RangeError("Invalid investment company");
-      const company = (await companies()).companies.find((c) => c.product === product);
+      }
+      const company = (await companies(companyOptions)).companies.find((c) => c.product === product);
       if (!company) throw new RangeError("Unknown investment company");
       return cached(
         "ibindex:company:v2:" + product,
+        ctx.ttl.investments,
         (v: unknown): v is InvestmentDetail =>
           isRecord(v) &&
           isRecord(v.company) &&
@@ -249,12 +272,12 @@ export function createInvestmentClient(options: ClientOptions | Context = {}): I
           v.history.length > 0 &&
           Array.isArray(v.holdings) &&
           typeof v.fetchedAt === "string",
-        async () => {
+        async (signal) => {
           const [history, holdings, holdingsDate, nav] = await Promise.all([
-            post("company/getChartDataPrice", { product, interval: "ALL" }),
-            post("company/getHoldings", product),
-            post("company/getHoldingsDate", product),
-            post("company/getNetAssetValue", product),
+            post("company/getChartDataPrice", { product, interval: "ALL" }, signal),
+            post("company/getHoldings", product, signal),
+            post("company/getHoldingsDate", product, signal),
+            post("company/getNetAssetValue", product, signal),
           ]);
           return {
             company,
@@ -262,10 +285,11 @@ export function createInvestmentClient(options: ClientOptions | Context = {}): I
             holdings: parseInvestmentHoldings(holdings),
             holdingsDate: date(holdingsDate),
             reportedNavDate: date(isRecord(nav) ? nav.netAssetValueChangeDate : undefined),
-            fetchedAt: new Date(ctx.now()).toISOString(),
+            fetchedAt: fetchedAt(),
             sourceUrl: IBINDEX_SOURCE + "#/company/" + encodeURIComponent(product),
           };
         },
+        companyOptions.signal,
       );
     },
   };

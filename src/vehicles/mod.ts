@@ -13,7 +13,7 @@
  *
  * @module
  */
-import { createContext, type ClientOptions } from "../core/context.ts";
+import { createContext, DEFAULT_ENDPOINTS, DEFAULT_TTL, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
 import { finiteNumber, isoDay, text } from "../core/parse.ts";
 import { type Redaction, redactError, redactedHooks } from "../core/source.ts";
@@ -51,7 +51,8 @@ export interface VehicleClient {
   resetStats(): void;
 }
 const SOURCE = "biluppgifter";
-const BASE = "https://api.biluppgifter.se/api/v1/vehicle/regno/";
+// Always the default address: the API key is never sent to an overridden endpoint.
+const BASE = DEFAULT_ENDPOINTS.biluppgifter;
 const REDACTED = BASE + "[redacted]";
 /** Canonical Swedish plate, e.g. `abc 123` becomes `ABC123`. Throws for malformed input. */
 export function normalizeVehicleRegistration(value: string): string {
@@ -137,7 +138,7 @@ export function parseBiluppgifterVehicle(
 export function createVehicleClient(options: VehicleClientOptions): VehicleClient {
   if (typeof options?.apiKey !== "string" || !options.apiKey.trim() || /[\r\n]/.test(options.apiKey))
     throw new RangeError("A server-side Biluppgifter API key is required");
-  const ttl = options.ttlMs ?? 6 * 3_600_000;
+  const ttl = options.ttlMs ?? DEFAULT_TTL.vehicle;
   if (!Number.isFinite(ttl) || ttl < 0) throw new RangeError("ttlMs must be non-negative");
   const { apiKey, ttlMs: _, ...network } = options,
     request = options.fetch ?? globalThis.fetch;

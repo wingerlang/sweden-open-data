@@ -6,6 +6,7 @@
 import { type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { type Coordinates, assertCoordinates, roundCoordinates } from "../core/geo.ts";
 import { createWeatherEnvironmentClient, type WeatherEnvironmentClient } from "./environment.ts";
+import { createWeatherHistoryClient, type WeatherHistoryClient } from "./history.ts";
 import { type Forecast, openMeteoUrl, parseOpenMeteo } from "./forecast.ts";
 
 /** Where forecasts come from – show it next to the data (required by the CC BY licence). */
@@ -22,8 +23,8 @@ export interface ForecastOptions {
   signal?: AbortSignal;
 }
 
-/** Weather forecasts. */
-export interface WeatherClient extends WeatherEnvironmentClient {
+/** Weather forecasts, UV, pollen and air quality, and historical temperatures. */
+export interface WeatherClient extends WeatherEnvironmentClient, WeatherHistoryClient {
   /** Current conditions, hourly forecast and daily forecast for a position (rounded to ~1 km before sending). */
   forecast(position: Coordinates, options?: ForecastOptions): Promise<Forecast>;
 }
@@ -42,6 +43,7 @@ export function createWeatherClient(options: ClientOptions | Context = {}): Weat
   const ctx = createContext(options);
   return {
     ...createWeatherEnvironmentClient(ctx),
+    ...createWeatherHistoryClient(ctx),
     async forecast(position, options = {}) {
       assertCoordinates(position, "position");
       const p = roundCoordinates(position, ctx.precision);

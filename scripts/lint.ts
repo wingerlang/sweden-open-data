@@ -83,6 +83,14 @@ export function lint(base: string = root): Problem[] {
             if (copy) problems.push({ file, line: i + 1, rule: "shared-helper", message: `use ${copy}` });
           });
         }
+        // Step 16: API addresses live in DEFAULT_ENDPOINTS (core/context.ts), so they can be overridden and faked.
+        if (file !== "src/core/context.ts") {
+          lines.forEach((text, i) => {
+            if (/new URL\(\s*["'`]https?:/.test(text)) {
+              problems.push({ file, line: i + 1, rule: "endpoint", message: "use ctx.endpoints / DEFAULT_ENDPOINTS" });
+            }
+          });
+        }
         // Step 13: everything exported is documented.
         lines.forEach((text, i) => {
           const exported = /^export (?:async )?(?:function|const|interface|type|class) (\w+)/.exec(text);
