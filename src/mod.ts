@@ -108,6 +108,7 @@ export {
   type MemoryCacheOptions,
   memoryStore,
   type PersistentStore,
+  type StoreSetOptions,
   type Ttl,
 } from "./core/cache.ts";
 export { type HttpOptions, parseRetryAfter, type RequestEvent } from "./core/http.ts";

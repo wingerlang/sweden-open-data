@@ -317,7 +317,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 23 · TTL och städning i lagret (P7, S6)
 
-- [ ] Klart
+- [x] Klart (2026-10-21) med en justering: `PersistentStore.set` tar `{ ttlMs }`, och `memoryStore` och `fileStore` respekterar det. `fileStore` kodar nycklar reversibelt, tar bort gamla `.tmp`-filer, har `prune()` och läser filer i det gamla formatet. Justeringen: reservkopior för economy och investments sparas i 30 dagar (`STORE_RETENTION_MS`) i stället för minnes-TTL:en, eftersom de ska finnas kvar när källan ligger nere. Kompletta spotdagar sparas utan utgångstid. README har ett Redis-exempel.
 
 **Gör**
 1. I `src/core/cache.ts`: ändra till `set(key, value, options?: { ttlMs?: number })`. Befintliga implementationer fungerar fortfarande.

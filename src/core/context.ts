@@ -234,11 +234,16 @@ export async function storeGet(store: PersistentStore | undefined, key: string):
   }
 }
 
-/** Writes to a {@link PersistentStore}, ignoring failures. */
-export async function storeSet(store: PersistentStore | undefined, key: string, value: unknown): Promise<void> {
+/** Writes to a {@link PersistentStore}, ignoring failures. Without `ttlMs` the value is kept until replaced. */
+export async function storeSet(
+  store: PersistentStore | undefined,
+  key: string,
+  value: unknown,
+  ttlMs?: number,
+): Promise<void> {
   if (!store) return;
   try {
-    await store.set(key, JSON.stringify(value));
+    await store.set(key, JSON.stringify(value), ttlMs === undefined ? undefined : { ttlMs });
   } catch {
     // A store that cannot write only costs a refetch later.
   }

@@ -9,6 +9,12 @@ import { type Context, storeGet, storeSet } from "./context.ts";
 import { SourceError } from "./errors.ts";
 import type { RequestEvent } from "./http.ts";
 
+/**
+ * How long a copy is kept in the store as the fallback for when the source fails: 30 days. Older copies are no longer
+ * useful as "the last known value", and the store must not grow for ever.
+ */
+export const STORE_RETENTION_MS: number = 30 * 86_400_000;
+
 /** A result that says when it was fetched and whether it is an older copy. */
 export interface Dated {
   readonly fetchedAt: string;
@@ -25,7 +31,8 @@ export interface CachedWithStoreOptions {
 
 /**
  * Returns `key` from memory, else from the store while it is younger than `ttlMs`, else runs `load` and stores the
- * result. When `load` fails, the stored copy is returned with `stale: true` instead of an error – whatever its age.
+ * result, kept for {@link STORE_RETENTION_MS}. When `load` fails, the stored copy is returned with `stale: true`
+ * instead of an error.
  * A fresh result never carries `stale`.
  */
 export function cachedWithStore<T extends Dated>(
@@ -48,7 +55,7 @@ export function cachedWithStore<T extends Dated>(
       }
       try {
         const value = await load(signal);
-        await storeSet(ctx.store, key, value);
+        await storeSet(ctx.store, key, value, STORE_RETENTION_MS);
         return value;
       } catch (error) {
         if (kept && !signal.aborted) return { ...kept, stale: true };

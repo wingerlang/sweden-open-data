@@ -246,6 +246,27 @@ failing source is then asked at most once a minute. Every result that changes ov
 can show "updated 2 h ago" instead of an error. A `429` or `503` with a `Retry-After` is honoured when it is short and
 reported (`error.retryAfterMs`) when it is longer than `maxRetryDelayMs`.
 
+### Persistent storage
+
+A `store` keeps data that does not change (complete past days of spot prices, kept until replaced) and the last good
+copy of slower sources (price indices, IBIndex; kept 30 days as a fallback for when the source is down). `fileStore`
+from `/node` writes one file per key; call `prune()` now and then to delete what has expired. Several servers can share
+a store such as Redis:
+
+```ts
+import { createClient, type PersistentStore } from "@wingerlang/sweden-open-data";
+import { createClient as createRedis } from "redis";
+
+const redis = await createRedis({ url: process.env.REDIS_URL }).connect();
+const store: PersistentStore = {
+  get: async (key) => (await redis.get(`sod:${key}`)) ?? undefined,
+  set: async (key, value, options) => {
+    await redis.set(`sod:${key}`, value, options?.ttlMs ? { PX: options.ttlMs } : {});
+  },
+};
+const se = createClient({ store });
+```
+
 ### Health and metrics
 
 ```ts

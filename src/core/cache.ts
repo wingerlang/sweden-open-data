@@ -12,19 +12,34 @@ import { SourceError } from "./errors.ts";
  * Errors thrown by a store are swallowed: a broken store only makes the client slower, never wrong.
  */
 export interface PersistentStore {
-  /** Returns the stored value, or `undefined` when the key is unknown. */
+  /** Returns the stored value, or `undefined` when the key is unknown (or has expired). */
   get(key: string): Promise<string | undefined> | string | undefined;
-  /** Stores a value. */
-  set(key: string, value: string): Promise<void> | void;
+  /**
+   * Stores a value. With `ttlMs`, the value may be forgotten after that long; without it, it is kept until it is
+   * replaced. Stores that cannot expire values may ignore `ttlMs`.
+   */
+  set(key: string, value: string, options?: StoreSetOptions): Promise<void> | void;
+}
+
+/** Options for {@link PersistentStore.set}. */
+export interface StoreSetOptions {
+  /** How long the value is needed, in milliseconds. */
+  ttlMs?: number;
 }
 
 /** A {@link PersistentStore} that lives in memory – useful for tests and short-lived processes. */
-export function memoryStore(): PersistentStore & { readonly size: number } {
-  const map = new Map<string, string>();
+export function memoryStore(options: { now?: () => number } = {}): PersistentStore & { readonly size: number } {
+  const now = options.now ?? Date.now;
+  const map = new Map<string, { value: string; expires: number }>();
   return {
-    get: (key) => map.get(key),
-    set: (key, value) => {
-      map.set(key, value);
+    get: (key) => {
+      const entry = map.get(key);
+      if (entry && entry.expires <= now()) map.delete(key);
+      return map.get(key)?.value;
+    },
+    set: (key, value, setOptions) => {
+      const ttl = setOptions?.ttlMs;
+      map.set(key, { value, expires: ttl !== undefined && ttl >= 0 ? now() + ttl : Infinity });
     },
     get size(): number {
       return map.size;

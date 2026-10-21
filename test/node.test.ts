@@ -40,3 +40,53 @@ test("fileStore: one file per key, atomic writes, safe names, survives restarts"
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("fileStore: distinct files for similar keys, expiry, pruning, old temporary files and the old file format", async () => {
+  const { utimes, writeFile } = await import("node:fs/promises");
+  const dir = await mkdtemp(join(tmpdir(), "sod-"));
+  try {
+    let now = Date.parse("2026-10-21T12:00:00Z");
+    const store = fileStore(dir, { now: () => now });
+    await store.set("a/b", "slash");
+    await store.set("a_b", "underscore");
+    await store.set("a.b", "dot");
+    assert.deepEqual(
+      [await store.get("a/b"), await store.get("a_b"), await store.get("a.b")],
+      ["slash", "underscore", "dot"],
+    );
+
+    await store.set("short", "x", { ttlMs: 1000 });
+    await store.set("forever", "y");
+    now += 1001;
+    assert.equal(await store.get("short"), undefined, "expired");
+    assert.equal(await store.get("forever"), "y");
+
+    await store.set("later", "z", { ttlMs: 1000 });
+    now += 1001;
+    const stray = join(dir, "spot", "x.json.abc.tmp");
+    await mkdir(join(dir, "spot"), { recursive: true });
+    await writeFile(stray, "half");
+    const old = new Date(now - 2 * 3_600_000);
+    await utimes(stray, old, old);
+    assert.equal(await store.prune(), 2, "the expired value and the old temporary file");
+    assert.equal(await store.get("forever"), "y");
+
+    // A file written by an older version holds the raw value.
+    await mkdir(join(dir, "spot", "SE3"), { recursive: true });
+    await writeFile(join(dir, "spot", "SE3", "2025-01-01.json"), "[1,2]");
+    assert.equal(await store.get("spot:SE3:2025-01-01"), "[1,2]");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("memoryStore: values with ttlMs expire", async () => {
+  const { memoryStore } = await import("../src/core/cache.ts");
+  let now = 0;
+  const store = memoryStore({ now: () => now });
+  await store.set("k", "v", { ttlMs: 10 });
+  await store.set("keep", "v");
+  now = 11;
+  assert.equal(await store.get("k"), undefined);
+  assert.equal(await store.get("keep"), "v");
+});
