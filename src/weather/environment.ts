@@ -13,6 +13,7 @@
 import { createContext, type ClientOptions, type Context } from "../core/context.ts";
 import { assertCoordinates, roundCoordinates, type Coordinates } from "../core/geo.ts";
 import { SourceError } from "../core/errors.ts";
+import { finiteNumber, invalidResponse } from "../core/parse.ts";
 
 /** A group of values: UV index, six pollen species, or European AQI with PM2.5 and PM10. */
 export type EnvironmentMetric = "uv" | "pollen" | "airQuality";
@@ -81,10 +82,8 @@ export interface WeatherEnvironmentClient {
   /** Hourly forecast for a position (rounded to ~1 km before sending). */
   environment(position: Coordinates, options?: EnvironmentOptions): Promise<WeatherEnvironment>;
 }
-const invalid = () =>
-  new SourceError("Invalid environmental forecast", { source: "open-meteo-air-quality", code: "invalid-response" });
-const value = (raw: unknown): number | null =>
-  typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : null;
+const invalid = (): SourceError => invalidResponse("open-meteo-air-quality", "Invalid environmental forecast");
+const value = (raw: unknown): number | null => finiteNumber(raw, { min: 0 });
 
 /**
  * Parses an Open-Meteo air-quality response (`timeformat=unixtime`). Only the requested arrays are read; missing

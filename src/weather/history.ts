@@ -13,7 +13,8 @@
  */
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { assertCoordinates, roundCoordinates, type Coordinates } from "../core/geo.ts";
-import { SourceError } from "../core/errors.ts";
+import { invalidResponse } from "../core/parse.ts";
+import { isCalendarDate } from "../core/time.ts";
 /** One hour of the archive. */
 export interface HistoricalTemperature {
   /** Start of the hour, milliseconds since the epoch (UTC). */
@@ -44,7 +45,7 @@ export function parseWeatherHistory(raw: unknown, fetchedAt: string): WeatherHis
     h.time.length !== h.temperature_2m.length ||
     h.time.length > 1000
   )
-    throw new SourceError("Invalid historical weather", { source: "open-meteo", code: "invalid-response" });
+    throw invalidResponse("open-meteo", "Invalid historical weather");
   return {
     hours: h.time.flatMap((t, i) =>
       typeof t === "number" &&
@@ -70,9 +71,12 @@ export function createWeatherHistoryClient(options: ClientOptions = {}): {
   return {
     async history(position, from, to) {
       assertCoordinates(position);
-      const valid = (s: string) =>
-        /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s;
-      if (!valid(from) || !valid(to) || from > to || (Date.parse(to) - Date.parse(from)) / 86400000 >= 31)
+      if (
+        !isCalendarDate(from) ||
+        !isCalendarDate(to) ||
+        from > to ||
+        (Date.parse(to) - Date.parse(from)) / 86400000 >= 31
+      )
         throw new RangeError("Use 1–31 calendar days");
       const p = roundCoordinates(position, ctx.precision),
         url = new URL("https://archive-api.open-meteo.com/v1/archive");

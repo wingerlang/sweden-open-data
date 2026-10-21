@@ -8,7 +8,7 @@
  * @module
  */
 import { type Coordinates, assertCoordinates } from "../core/geo.ts";
-import { SourceError } from "../core/errors.ts";
+import { invalidResponse } from "../core/parse.ts";
 import { addDays, isCalendarDate, stockholmMidnight } from "../core/time.ts";
 
 /** A Swedish electricity price area. */
@@ -95,10 +95,7 @@ export interface SpotDay {
  */
 export function parseElprisResponse(json: unknown): SpotPoint[] {
   if (!Array.isArray(json)) {
-    throw new SourceError("Unexpected response from elprisetjustnu.se", {
-      code: "invalid-response",
-      source: "elprisetjustnu",
-    });
+    throw invalidResponse("elprisetjustnu", "Unexpected response from elprisetjustnu.se");
   }
   const out: SpotPoint[] = [];
   for (const row of json as Record<string, unknown>[]) {

@@ -201,7 +201,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 14 · En plats för delade hjälpfunktioner
 
-- [ ] Klart
+- [x] Klart (2026-10-21): `src/core/parse.ts` (`fold`, `text`, `finiteNumber`, `isoDay`, `dayFromEpochMs`, `invalidResponse`) med tester i `test/parse.test.ts`. Kopiorna är borta; kvarvarande lokala namn är enradsalias till `parse.ts`. Lintregeln `shared-helper` stoppar nya kopior. Två följdfel hittades och rättades: `.map(text)` skickade index som maxlängd, och skrapad text utan siffror blev tidigare `0` men blir nu `undefined`.
 
 **Gör**
 1. Skapa `src/core/parse.ts` med:

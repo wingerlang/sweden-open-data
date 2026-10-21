@@ -16,7 +16,7 @@
  * @module
  */
 import { createContext, storeGet, storeSet, type ClientOptions, type Context } from "../core/context.ts";
-import { SourceError } from "../core/errors.ts";
+import { dayFromEpochMs, finiteNumber, invalidResponse } from "../core/parse.ts";
 /** An investment company as IBIndex lists it. */
 export interface InvestmentCompany {
   /** IBIndex product code, for example `"INVE B"`. */
@@ -91,13 +91,10 @@ export interface InvestmentClient {
 /** Where the data comes from – show it next to the data. */
 export const IBINDEX_SOURCE: string = "https://ibindex.se/ibi/";
 const productPattern = /^[A-Z0-9][A-Z0-9 .&-]{0,39}$/;
-const number = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const date = (v: unknown): string | null =>
-  typeof v === "number" && Number.isFinite(v) && v > 0 && !Number.isNaN(new Date(v).getTime())
-    ? new Date(v).toISOString().slice(0, 10)
-    : null;
+const number = (v: unknown): number | null => finiteNumber(v);
+const date = (v: unknown): string | null => dayFromEpochMs(v) ?? null;
 const bad = (): never => {
-  throw new SourceError("Unexpected IBIndex data", { source: "ibindex", code: "invalid-response" });
+  throw invalidResponse("ibindex", "Unexpected IBIndex data");
 };
 /** Positive means a discount; negative means a premium. Missing or zero NAV never means zero discount. */
 export function navDiscount(price: number, nav: number | null): number | null {

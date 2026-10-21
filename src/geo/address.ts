@@ -5,6 +5,7 @@
  * @module
  */
 import { type Coordinates, fold, isCoordinates } from "../core/geo.ts";
+import { text } from "../core/parse.ts";
 
 /** An address (or, with `precision: "locality"`, a town or village) found for a query. */
 export interface AddressSuggestion extends Coordinates {
@@ -120,7 +121,7 @@ export function approximateAddress(query: string, anchor: AddressSuggestion): Ad
 }
 
 type Json = any;
-const str = (v: unknown): string => (typeof v === "string" ? v.slice(0, 200) : "");
+const str = (v: unknown): string => text(v, 200) ?? "";
 const point = (f: Json): Coordinates | null => {
   const c = f?.geometry?.type === "Point" ? f.geometry.coordinates : null;
   const p = Array.isArray(c) ? { latitude: c[1], longitude: c[0] } : null;

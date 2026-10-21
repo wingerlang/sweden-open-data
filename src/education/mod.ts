@@ -10,6 +10,7 @@
  *
  * @module
  */
+import { fold } from "../core/parse.ts";
 
 /** A higher education institution. */
 export interface SwedishInstitution {
@@ -128,13 +129,6 @@ const institutions: readonly SwedishInstitution[] = Object.freeze(
     Object.freeze({ id: "se:" + id, name, website, kind, countryCode: "SE" as const, aliases: Object.freeze(aliases) }),
   ),
 );
-const fold = (text: string): string =>
-  text
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("sv")
-    .trim()
-    .replace(/\s+/g, " ");
 /** Swedish universities and other UKÄ-listed higher education institutions. No network or side effects.
  * @example getSwedishInstitutions().map(institution => institution.name)
  */

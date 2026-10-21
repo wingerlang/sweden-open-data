@@ -10,6 +10,7 @@
 import { type ClientOptions, type Context, createContext } from "../core/context.ts";
 import { type Coordinates, assertCoordinates, distanceKm, fold, roundCoordinates } from "../core/geo.ts";
 import { SourceError } from "../core/errors.ts";
+import { text } from "../core/parse.ts";
 import {
   type AddressSuggestion,
   type Place,
@@ -84,7 +85,6 @@ function checkLimit(limit: number | undefined): number {
 const uniqueByLabel = (list: AddressSuggestion[]): AddressSuggestion[] => [
   ...new Map(list.map((p) => [p.label, p])).values(),
 ];
-const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v.trim() : undefined);
 
 /**
  * Creates a {@link GeoClient}.
@@ -274,10 +274,10 @@ export function createGeoClient(options: ClientOptions | Context = {}): GeoClien
             url.searchParams.set("lon", String(p.longitude));
             const json: any = await ctx.http.json("photon", url, { signal });
             const props = json?.features?.[0]?.properties ?? {};
-            const locality = [props.city, props.town, props.village, props.district].map(text).find(Boolean);
-            const county = [props.state, props.county].map(text).find((x) => x && /län$/i.test(x));
+            const locality = [props.city, props.town, props.village, props.district].map((v) => text(v)).find(Boolean);
+            const county = [props.state, props.county].map((v) => text(v)).find((x) => x && /län$/i.test(x));
             const municipality = [props.county, props.city, props.district]
-              .map(text)
+              .map((v) => text(v))
               .find((x) => x && /kommun$/i.test(x));
             if (!county) return { ...fallback, ...(municipality ? { municipality } : {}) };
             return { ...p, county, ...(municipality ? { municipality } : {}), ...(locality ? { locality } : {}) };

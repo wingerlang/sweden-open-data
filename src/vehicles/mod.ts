@@ -15,6 +15,7 @@
  */
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
+import { finiteNumber, isoDay, text } from "../core/parse.ts";
 import type { ClientStats } from "../core/stats.ts";
 
 /** Registry observations only. No owner, VIN, credit, or address data is retained. */
@@ -60,19 +61,8 @@ export function normalizeVehicleRegistration(value: string): string {
 }
 const object = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
-const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v.trim() : undefined);
-const number = (v: unknown): number | undefined =>
-  (typeof v !== "number" && typeof v !== "string") || v === "" || (typeof v === "string" && !v.trim())
-    ? undefined
-    : Number.isFinite(Number(v)) && Number(v) >= 0
-      ? Number(v)
-      : undefined;
-const date = (v: unknown): string | undefined => {
-  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}(?:$|T)/.test(v)) return undefined;
-  const day = v.slice(0, 10),
-    ms = Date.parse(day);
-  return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 10) === day ? day : undefined;
-};
+const number = (v: unknown): number | undefined => finiteNumber(v, { min: 0, strings: true }) ?? undefined;
+const date = isoDay;
 const year = (v: unknown): number | undefined => {
   const n = number(v);
   return n !== undefined && Number.isInteger(n) && n >= 1886 && n <= 2200 ? n : undefined;

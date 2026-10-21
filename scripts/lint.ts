@@ -68,6 +68,21 @@ export function lint(base: string = root): Problem[] {
             message: "start the file with a /** … @module */ comment",
           });
         }
+        // Step 14: shared helpers live in core/parse.ts and core/time.ts, so data is judged the same way everywhere.
+        if (!["src/core/parse.ts", "src/core/time.ts"].includes(file)) {
+          lines.forEach((text, i) => {
+            const copy = /normalize\("NFK?D"\)/.test(text)
+              ? "fold() from core/parse.ts"
+              : /\\d\{4\}-\\d\{2\}-\\d\{2\}/.test(text)
+                ? "isoDay() / isCalendarDate()"
+                : !file.startsWith("src/core/") &&
+                    /code: "invalid-response"/.test(text) &&
+                    !/url:/.test(text + (lines[i + 1] ?? ""))
+                  ? "invalidResponse() from core/parse.ts"
+                  : undefined;
+            if (copy) problems.push({ file, line: i + 1, rule: "shared-helper", message: `use ${copy}` });
+          });
+        }
         // Step 13: everything exported is documented.
         lines.forEach((text, i) => {
           const exported = /^export (?:async )?(?:function|const|interface|type|class) (\w+)/.exec(text);

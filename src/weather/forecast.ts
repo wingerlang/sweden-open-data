@@ -4,7 +4,7 @@
  *
  * @module
  */
-import { SourceError } from "../core/errors.ts";
+import { finiteNumber, invalidResponse } from "../core/parse.ts";
 import { type Coordinates, assertCoordinates } from "../core/geo.ts";
 import { TIME_ZONE } from "../core/time.ts";
 import type { Locale } from "../core/context.ts";
@@ -188,11 +188,7 @@ export function openMeteoUrl(position: Coordinates, options: OpenMeteoUrlOptions
   return url.toString();
 }
 
-const num = (v: unknown): number | null => {
-  if (v === null || v === undefined || v === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
+const num = (v: unknown): number | null => finiteNumber(v, { strings: true });
 
 /**
  * Converts an Open-Meteo response into a {@link Forecast}. Current conditions are required; hourly and daily
@@ -205,7 +201,7 @@ export function parseOpenMeteo(json: any, now: number = Date.now()): Forecast {
   const h = json?.hourly ?? {};
   const d = json?.daily ?? {};
   if (!c || num(c.temperature_2m) === null) {
-    throw new SourceError("Unexpected response from Open-Meteo", { code: "invalid-response", source: "open-meteo" });
+    throw invalidResponse("open-meteo", "Unexpected response from Open-Meteo");
   }
   // Open-Meteo returns local times without a zone ("2026-10-12T14:00"); the response carries the offset.
   const offset = Number(json.utc_offset_seconds) || 0;

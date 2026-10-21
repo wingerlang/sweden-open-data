@@ -12,6 +12,7 @@
  *
  * @module
  */
+import { fold } from "../core/parse.ts";
 
 /** A sport. */
 export interface Sport {
@@ -127,13 +128,6 @@ const sports: readonly Sport[] = Object.freeze(
     )
     .sort((a, b) => a.name.localeCompare(b.name, "sv")),
 );
-const fold = (text: string): string =>
-  text
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("sv")
-    .trim()
-    .replace(/\s+/g, " ");
 /** Immutable shared reference vocabulary. @example getSports().find(s => s.name === 'Brottning') */
 export function getSports(): readonly Sport[] {
   return sports;

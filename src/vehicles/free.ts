@@ -10,6 +10,7 @@
  */
 import { createContext, type ClientOptions } from "../core/context.ts";
 import { SourceError } from "../core/errors.ts";
+import { finiteNumber, invalidResponse, isoDay } from "../core/parse.ts";
 import { normalizeVehicleRegistration, type VehicleClient, type VehicleRecord } from "./mod.ts";
 const source = "transportstyrelsen",
   base = "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter";
@@ -72,15 +73,11 @@ export function parseTransportstyrelsenVehicle(
   const get = (...labels: string[]) => labels.map((k) => fields.get(k)).find(Boolean),
     reg = get("registreringsnummer");
   if (!reg || normalizeVehicleRegistration(reg) !== plate)
-    throw new SourceError("Vehicle page missing or mismatched", { source, code: "invalid-response" });
-  const date = (v?: string) =>
-    v && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v
-      ? v
-      : undefined;
-  const number = (v?: string) => {
-    const n = Number(v?.replace(/[^0-9.,]/g, "").replace(",", "."));
-    return v && Number.isFinite(n) && n >= 0 ? n : undefined;
-  };
+    throw invalidResponse(source, "Vehicle page missing or mismatched");
+  const date = isoDay;
+  // Page values carry units and spaces ("1 234 kronor"); a value without digits is missing, never zero.
+  const number = (v?: string): number | undefined =>
+    finiteNumber(v?.replace(/[^0-9.,]/g, "").replace(",", "."), { min: 0, strings: true }) ?? undefined;
   const mileage = get("mätarställning"),
     modelYear = number(get("årsmodell", "fordonsår"));
   const result: VehicleRecord = {
@@ -105,7 +102,7 @@ export function parseTransportstyrelsenVehicle(
     ),
   };
   if (!result.make && !result.model && !result.nextInspectionDeadline)
-    throw new SourceError("Vehicle page has no observations", { source, code: "invalid-response" });
+    throw invalidResponse(source, "Vehicle page has no observations");
   return result;
 }
 /** Best effort public HTML, not an official API contract. Falls back to a user-opened page when its format changes. */

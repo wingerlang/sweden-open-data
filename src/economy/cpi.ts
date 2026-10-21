@@ -7,7 +7,8 @@
  *
  * @module
  */
-import { SourceError } from "../core/errors.ts";
+import type { SourceError } from "../core/errors.ts";
+import { invalidResponse } from "../core/parse.ts";
 
 /** The indices that are available. */
 export type CpiIndex = "KPI" | "KPIF" | "KPIF-XE";
@@ -78,7 +79,7 @@ export function isCpiIndex(value: unknown): value is CpiIndex {
   return typeof value === "string" && Object.hasOwn(CPI_TABLES, value);
 }
 
-const invalid = (message: string): SourceError => new SourceError(message, { source: "scb", code: "invalid-response" });
+const invalid = (message: string): SourceError => invalidResponse("scb", message);
 
 /**
  * Reads one content code from an SCB JSON-stat 2.0 answer with the dimensions `ContentsCode` and `Tid` (month,

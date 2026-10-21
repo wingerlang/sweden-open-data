@@ -69,7 +69,5 @@ export function inPolygon(point: Coordinates, polygon: Polygon): boolean {
   return !!polygon[0] && inside(polygon[0]) && !polygon.slice(1).some(inside);
 }
 
-/** Folds case and diacritics for comparisons: `"Åraslöv"` → `"araslov"`. */
-export function fold(text: string): string {
-  return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
+/** Folds case, diacritics and spacing for comparisons: `"Åraslöv"` → `"araslov"`. */
+export { fold } from "./parse.ts";

@@ -12,6 +12,7 @@
  * @module
  */
 import { type Coordinates, type Polygon, distanceKm, fold, inPolygon } from "../core/geo.ts";
+import { text as parseText } from "../core/parse.ts";
 import { type Region, neighboringCounties, regionKey } from "../geo/regions.ts";
 import type { Locale } from "../core/context.ts";
 
@@ -69,12 +70,9 @@ const pick = (o: Json, ...keys: string[]): Json => {
   }
   return undefined;
 };
+/** Text from a plain string or a `{ sv: "…" }` translation object; `""` when there is none. */
 const text = (v: unknown, max = 2000): string =>
-  typeof v === "string"
-    ? v.trim().slice(0, max)
-    : v && typeof v === "object" && typeof (v as { sv?: unknown }).sv === "string"
-      ? (v as { sv: string }).sv.trim().slice(0, max)
-      : "";
+  parseText(v && typeof v === "object" ? (v as { sv?: unknown }).sv : v, max) ?? "";
 const iso = (v: unknown): string => {
   const t = Date.parse(String(v ?? ""));
   return Number.isFinite(t) ? new Date(t).toISOString() : "";
