@@ -381,7 +381,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 28 · Bestäm npm-paketeringen (T2)
 
-- [ ] Klart
+- [x] Klart (2026-10-21), alternativ A utan publicering: bygget skriver `.d.ts` till `dist/`, `types` pekar dit och `prepack` bygger. `scripts/check-package.ts` (`npm run check:package`) packar paketet, installerar det i ett tomt strikt TypeScript-projekt, typkontrollerar och importerar. Det passerar; med den gamla layouten gav samma kontroll fel TS5097. `"private": true` och JSR-publiceringen är oförändrade. Att publicera på npm är ditt beslut.
 
 **Gör** ett av följande:
 - **A, om npm-användare finns:** sätt `declaration: true` i `tsconfig.build.json`, peka `types` på `./dist/**/*.d.ts`, ta bort `"private": true`, bygg i CI och publicera med `npm publish --provenance` i `publish.yml`.

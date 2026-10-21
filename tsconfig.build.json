@@ -2,12 +2,15 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "declaration": false,
-    "isolatedDeclarations": false,
+    "declaration": true,
     "outDir": "dist",
     "rootDir": "src",
     "rewriteRelativeImportExtensions": true
   },
-  "include": ["src"],
-  "exclude": ["dist"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }

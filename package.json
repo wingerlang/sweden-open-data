@@ -9,55 +9,55 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/mod.ts",
+      "types": "./dist/mod.d.ts",
       "default": "./dist/mod.js"
     },
     "./spot": {
-      "types": "./src/spot/mod.ts",
+      "types": "./dist/spot/mod.d.ts",
       "default": "./dist/spot/mod.js"
     },
     "./weather": {
-      "types": "./src/weather/mod.ts",
+      "types": "./dist/weather/mod.d.ts",
       "default": "./dist/weather/mod.js"
     },
     "./alerts": {
-      "types": "./src/alerts/mod.ts",
+      "types": "./dist/alerts/mod.d.ts",
       "default": "./dist/alerts/mod.js"
     },
     "./geo": {
-      "types": "./src/geo/mod.ts",
+      "types": "./dist/geo/mod.d.ts",
       "default": "./dist/geo/mod.js"
     },
     "./node": {
-      "types": "./src/node.ts",
+      "types": "./dist/node.d.ts",
       "default": "./dist/node.js"
     },
     "./testing": {
-      "types": "./src/testing.ts",
+      "types": "./dist/testing.d.ts",
       "default": "./dist/testing.js"
     },
     "./vehicles": {
-      "types": "./src/vehicles/mod.ts",
+      "types": "./dist/vehicles/mod.d.ts",
       "default": "./dist/vehicles/mod.js"
     },
     "./vehicles/free": {
-      "types": "./src/vehicles/free.ts",
+      "types": "./dist/vehicles/free.d.ts",
       "default": "./dist/vehicles/free.js"
     },
     "./sports": {
-      "types": "./src/sports/mod.ts",
+      "types": "./dist/sports/mod.d.ts",
       "default": "./dist/sports/mod.js"
     },
     "./education": {
-      "types": "./src/education/mod.ts",
+      "types": "./dist/education/mod.d.ts",
       "default": "./dist/education/mod.js"
     },
     "./economy": {
-      "types": "./src/economy/mod.ts",
+      "types": "./dist/economy/mod.d.ts",
       "default": "./dist/economy/mod.js"
     },
     "./investments": {
-      "types": "./src/investments/mod.ts",
+      "types": "./dist/investments/mod.d.ts",
       "default": "./dist/investments/mod.js"
     }
   },
@@ -103,6 +103,8 @@
     "fmt:check": "npx --yes prettier@3.8.1 --check .",
     "smoke": "node examples/dashboard.ts",
     "load": "node scripts/load.ts",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "check:package": "node scripts/check-package.ts"
   }
 }

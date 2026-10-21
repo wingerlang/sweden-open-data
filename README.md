@@ -40,6 +40,9 @@ deno add jsr:@wingerlang/sweden-open-data    # Deno
 bunx jsr add @wingerlang/sweden-open-data    # Bun
 ```
 
+The package is published on JSR. An npm archive (`npm pack`) contains compiled JavaScript and `.d.ts` types, so it
+works in any TypeScript project without special compiler settings; `npm run check:package` verifies that.
+
 ## Electricity spot prices
 
 ```ts
