@@ -28,7 +28,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 2 · Lås verktygsversionerna (S4)
 
-- [ ] Klart. Delvis gjort 2026-10-21: `devDependencies` (typescript 5.9.3, @types/node 22.20.1) är tillagda och en patch för CI finns. Kvar: kör `npm install` lokalt, checka in `package-lock.json` och applicera CI-patchen (`git apply steg2-ci.patch`). CI-steget använder `npm ci` automatiskt så fort låsfilen finns.
+- [x] Klart (2026-10-21): typescript 5.9.3 och @types/node 22.20.1 i `devDependencies`, `package-lock.json` incheckad, CI installerar med `npm ci`. `npm run typecheck` fungerar nu lokalt.
 
 **Varför:** TypeScript saknas i `package.json`. Lokalt används 7.0.2, i CI 5.9, och det finns ingen låsfil.
 
@@ -58,7 +58,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 4 · Beslut om skrapade källor (S1)
 
-- [ ] Klart
+- [ ] Klart. Koddelen gjord 2026-10-21: `investments` är borta ur `createClient`, den fria fordonsuppslagningen ligger på `/vehicles/free`, båda är märkta `@experimental` i JSDoc och README, och CHANGELOG har en brytande post. `test/exports.test.ts` låser exportytan. **Kvar för dig:** skicka den skriftliga frågan om villkor till Transportstyrelsen och IBIndex (punkt 1).
 
 **Varför:** `vehicles/free.ts` skrapar Transportstyrelsens webbsida och `investments` använder IBIndex interna API. Ingen av dem har avtal eller API-garanti.
 
@@ -75,7 +75,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 5 · Frys nya källor
 
-- [ ] Klart
+- [x] Klart (2026-10-21)
 
 **Gör:** Lägg en rad överst i `CONTRIBUTING.md`: ”Inga nya datakällor tas emot förrän åtgärdsplanen steg 16 är klar.”
 

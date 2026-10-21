@@ -2,6 +2,9 @@
 
 Thanks for helping! Issues and pull requests are welcome.
 
+> **New data sources are frozen** until step 16 of [`implementation.md`](implementation.md) is done. Until then, only
+> fixes and the steps of that plan are accepted.
+
 ## Ground rules
 
 * **No runtime dependencies.** Web-standard APIs only (`fetch`, `URL`, `AbortController`, `Intl`); file-system code
