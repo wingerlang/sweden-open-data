@@ -5,7 +5,7 @@
  * @module
  */
 import { type ClientOptions, type Context, createContext, storeGet, storeSet } from "../core/context.ts";
-import { addDays, isCalendarDate, swedishDate } from "../core/time.ts";
+import { addDays, isCalendarDate, stockholmMidnight, swedishDate } from "../core/time.ts";
 import {
   isCompleteSpotDay,
   parseElprisResponse,
@@ -17,7 +17,6 @@ import {
   toSpotArea,
   toSpotDay,
 } from "./prices.ts";
-import { stockholmMidnight } from "../core/time.ts";
 
 /** Where the prices come from – show it next to the data. */
 export const SPOT_SOURCE: { readonly name: string; readonly url: string } = Object.freeze({
@@ -171,12 +170,20 @@ export function createSpotClient(options: ClientOptions | Context = {}): SpotCli
       if (dates.length > maxDays) throw new RangeError(`At most ${maxDays} days per request`);
       const found = new Map<string, SpotDay>();
       const missing: SpotHistory["missing"] = [];
+      const today = swedishDate(ctx.now());
       let index = 0;
       const worker = async (): Promise<void> => {
         while (index < dates.length) {
           const date = dates[index++];
           try {
-            const result = await day(area, date, { signal: options.signal });
+            const result = date < today
+            ? await ctx.archive.get(
+              `spot:${area}:${date}`,
+              (v: SpotDay | null) => (v ? ctx.ttl.spotDay : ctx.ttl.spotMissing),
+              (signal) => fetchDay(area, date, signal),
+              { signal: options.signal, source: "elprisetjustnu" },
+            )
+            : await day(area, date, { signal: options.signal });
             if (!result) missing.push({ date, reason: "not published" });
             else if (!result.complete) missing.push({ date, reason: "incomplete" });
             else found.set(date, result);

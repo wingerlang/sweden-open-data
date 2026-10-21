@@ -81,7 +81,10 @@ export function createClient(options: ClientOptions = {}): SwedenOpenData {
     alerts: createAlertsClient(ctx),
     geo: createGeoClient(ctx),
     economy: createEconomyClient(ctx),
-    clearCache: () => ctx.cache.clear(),
+    clearCache: () => {
+      ctx.cache.clear();
+      ctx.archive.clear();
+    },
     stats: () => ctx.stats.snapshot(),
     resetStats: () => ctx.stats.reset(),
   });

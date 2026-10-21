@@ -83,6 +83,8 @@ export interface ClientOptions extends HttpOptions {
   cache?: boolean | {
     /** Maximum number of cached results. Default `500`. */
     maxEntries?: number;
+    /** Maximum number of past days kept by `spot.history`, in a cache of their own. Default `400`. */
+    archiveEntries?: number;
     /** Lifetimes per kind of data. */
     ttl?: Partial<CacheTtl>;
     /**
@@ -115,6 +117,11 @@ export interface ClientOptions extends HttpOptions {
 export interface Context {
   http: Http;
   cache: MemoryCache;
+  /**
+   * A separate, bounded cache for immutable historical data (past days of spot prices), so a long history request
+   * never pushes current data out of {@link Context.cache}.
+   */
+  archive: MemoryCache;
   ttl: CacheTtl;
   store: PersistentStore | undefined;
   endpoints: Endpoints;
@@ -158,6 +165,16 @@ export function createContext(options: ClientOptions | Context = {}): Context {
     }),
     cache: createMemoryCache({
       maxEntries: tuning.maxEntries,
+      now,
+      enabled: cache !== false,
+      staleIfErrorMs: tuning.staleIfErrorMs,
+      onEvent: (event) => {
+        stats.cache(event);
+        o.onCacheEvent?.(event);
+      },
+    }),
+    archive: createMemoryCache({
+      maxEntries: tuning.archiveEntries ?? 400,
       now,
       enabled: cache !== false,
       staleIfErrorMs: tuning.staleIfErrorMs,

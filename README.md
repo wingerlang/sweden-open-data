@@ -200,6 +200,7 @@ const se = createClient({
   maxRetryDelayMs: 10_000,   // a longer Retry-After from a source is reported, not slept through
   cache: {                   // or false
     maxEntries: 1000,
+    archiveEntries: 400,     // past days kept by spot.history, in a cache of their own (default 400)
     ttl: { weather: 10 * 60_000 },
     staleIfErrorMs: 6 * 3_600_000,  // keep serving the last good result for 6 h if a source goes down
   },
@@ -216,7 +217,8 @@ const se = createClient({
 Default cache lifetimes (`DEFAULT_TTL`): published spot day 12 h, unpublished day 15 min, weather 20 min, alert feeds
 5 min, region 30 days, searches 1 h. Failures are never cached.
 
-Every method also accepts `{ signal }` to cancel.
+Every method also accepts `{ signal }` to cancel. Concurrent identical requests share one load; cancelling only ends
+your own wait, and the load is aborted when every caller waiting for it has cancelled.
 
 ### Staying up when a source is down
 

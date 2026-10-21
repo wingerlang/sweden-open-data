@@ -124,7 +124,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 8 · Låt historik ha egen cache (P2)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): delad `ctx.archive` (400 dagar, `cache.archiveEntries`) som också töms av `clearCache()`. Test i `test/scaling.test.ts`, som misslyckades före ändringen.
 
 **Varför:** Ett års historik för två elområden (732 poster) tränger ut allt annat ur den delade cachen på 500 poster.
 
