@@ -401,7 +401,7 @@ Varje steg har tre delar: **Varför** (vilket fynd), **Gör** (konkreta ändring
 
 ### Steg 30 · Säkra länkar från varningar (S5)
 
-- [ ] Klart
+- [x] Klart (2026-10-21): bara `https://` till `krisinformation.se` och dess underdomäner godkänns, utan inbäddade inloggningsuppgifter (`TRUSTED_ALERT_HOSTS`). Allt annat blir förstasidan. JSDoc och README säger att `summary` ska renderas som text. Listan är inte utökad med andra myndigheter, eftersom det kräver live-data att gå på.
 
 **Gör** i `src/alerts/alerts.ts`:
 1. Godkänn bara `https://`-länkar vars värd är `krisinformation.se` eller slutar med `.krisinformation.se`. Utöka listan med myndighetsdomäner som faktiskt syns i live-data.

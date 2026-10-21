@@ -153,6 +153,10 @@ await alerts.near(places, { feeds: ["smhi"] });                                /
 The pure functions (`parseKrisinformation`, `parseSmhiWarnings`, `relevantAlerts`, `freshAlerts`, `alertPlaces`) work
 on data you already have.
 
+`summary` is the authority's text, not sanitised HTML: render it as text (`textContent`), never with `innerHTML`.
+Links (`url`) only ever go to krisinformation.se over `https://` (`TRUSTED_ALERT_HOSTS`); anything else becomes its
+front page.
+
 ## Geo: addresses, places and regions
 
 ```ts

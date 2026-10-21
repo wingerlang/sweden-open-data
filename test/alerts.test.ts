@@ -294,3 +294,31 @@ test("client: every feed down is an error", async () => {
   const odd = createAlertsClient({ fetch: fakeFetch(() => Promise.reject("not an error")), ...quick });
   await assert.rejects(odd.feed(), SourceError);
 });
+
+test("alert links only go to krisinformation.se over https", async () => {
+  const { parseKrisinformation } = await import("../src/alerts/alerts.ts");
+  const entry = (Web: string): unknown => ({
+    Identifier: Web,
+    Headline: "Rubrik",
+    Published: "2026-10-21T10:00:00Z",
+    Web,
+  });
+  const links = parseKrisinformation(
+    [
+      "https://www.krisinformation.se/nyheter/2026/oktober/x",
+      "https://krisinformation.se/a",
+      "https://evil.example/",
+      "https://krisinformation.se.evil.example/",
+      "https://user:pass@www.krisinformation.se/",
+      "http://www.krisinformation.se/",
+      "javascript:alert(1)",
+      "not a url",
+    ].map(entry),
+    "news",
+  ).map((a) => a.url);
+  assert.deepEqual(links, [
+    "https://www.krisinformation.se/nyheter/2026/oktober/x",
+    "https://krisinformation.se/a",
+    ...Array(6).fill("https://www.krisinformation.se"),
+  ]);
+});

@@ -36,7 +36,10 @@ export interface Alert {
   kind: AlertKind;
   level?: AlertLevel;
   title: string;
-  /** Plain text. Krisinformation preambles are stripped of HTML and capped at 600 characters; SMHI texts are kept whole. */
+  /**
+   * Text as the source wrote it: Krisinformation preambles have tags removed and are capped at 600 characters; SMHI
+   * texts are kept whole. It is **not** sanitised HTML – always render it as text, never with `innerHTML`.
+   */
   summary: string;
   /** Always an `https://` link. */
   url: string;
@@ -125,9 +128,31 @@ function krisArea(a: unknown): AlertArea | null {
   };
 }
 
+const KRISINFORMATION_HOME = "https://www.krisinformation.se";
+
+/** Hosts that alert links may point to. Anything else is replaced by the Krisinformation front page. */
+export const TRUSTED_ALERT_HOSTS: readonly string[] = Object.freeze(["krisinformation.se"]);
+
+/** `true` for an `https://` link to one of {@link TRUSTED_ALERT_HOSTS} or a subdomain of one. */
+function isTrustedLink(url: string | undefined): url is string {
+  if (!url) return false;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  return (
+    parsed.protocol === "https:" &&
+    !parsed.username &&
+    !parsed.password &&
+    TRUSTED_ALERT_HOSTS.some((host) => parsed.hostname === host || parsed.hostname.endsWith("." + host))
+  );
+}
+
 /**
  * Parses Krisinformation.se API v3 (`/news` or `/vmas`). Accepts a list or an object with
- * `items`/`Entries`/`data`. Links that are not `https://` are replaced by the site's front page.
+ * `items`/`Entries`/`data`. Links that do not go to krisinformation.se over `https://` are replaced by its front page.
  */
 export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert[] {
   const entries = Array.isArray(json) ? json : list(pick(json, "items", "Entries", "data"));
@@ -139,7 +164,7 @@ export function parseKrisinformation(json: unknown, feed: "news" | "vma"): Alert
     const areas = (Array.isArray(raw) ? raw : raw ? [raw] : []).map(krisArea).filter((a): a is AlertArea => !!a);
     const isVma = feed === "vma" || /alert|vma/.test(fold(String(pick(x, "Event") ?? "")));
     let url = text(pick(x, "Web", "Url", "Link"), 500);
-    if (!/^https:\/\//.test(url)) url = "https://www.krisinformation.se";
+    if (!isTrustedLink(url)) url = KRISINFORMATION_HOME;
     return [
       {
         id: "kris:" + id,
