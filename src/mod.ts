@@ -127,3 +127,5 @@ export * from "./education/mod.ts";
 export * from "./sports/mod.ts";
 
 export * from "./economy/mod.ts";
+
+export * from "./anniversaries/mod.ts";

@@ -3,6 +3,11 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.11.1
+
+- Add a local `/anniversaries` catalogue with `getWeddingName(years)` for Swedish milestones.
+- Unknown and invalid years return `undefined`; no requests or private dates are needed.
+
 ## 0.11.0 – unreleased
 
 A clean-up after the code review in [docs/kodgranskning.md](docs/kodgranskning.md); the steps are in

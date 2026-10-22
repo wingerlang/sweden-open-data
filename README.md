@@ -458,3 +458,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Releases are published to JSR from GitHu
 ## License
 
 [MIT](LICENSE) © Johannes Winger-Lang
+
+### Wedding anniversary names
+
+```ts
+import { getWeddingName } from "@wingerlang/sweden-open-data/anniversaries";
+getWeddingName(10); // "Tennbröllop"
+```
+
+A small local catalogue of Swedish milestones, sourced from Svenska kyrkan. Names vary by tradition; unknown, fractional and invalid years return `undefined`. No network or personal dates are involved.
