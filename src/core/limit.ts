@@ -19,6 +19,10 @@ export interface SourceLimit {
  * `limits` in the client options.
  */
 export const DEFAULT_LIMITS: Readonly<Record<string, SourceLimit>> = Object.freeze({
+  yahoo: Object.freeze({ concurrency: 2 }),
+  nasdaq: Object.freeze({ concurrency: 2 }),
+  fred: Object.freeze({ concurrency: 2 }),
+  mfn: Object.freeze({ concurrency: 2 }),
   photon: Object.freeze({ concurrency: 2 }),
 });
 

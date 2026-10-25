@@ -156,3 +156,17 @@ test("Transportstyrelsen (experimental): the page format is still readable", { s
   const vehicle = await live(t, () => createFreeVehicleClient({ retries: 1 }).lookup(plate));
   assert.ok(vehicle === undefined || vehicle === null || vehicle.make || vehicle.model);
 });
+
+test(
+  "Market adapters (experimental): fixed-source quote and index contracts",
+  { skip: process.env.MARKET_LIVE_TESTS !== "1" },
+  async () => {
+    const { createMarketClient } = await import("../src/market/mod.ts");
+    const client = createMarketClient({ retries: 0 });
+    const quote = await client.quote("INVE-B.ST", "1d", { quoteOnly: true });
+    assert.equal(quote.symbol, "INVE-B.ST");
+    assert.ok(quote.latestPrice > 0);
+    const index = await client.index("benchmark-omxs30gi");
+    assert.ok(index.points.length > 1);
+  },
+);

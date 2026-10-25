@@ -477,3 +477,14 @@ const county = await se.economy.housePrices("12", {frequency:"year"}); // Skåne
 ```
 
 Permanent small houses from SCB: quarterly regional table TAB1150 and annual county table TAB1148. Use `HOUSING_REGIONS` from `/economy` for valid codes. Every point retains its observation period (`period`, `from`, `to`), rather than inventing a daily quote. The series includes source, update time, fetch time and SCB's revision notes. Requests share the normal bounded cache and durable last-good fallback. Regional figures do not value an individual property. No address or personal information is needed. The dev board includes a chart and table for `economy.housing`; fake mode uses explicit synthetic fixtures.
+## Experimental market data
+
+Import public equities, indices, daily/intraday history, dividends, splits, company fundamentals and MFN reports from `@wingerlang/sweden-open-data/market`. These adapters reuse public web endpoints; their availability and redistribution terms remain the providers' decision. They are deliberately separate from the core open-data client. No personal holdings or transactions are accepted.
+
+`createMarketClient({store,fetch,now})` provides bounded memory, persistent snapshots, single-flight requests, stale-while-revalidate and failure backoff. Quotes keep separate quick/intraday/full cache keys. Full history is incrementally updated with the latest year; new splits force a full reload, and a full rebuild every 30 days admits older corrections. Adjusted closes are rescaled across the overlap after dividends. Explicit `fresh:true` awaits an actual refresh.
+
+`marketIndices` distinguishes price indices and gross total-return indices, including OMXS30, OMXSPI, OMXS30GI, Stockholm Small Cap, S&P 500 and Nasdaq 100. Prices retain their currency; no implicit FX conversion is made. Nasdaq is primary for Swedish indices, with FRED fallback only for an exact matching series.
+
+`movingAverage(points,50)` and `movingAverage(points,200)` require complete observation windows. `marketAnalytics(points,asOf)` calculates 1M/3M/6M/YTD/1Y/3Y/5Y/MAX price returns, total returns where provider-adjusted closes exist, annualised observed daily volatility and maximum drawdown. Missing coverage remains null. Derived analytics travel with the cached quote; no provider call is needed to change a chart period or MA overlay.
+
+Report publication markers preserve MFN links, and provider earnings dates remain explicitly preliminary. Ex-dividend dates and cash distributions are distinct from a user's received dividend transactions. The package never invents historical reports or future prices.

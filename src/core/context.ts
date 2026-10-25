@@ -12,6 +12,12 @@ export type Locale = "sv" | "en";
 
 /** Base URLs of the upstream services. Override them to use a mirror, a proxy or a local fake. */
 export interface Endpoints {
+  marketSearch: string;
+  marketNasdaq: string;
+  marketFred: string;
+  marketChart: string;
+  marketSummary: string;
+  marketReports: string;
   /** elprisetjustnu.se price API. */
   spot: string;
   /** Open-Meteo forecast API. */
@@ -45,6 +51,12 @@ export interface Endpoints {
 
 /** The public endpoints used by default. */
 export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
+  marketSearch: "https://query1.finance.yahoo.com/v1/finance/search",
+  marketNasdaq: "https://indexes.nasdaqomx.com/Index/HistoryChartData",
+  marketFred: "https://fred.stlouisfed.org/graph/fredgraph.csv",
+  marketChart: "https://query1.finance.yahoo.com/v8/finance/chart/",
+  marketSummary: "https://query2.finance.yahoo.com/v10/finance/quoteSummary/",
+  marketReports: "https://mfn.se/",
   spot: "https://www.elprisetjustnu.se/api/v1/prices",
   weather: "https://api.open-meteo.com/v1/forecast",
   airQuality: "https://air-quality-api.open-meteo.com/v1/air-quality",
@@ -62,6 +74,10 @@ export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
 
 /** How long results are kept in memory, in milliseconds. */
 export interface CacheTtl {
+  marketQuote: number;
+  marketHistory: number;
+  marketFundamentals: number;
+  marketIndex: number;
   /** A published day of spot prices. Default 12 h. */
   spotDay: number;
   /** A day that is not published yet (tomorrow before ~13:00). Default 15 min. */
@@ -88,6 +104,10 @@ export interface CacheTtl {
 
 /** The default {@link CacheTtl}. */
 export const DEFAULT_TTL: Readonly<CacheTtl> = Object.freeze({
+  marketQuote: 30000,
+  marketHistory: 10 * 60000,
+  marketFundamentals: 6 * 3600000,
+  marketIndex: 3600000,
   spotDay: 12 * 3_600_000,
   spotMissing: 15 * 60_000,
   weather: 20 * 60_000,

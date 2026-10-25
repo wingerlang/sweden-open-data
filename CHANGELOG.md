@@ -3,6 +3,12 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.13.0
+
+- Add experimental `/market`: public quotes, histories, corporate actions, company data, MFN reports and index sources.
+- Persist and share market reads; serve stale snapshots immediately, back off failed sources, update history incrementally and rebuild on splits or periodically.
+- Add MA50/MA200 and period price/total-return, volatility and drawdown analytics without fabricated missing data.
+
 ## 0.12.0
 
 - Add official SCB house-price indices for regional quarters and annual county observations, with cache, period precision, revision notes and dev-board charts.

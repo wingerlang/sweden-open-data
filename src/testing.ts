@@ -34,7 +34,11 @@ export type SourceId =
   | "open-meteo-archive"
   | "open-meteo-air-quality"
   | "ibindex"
-  | "transportstyrelsen";
+  | "transportstyrelsen"
+  | "yahoo"
+  | "nasdaq"
+  | "fred"
+  | "mfn";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
@@ -50,11 +54,19 @@ export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
   "open-meteo-air-quality",
   "ibindex",
   "transportstyrelsen",
+  "yahoo",
+  "nasdaq",
+  "fred",
+  "mfn",
 ] as const);
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
 export function sourceOf(url: string | URL): SourceId | undefined {
   const host = new URL(String(url)).hostname;
+  if (host.endsWith(".yahoo.com")) return "yahoo";
+  if (host === "indexes.nasdaqomx.com") return "nasdaq";
+  if (host === "fred.stlouisfed.org") return "fred";
+  if (host === "mfn.se" || host === "feed.mfn.se") return "mfn";
   if (host.endsWith("elprisetjustnu.se")) return "elprisetjustnu";
   if (host === "geocoding-api.open-meteo.com") return "open-meteo-geocoding";
   if (host === "archive-api.open-meteo.com") return "open-meteo-archive";
@@ -616,6 +628,46 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
     const url = new URL(input instanceof Request ? input.url : String(input));
     const p = url.searchParams;
     switch (sourceOf(url)) {
+      case "yahoo": {
+        const symbol = decodeURIComponent(url.pathname.split("/").at(-1) || "SYNTH.ST"),
+          stamp = Math.floor(now() / 1000);
+        if (url.pathname.endsWith("/search"))
+          return json({
+            quotes: [
+              { symbol: "SYNTH.ST", longname: "Synthetic market fixture", exchange: "STO", quoteType: "EQUITY" },
+            ],
+          });
+        if (url.pathname.includes("quoteSummary"))
+          return json({
+            quoteSummary: { result: [{ price: { symbol, currency: "SEK", regularMarketPrice: { raw: 100 } } }] },
+          });
+        return json({
+          chart: {
+            result: [
+              {
+                meta: { symbol, regularMarketPrice: 100, regularMarketTime: stamp, currency: "SEK" },
+                timestamp: [stamp - 86400, stamp],
+                indicators: { quote: [{ close: [99, 100] }], adjclose: [{ adjclose: [99, 100] }] },
+                events: {},
+              },
+            ],
+          },
+        });
+      }
+      case "nasdaq": {
+        const symbol = String(new URLSearchParams(String(init?.body)).get("id") || "OMXS30");
+        return json([
+          { FPSymbol: symbol, x: now() - 86400000, y: 99 },
+          { FPSymbol: symbol, x: now(), y: 100 },
+        ]);
+      }
+      case "fred":
+        return new Response(
+          `DATE,VALUE\n${new Date(now() - 2 * 86400000).toISOString().slice(0, 10)},99\n${new Date(now() - 86400000).toISOString().slice(0, 10)},100`,
+          { headers: { "content-type": "text/csv" } },
+        );
+      case "mfn":
+        return json({ items: [] });
       case "elprisetjustnu": {
         const m = url.pathname.match(/(\d{4})\/(\d{2})-(\d{2})_(SE[1-4])\.json$/);
         if (!m) break;

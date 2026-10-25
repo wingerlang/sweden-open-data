@@ -34,3 +34,15 @@ test("fakes: every source in SOURCE_IDS answers through createFakeSources", asyn
   }
   assert.ok(SOURCE_IDS.includes("transportstyrelsen"));
 });
+
+import { createMarketClient } from "../src/market/mod.ts";
+test("market fakes cover quotes, company data, reports and the exact FRED fallback", async () => {
+  const fake = createFakeSources({ now: () => NOW }),
+    market = createMarketClient({ fetch: fake.fetch, now: () => NOW, retries: 0 });
+  assert.equal((await market.quote("SYNTH.ST", "max")).symbol, "SYNTH.ST");
+  assert.equal((await market.fundamentals("SYNTH.ST")).currency, "SEK");
+  assert.equal((await market.reports("synthetic")).slug, "synthetic");
+  fake.setFault("nasdaq", { status: 503 });
+  assert.equal((await market.index("benchmark-omxs30gi")).sourceName, "Nasdaq via FRED");
+  for (const source of ["yahoo", "nasdaq", "fred", "mfn"] as const) assert.ok(SOURCE_IDS.includes(source));
+});

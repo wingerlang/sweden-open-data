@@ -3,13 +3,16 @@ import { createContext, type ClientOptions, type Context } from "../core/context
 import { cachedWithStore } from "../core/source.ts";
 import { invalidResponse } from "../core/parse.ts";
 
+/** Published observation frequency: quarters and years are not interchangeable. */
 export type HousingFrequency = "quarter" | "year";
+/** One observed regional house-price index level for its published period. */
 export interface HousingPoint {
   readonly period: string;
   readonly from: string;
   readonly to: string;
   readonly value: number;
 }
+/** A dated regional house-price series with source and revision metadata. */
 export interface HousingSeries {
   readonly region: string;
   readonly label: string;
@@ -24,11 +27,13 @@ export interface HousingSeries {
   readonly stale?: boolean;
   readonly notes: readonly string[];
 }
+/** Official source for regional house-price indices. */
 export const HOUSING_SOURCE: { readonly name: string; readonly url: string; readonly license: string } = {
   name: "SCB · fastighetsprisindex för permanenta småhus",
   url: "https://www.scb.se/BO0501",
   license: "CC0",
 };
+/** Regions for which house-price observations can be requested. */
 export const HOUSING_REGIONS: Readonly<Record<HousingFrequency, Readonly<Record<string, string>>>> = {
   quarter: {
     "00": "Riket",
@@ -68,13 +73,16 @@ export const HOUSING_REGIONS: Readonly<Record<HousingFrequency, Readonly<Record<
     "25": "Norrbottens län",
   },
 };
+/** Checks a supported region identifier before querying the provider. */
 export function isHousingRegion(region: string, frequency: HousingFrequency = "quarter"): boolean {
   return Object.hasOwn(HOUSING_REGIONS[frequency], region);
 }
+/** Cancellation and observation frequency for one house-price request. */
 export interface HousingOptions {
   frequency?: HousingFrequency;
   signal?: AbortSignal;
 }
+/** Official regional house-price observations backed by the shared cache. */
 export interface HousingClient {
   housePrices(region?: string, options?: HousingOptions): Promise<HousingSeries>;
 }
