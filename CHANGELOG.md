@@ -7,6 +7,7 @@ minor versions may contain breaking changes, which are always listed.
 
 - Add experimental `/market`: public quotes, histories, corporate actions, company data, MFN reports and index sources.
 - Persist and share market reads; serve stale snapshots immediately, back off failed sources, update history incrementally and rebuild on splits or periodically.
+- Preserve verified corporate actions and full-history analytics across quick quote updates; invalidate stale split-sensitive metrics.
 - Add MA50/MA200 and period price/total-return, volatility and drawdown analytics without fabricated missing data.
 
 ## 0.12.0

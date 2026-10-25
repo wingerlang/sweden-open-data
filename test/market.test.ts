@@ -8,6 +8,7 @@ import {
   parseNasdaqIndex,
   parseIndexCsv,
   companyMarketEvents,
+  combineQuotes,
   mergeQuoteHistory,
   rebuildCharts,
   type LiveMarketQuote,
@@ -57,6 +58,55 @@ test("quotes are single-flight, durable and carry public corporate actions and c
   }).quote("TEST.ST", "max");
   assert.equal(restored.stale, false);
   assert.equal(restored.liveCharts.MAX.length, 260);
+});
+
+test("quick quotes retain verified actions, reports and full-history analytics", async () => {
+  const client = createMarketClient({ fetch: fakeFetch(() => chart()), now: () => now, retries: 0 }),
+    payload = await client.quote("TEST.ST", "max");
+  const split = { date: start / 1000, numerator: 2, denominator: 1 },
+    cached = {
+      ...payload,
+      charts: payload.liveCharts,
+      corporateSplits: [split],
+      events: [
+        ...payload.events!,
+        { date: "2026-10-20", type: "report" as const, label: "Rapport", url: "https://mfn.se/a/test/report" },
+      ],
+    };
+  const fresh = {
+    ...cached,
+    latestPrice: 400,
+    events: [],
+    corporateSplits: [],
+    analytics: undefined,
+    charts: rebuildCharts([], now),
+  };
+  const combined = combineQuotes(cached, fresh);
+  assert.deepEqual(
+    combined.events,
+    cached.events.slice().sort((a, b) => a.date.localeCompare(b.date)),
+  );
+  assert.deepEqual(combined.corporateSplits, [split]);
+  assert.equal(combined.analytics, cached.analytics);
+  assert.equal(combined.latestPrice, 400);
+  assert.equal(combined.charts.MAX.length, 260);
+  const splitUpdate = combineQuotes(
+    { ...cached, sharesOutstanding: 100, marketCapMethod: "shares-times-price", marketCapValue: 10000 },
+    {
+      ...fresh,
+      sharesOutstanding: null,
+      marketCapValue: null,
+      marketCapMethod: undefined,
+      dividendPerShare: null,
+      dividendYieldPct: null,
+      corporateSplits: [split, { date: now / 1000, numerator: 2, denominator: 1 }],
+    },
+  );
+  assert.equal(splitUpdate.analytics, undefined);
+  assert.equal(splitUpdate.sharesOutstanding, null);
+  assert.equal(splitUpdate.marketCapValue, null);
+  assert.equal(splitUpdate.dividendPerShare, null);
+  assert.ok(splitUpdate.events?.some((e) => e.type === "report"));
 });
 
 test("full history uses a recent tail but periodically rebuilds older source corrections", async () => {

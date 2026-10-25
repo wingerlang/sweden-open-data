@@ -154,6 +154,26 @@ export function combineQuotes(cached: LiveMarketQuote, fresh: LiveMarketQuote): 
       : { ...cached.charts, ...Object.fromEntries(Object.entries(fresh.charts).filter(([, points]) => points.length)) },
   };
   delete (result as unknown as Record<string, unknown>).liveCharts;
+  const events = new Map<string, NonNullable<LiveMarketQuote["events"]>[number]>();
+  for (const event of [
+    ...(cached.events || []).filter((event) => !splitChanged || event.type === "report" || event.type === "earnings"),
+    ...(fresh.events || []),
+  ])
+    events.set(event.date.slice(0, 10) + "|" + event.type + "|" + (event.url || ""), event);
+  result.events = [...events.values()].sort((a, b) => a.date.localeCompare(b.date));
+  if (!splitChanged) {
+    const splits = new Map(
+      [...(cached.corporateSplits || []), ...(fresh.corporateSplits || [])].map((s) => [splitKey(s), s]),
+    );
+    result.corporateSplits = [...splits.values()];
+  }
+  if (
+    !splitChanged &&
+    !fresh.charts.MAX.length &&
+    cached.analytics &&
+    (!fresh.analytics || cached.analytics.observations > fresh.analytics.observations)
+  )
+    result.analytics = cached.analytics;
   for (const field of [
     "sharesOutstanding",
     "sharesOutstandingDate",
@@ -162,10 +182,26 @@ export function combineQuotes(cached: LiveMarketQuote, fresh: LiveMarketQuote): 
     "marketCapMethod",
     "dividendPerShare",
     "dividendYieldPct",
+    "analytics",
   ] as const)
     if (fresh[field] == null && cached[field] != null)
       (result as unknown as Record<string, unknown>)[field] = cached[field];
   if (fresh.marketCap === "Saknas") result.marketCap = cached.marketCap;
+  if (splitChanged && !fresh.charts.MAX.length) {
+    delete result.analytics;
+    if (fresh.dividendPerShare == null) result.dividendPerShare = null;
+    if (fresh.dividendYieldPct == null) result.dividendYieldPct = null;
+  }
+  if (splitChanged && fresh.sharesOutstanding == null) {
+    result.sharesOutstanding = null;
+    delete result.sharesOutstandingDate;
+    if (fresh.marketCapValue == null && cached.marketCapMethod === "shares-times-price") {
+      result.marketCapValue = null;
+      delete result.marketCapDate;
+      delete result.marketCapMethod;
+      result.marketCap = "Saknas";
+    }
+  }
   if (result.marketCapMethod === "shares-times-price" && result.sharesOutstanding) {
     result.marketCapValue = result.sharesOutstanding * fresh.latestPrice;
     result.marketCap = String(result.marketCapValue);
