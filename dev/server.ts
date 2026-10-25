@@ -214,6 +214,11 @@ const CALLS: Record<string, (q: URLSearchParams) => [Promise<unknown>, string]> 
       `await se.weather.environment(${JSON.stringify(p)}, ${JSON.stringify(options)})`,
     ];
   },
+  "economy.housing": (q) => {
+    const region = q.get("region") || "00",
+      frequency = q.get("frequency") === "year" ? "year" : "quarter";
+    return [se.economy.housePrices(region, { frequency }), "await se.economy.housePrices(region, {frequency})"];
+  },
   "economy.cpi": (q) => {
     const index = q.get("index") ?? "KPI";
     const amount = num(q.get("amount"), 10_000) ?? 10_000;

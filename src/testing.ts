@@ -681,6 +681,8 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
       case "scb": {
         const m = url.pathname.match(/\/tables\/(TAB\d+)\/data$/);
         const content = p.get("valueCodes[ContentsCode]");
+        if (m && ["TAB1150", "TAB1148"].includes(m[1]))
+          return json(fakeHousing(m[1], p.get("valueCodes[Region]") || p.get("valueCodes[Lan]") || "00"));
         if (m && content) return json(fakeScbMonthly(m[1], content, now()));
         break;
       }
@@ -736,5 +738,24 @@ export function fakeScbMonthly(table: string, content: string, now: number = Dat
       Tid: { category: { index: Object.fromEntries(months.map((t, i) => [code(t), i])) } },
     },
     value: months.map(value),
+  };
+}
+
+/** Synthetic house-price series used only by the fake transport and dev board. */
+function fakeHousing(table: string, region: string): Record<string, unknown> {
+  const annual = table === "TAB1148",
+    dimension = annual ? "Lan" : "Region",
+    content = annual ? "BO0501R5" : "BO0501K2",
+    periods = annual ? ["2023", "2024", "2025"] : ["2025K1", "2025K2", "2025K3", "2025K4"];
+  return {
+    id: [dimension, "ContentsCode", "Tid"],
+    size: [1, 1, periods.length],
+    dimension: {
+      [dimension]: { category: { index: { [region]: 0 } } },
+      ContentsCode: { category: { index: { [content]: 0 } } },
+      Tid: { category: { index: Object.fromEntries(periods.map((period, i) => [period, i])) } },
+    },
+    value: periods.map((_, i) => 100 + i * 5),
+    note: ["Synthetic demo data, not statistics."],
   };
 }

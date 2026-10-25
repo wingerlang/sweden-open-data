@@ -467,3 +467,13 @@ getWeddingName(10); // "Tennbröllop"
 ```
 
 A small local catalogue of Swedish milestones, sourced from Svenska kyrkan. Names vary by tradition; unknown, fractional and invalid years return `undefined`. No network or personal dates are involved.
+
+## House-price development (0.12)
+
+```ts
+const se = createClient();
+const regional = await se.economy.housePrices("RIKS4"); // Sydsverige, quarterly, 1981=100
+const county = await se.economy.housePrices("12", {frequency:"year"}); // Skåne, annual, 1990=100
+```
+
+Permanent small houses from SCB: quarterly regional table TAB1150 and annual county table TAB1148. Use `HOUSING_REGIONS` from `/economy` for valid codes. Every point retains its observation period (`period`, `from`, `to`), rather than inventing a daily quote. The series includes source, update time, fetch time and SCB's revision notes. Requests share the normal bounded cache and durable last-good fallback. Regional figures do not value an individual property. No address or personal information is needed. The dev board includes a chart and table for `economy.housing`; fake mode uses explicit synthetic fixtures.

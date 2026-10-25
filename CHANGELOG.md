@@ -3,6 +3,10 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.12.0
+
+- Add official SCB house-price indices for regional quarters and annual county observations, with cache, period precision, revision notes and dev-board charts.
+
 ## 0.11.1
 
 - Add a local `/anniversaries` catalogue with `getWeddingName(years)` for Swedish milestones.

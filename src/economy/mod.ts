@@ -40,3 +40,15 @@ export {
   type InflationAdjustment,
   type RealChange,
 } from "./cpi.ts";
+export {
+  createHousingClient,
+  parseHousing,
+  isHousingRegion,
+  HOUSING_SOURCE,
+  HOUSING_REGIONS,
+  type HousingFrequency,
+  type HousingPoint,
+  type HousingSeries,
+  type HousingOptions,
+  type HousingClient,
+} from "./housing.ts";
