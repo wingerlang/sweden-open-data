@@ -219,6 +219,7 @@ const CALLS: Record<string, (q: URLSearchParams) => [Promise<unknown>, string]> 
       frequency = q.get("frequency") === "year" ? "year" : "quarter";
     return [se.economy.housePrices(region, { frequency }), "await se.economy.housePrices(region, {frequency})"];
   },
+  "economy.mortgage": () => [se.economy.mortgageRates(), "await se.economy.mortgageRates()"],
   "economy.cpi": (q) => {
     const index = q.get("index") ?? "KPI";
     const amount = num(q.get("amount"), 10_000) ?? 10_000;

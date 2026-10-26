@@ -3,6 +3,14 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## 0.14.0
+
+- Add official household mortgage rates to `/economy` (`mortgageRates()`, SCB/Riksbanken TAB5783): monthly averages
+  for new and outstanding loans per fixed-rate band, with `mortgageBindingFor()` and `mortgageRateAt()`.
+- Add experimental `createBankRateClient()` for Handelsbanken's published list rates and monthly average rates, as a
+  new `handelsbanken` source with a fake, a conservative request limit and last-good fallback.
+- Update the source list in the fault test to include the market sources.
+
 ## 0.13.0
 
 - Add experimental `/market`: public quotes, histories, corporate actions, company data, MFN reports and index sources.

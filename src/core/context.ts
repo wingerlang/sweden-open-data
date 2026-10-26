@@ -40,6 +40,8 @@ export interface Endpoints {
   weatherArchive: string;
   /** IBIndex read endpoints (experimental `/investments`). */
   ibindex: string;
+  /** Handelsbanken's public mortgage-rate page data (experimental bank rates in `/economy`). */
+  handelsbankenRates: string;
   /**
    * Biluppgifter vehicle API. The vehicle clients always use the default, so an API key or a registration number is
    * never sent to an overridden address.
@@ -68,6 +70,7 @@ export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
   scb: "https://statistikdatabasen.scb.se/api/v2",
   weatherArchive: "https://archive-api.open-meteo.com/v1/archive",
   ibindex: "https://ibindex.se/ibi/",
+  handelsbankenRates: "https://www.handelsbanken.se/rsopdistresource/slan/resource/open/v1/mortgagerates/",
   biluppgifter: "https://api.biluppgifter.se/api/v1/vehicle/regno/",
   transportstyrelsen: "https://fordon-fu-regnr.transportstyrelsen.se/UppgifterAnnatFordon/TillbakaTillFordonsuppgifter",
 });

@@ -477,6 +477,26 @@ const county = await se.economy.housePrices("12", {frequency:"year"}); // Skåne
 ```
 
 Permanent small houses from SCB: quarterly regional table TAB1150 and annual county table TAB1148. Use `HOUSING_REGIONS` from `/economy` for valid codes. Every point retains its observation period (`period`, `from`, `to`), rather than inventing a daily quote. The series includes source, update time, fetch time and SCB's revision notes. Requests share the normal bounded cache and durable last-good fallback. Regional figures do not value an individual property. No address or personal information is needed. The dev board includes a chart and table for `economy.housing`; fake mode uses explicit synthetic fixtures.
+## Mortgage rates (0.14)
+
+```ts
+import { createEconomyClient, mortgageBindingFor, mortgageRateAt } from "@wingerlang/sweden-open-data/economy";
+const rates = await createEconomyClient().mortgageRates();
+const floating = rates.series.find((s) => s.agreement === "new" && s.binding === mortgageBindingFor(3));
+mortgageRateAt(floating!, "2024-06"); // average rate on new floating mortgages that month, percent
+```
+
+Official household mortgage rates from SCB/Riksbanken (table TAB5783, from 2005): monthly averages for new and
+renegotiated agreements and for all outstanding loans, per original fixed-rate band (floating, 3 months–1 year,
+1–3, 3–5 and over 5 years). Missing months stay missing. One request fetches the whole table; it shares the normal
+cache and durable last-good fallback.
+
+**Experimental bank rates.** `createBankRateClient().bankMortgageRates("handelsbanken")` reads the list rates and the
+monthly average rates (usually twelve months) that Handelsbanken publishes on its rate page. The JSON behind that page
+is not a documented API and no agreement covers automated reading, so it may change without notice; keep a store so
+the last good answer is served as `stale`. `bankListRateFor(rates, months)` picks the nearest published binding. No
+customer data is ever sent. Historical list rates are not published, so the package does not invent them.
+
 ## Experimental market data
 
 Import public equities, indices, daily/intraday history, dividends, splits, company fundamentals and MFN reports from `@wingerlang/sweden-open-data/market`. These adapters reuse public web endpoints; their availability and redistribution terms remain the providers' decision. They are deliberately separate from the core open-data client. No personal holdings or transactions are accepted.

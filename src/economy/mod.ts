@@ -1,6 +1,8 @@
 /**
  * Swedish economic statistics: consumer price indices (KPI, KPIF, KPIF-XE) from SCB and pure inflation arithmetic –
  * an amount in today's money, the inflation rate for any period, a salary compared with prices, real values of a series.
+ * Regional house prices and official average household mortgage rates (new and outstanding loans per fixed-rate
+ * band). Experimental: one bank's published list rates and monthly averages (`createBankRateClient`).
  *
  * ```ts
  * import { createEconomyClient, adjustForInflation, realChange } from "@wingerlang/sweden-open-data/economy";
@@ -52,3 +54,29 @@ export {
   type HousingOptions,
   type HousingClient,
 } from "./housing.ts";
+export {
+  createMortgageRateClient,
+  parseMortgageRates,
+  mortgageBindingFor,
+  mortgageRateAt,
+  MORTGAGE_BINDINGS,
+  MORTGAGE_RATE_SOURCE,
+  type MortgageAgreement,
+  type MortgageBinding,
+  type MortgageRateClient,
+  type MortgageRatePoint,
+  type MortgageRates,
+  type MortgageRateSeries,
+} from "./mortgage.ts";
+export {
+  createBankRateClient,
+  parseHandelsbankenRates,
+  bankListRateFor,
+  isMortgageBank,
+  MORTGAGE_BANKS,
+  type BankAverageRate,
+  type BankListRate,
+  type BankMortgageRates,
+  type BankRateClient,
+  type MortgageBank,
+} from "./banks.ts";

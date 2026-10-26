@@ -1,6 +1,6 @@
 {
   "name": "@wingerlang/sweden-open-data",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Swedish open data, typed and dependency-free: electricity spot prices, weather forecasts and history, UV, pollen and air quality, VMA, crisis information and SMHI warnings, geocoding that understands Swedish addresses, consumer price indices from SCB with inflation arithmetic, and reference catalogues of universities and sports. Optional: authenticated vehicle lookup and experimental investment-company and vehicle-page adapters. Experimental market module: quotes, histories, dividends, indices and cached analytics.",
   "license": "MIT",
   "author": "Johannes Winger-Lang",

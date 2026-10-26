@@ -38,7 +38,8 @@ export type SourceId =
   | "yahoo"
   | "nasdaq"
   | "fred"
-  | "mfn";
+  | "mfn"
+  | "handelsbanken";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
@@ -58,6 +59,7 @@ export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
   "nasdaq",
   "fred",
   "mfn",
+  "handelsbanken",
 ] as const);
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
@@ -78,6 +80,7 @@ export function sourceOf(url: string | URL): SourceId | undefined {
   if (host === "api.biluppgifter.se") return "biluppgifter";
   if (host.endsWith("scb.se")) return "scb";
   if (host === "ibindex.se") return "ibindex";
+  if (host === "www.handelsbanken.se") return "handelsbanken";
   if (host.endsWith("transportstyrelsen.se")) return "transportstyrelsen";
   return undefined;
 }
@@ -730,9 +733,15 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         if (plate) return new Response(fakeVehiclePage(plate), { headers: { "content-type": "text/html" } });
         break;
       }
+      case "handelsbanken": {
+        if (url.pathname.endsWith("/interestrates")) return json(fakeBankListRates());
+        if (url.pathname.endsWith("/averagerates/")) return json(fakeBankAverageRates(now()));
+        break;
+      }
       case "scb": {
         const m = url.pathname.match(/\/tables\/(TAB\d+)\/data$/);
         const content = p.get("valueCodes[ContentsCode]");
+        if (m && m[1] === "TAB5783") return json(fakeMortgageRates(now()));
         if (m && ["TAB1150", "TAB1148"].includes(m[1]))
           return json(fakeHousing(m[1], p.get("valueCodes[Region]") || p.get("valueCodes[Lan]") || "00"));
         if (m && content) return json(fakeScbMonthly(m[1], content, now()));
@@ -809,5 +818,66 @@ function fakeHousing(table: string, region: string): Record<string, unknown> {
     },
     value: periods.map((_, i) => 100 + i * 5),
     note: ["Synthetic demo data, not statistics."],
+  };
+}
+
+/** Synthetic household mortgage rates in SCB's JSON-stat layout; demo data, never statistics. */
+export function fakeMortgageRates(now: number = Date.now()): Record<string, unknown> {
+  const end = new Date(now),
+    last = end.getUTCFullYear() * 12 + end.getUTCMonth() - 2,
+    first = 2024 * 12,
+    months = Array.from({ length: Math.max(1, last - first + 1) }, (_, i) => first + i),
+    bindings = ["1.1.1", "1.1.2.1", "1.1.2.2.1", "1.1.2.2.2", "1.1.2.3"],
+    code = (t: number): string => `${Math.floor(t / 12)}M${String((t % 12) + 1).padStart(2, "0")}`;
+  return {
+    id: ["Referenssektor", "Motpartssektor", "Avtal", "Rantebindningstid", "ContentsCode", "Tid"],
+    size: [1, 1, 2, bindings.length, 1, months.length],
+    updated: new Date(now).toISOString(),
+    dimension: {
+      Referenssektor: { category: { index: { "1": 0 } } },
+      Motpartssektor: { category: { index: { "2c": 0 } } },
+      Avtal: { category: { index: { "0100": 0, "0200": 1 } } },
+      Rantebindningstid: { category: { index: Object.fromEntries(bindings.map((b, i) => [b, i])) } },
+      ContentsCode: { category: { index: { "000004ZW": 0 } } },
+      Tid: { category: { index: Object.fromEntries(months.map((t, i) => [code(t), i])) } },
+    },
+    value: [0, 1].flatMap((agreement) =>
+      bindings.flatMap((_, b) => months.map((_, i) => Number((3 + agreement * 0.3 + b * 0.1 - i * 0.02).toFixed(4)))),
+    ),
+    note: ["Synthetic demo data, not statistics."],
+  };
+}
+
+/** Synthetic list rates in the bank page's format; demo data. */
+export function fakeBankListRates(): Record<string, unknown> {
+  return {
+    interestRates: [
+      ["3", "3", 3.94],
+      ["4", "1", 3.69],
+      ["4", "3", 3.99],
+      ["4", "5", 4.19],
+    ].map(([periodBasisType, term, value]) => ({
+      periodBasisType,
+      term,
+      rateValue: { value: String(value).replace(".", ","), valueRaw: value },
+      effectiveRateValue: { valueRaw: Number(value) + 0.07 },
+    })),
+  };
+}
+
+/** Synthetic monthly average rates for the last three months; demo data. */
+export function fakeBankAverageRates(now: number = Date.now()): Record<string, unknown> {
+  const end = new Date(now);
+  return {
+    averageRatePeriods: [3, 2, 1].map((back, i) => {
+      const d = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - back, 1));
+      return {
+        period: `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`,
+        rates: [
+          { periodBasisType: "3", term: "3", rateValue: { valueRaw: 2.6 + i * 0.01 } },
+          { periodBasisType: "4", term: "1", rateValue: { valueRaw: 2.85 } },
+        ],
+      };
+    }),
   };
 }

@@ -201,8 +201,14 @@ test("testing: faults – status, Retry-After, offline, invalid JSON, delay, han
       "open-meteo-air-quality",
       "ibindex",
       "transportstyrelsen",
+      "yahoo",
+      "nasdaq",
+      "fred",
+      "mfn",
+      "handelsbanken",
     ],
   );
+  assert.equal(sourceOf("https://www.handelsbanken.se/rsopdistresource/x"), "handelsbanken");
   assert.equal(sourceOf("https://api.open-meteo.com/v1/forecast"), "open-meteo");
   assert.equal(sourceOf("https://archive-api.open-meteo.com/v1/archive"), "open-meteo-archive");
   assert.equal(sourceOf("https://air-quality-api.open-meteo.com/v1/air-quality"), "open-meteo-air-quality");
