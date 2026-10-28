@@ -187,8 +187,9 @@ export function combineQuotes(cached: LiveMarketQuote, fresh: LiveMarketQuote): 
     if (fresh[field] == null && cached[field] != null)
       (result as unknown as Record<string, unknown>)[field] = cached[field];
   if (fresh.marketCap === "Saknas") result.marketCap = cached.marketCap;
-  if (splitChanged && !fresh.charts.MAX.length) {
-    delete result.analytics;
+  // Per-share values and price-level statistics change unit at a split: never carry them over from before it.
+  if (splitChanged) {
+    if (fresh.analytics == null) delete result.analytics;
     if (fresh.dividendPerShare == null) result.dividendPerShare = null;
     if (fresh.dividendYieldPct == null) result.dividendYieldPct = null;
   }

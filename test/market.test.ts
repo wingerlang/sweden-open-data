@@ -243,3 +243,27 @@ test("bad restored symbol is rejected and explicit refresh awaits new source dat
   assert.equal(fresh.stale, false);
   assert.ok(fresh.latestPrice > first.latestPrice);
 });
+
+test("a newly discovered split drops per-share values and analytics from before it, even with full history", async () => {
+  const payload = await createMarketClient({ fetch: fakeFetch(() => chart()), now: () => now, retries: 0 }).quote(
+      "TEST.ST",
+      "max",
+    ),
+    cached = { ...payload, charts: payload.liveCharts, dividendPerShare: 10, dividendYieldPct: 2.8 },
+    fresh = {
+      ...cached,
+      latestPrice: 180,
+      dividendPerShare: null,
+      dividendYieldPct: null,
+      analytics: undefined,
+      corporateSplits: [{ date: (now - 2 * 86400000) / 1000, numerator: 2, denominator: 1 }],
+    };
+  assert.ok(fresh.charts.MAX.length > 0);
+  const combined = combineQuotes(cached, fresh);
+  assert.equal(combined.latestPrice, 180);
+  assert.equal(combined.dividendPerShare, null);
+  assert.equal(combined.dividendYieldPct, null);
+  assert.equal(combined.analytics, undefined);
+  const recomputed = combineQuotes(cached, { ...fresh, analytics: payload.analytics });
+  assert.equal(recomputed.analytics, payload.analytics);
+});
