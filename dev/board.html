@@ -3,441 +3,1092 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>sweden-open-data · dev board</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23006aa7'/%3E%3Crect x='9' width='5' height='32' fill='%23fecc00'/%3E%3Crect y='13.5' width='32' height='5' fill='%23fecc00'/%3E%3C/svg%3E">
 <style>
-:root{--bg:#f6f7f9;--panel:#fff;--line:#e3e6ea;--text:#16191d;--muted:#6b7380;--accent:#2f6fde;--ok:#1f9d55;--warn:#c97a00;--bad:#d1363a;--low:#2f9e6e;--mid:#8a94a3;--high:#d9534f;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#101215;--panel:#181b20;--line:#2a2f37;--text:#e8eaee;--muted:#8d95a3;--accent:#6c9cff;--mid:#5c6573;color-scheme:dark}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:12px 20px;background:var(--panel);border-bottom:1px solid var(--line)}
-header h1{font-size:16px;margin:0 8px 0 0}header h1 small{color:var(--muted);font-weight:400}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.seg button{border:0;border-radius:0}.seg button.on{background:var(--accent);color:#fff}
-label.inline{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}
-input,select,button{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:5px 8px}
-input[type=number]{width:68px}#sources select{width:100%;max-width:170px}#sources td:last-child{width:45%}button{cursor:pointer}button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button:disabled{opacity:.5}
-main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:16px;padding:16px 20px}
-@media (max-width:1100px){main{grid-template-columns:1fr}}
-@media (max-width:700px){header{position:static}}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;align-content:start}
-@media (max-width:520px){.grid{grid-template-columns:1fr}main{padding:12px}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
-.card h2{font-size:14px;margin:0 0 10px;display:flex;gap:8px;align-items:center}.card h2 .badge{margin-left:auto}
-.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
-.badge{font:600 11px var(--mono);padding:2px 7px;border-radius:999px;background:var(--line);color:var(--muted);white-space:nowrap}
-.badge.ok{color:var(--ok)}.badge.bad{color:var(--bad)}.badge.warn{color:var(--warn)}
-.muted{color:var(--muted)}.mono{font-family:var(--mono);font-size:12px}
-.err{border-left:3px solid var(--bad);padding:6px 10px;background:color-mix(in srgb,var(--bad) 8%,transparent);border-radius:6px;font-size:13px}
-details{margin-top:10px}summary{cursor:pointer;color:var(--muted);font-size:12px}
-pre{margin:6px 0 0;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:8px;max-height:260px;overflow:auto;font:12px/1.4 var(--mono)}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}.kv dt{color:var(--muted)}.kv dd{margin:0}
-.big{font-size:26px;font-weight:650}
-svg{display:block;width:100%;height:auto}
-.alert{border-left:3px solid var(--mid);padding:6px 10px;margin:6px 0;border-radius:4px;background:var(--bg)}
-.alert.red{border-color:var(--bad)}.alert.orange{border-color:#e8833a}.alert.yellow{border-color:#e5c000}
-.alert b{display:block}.alert small{color:var(--muted)}
-ul.plain{list-style:none;margin:0;padding:0}ul.plain li{padding:5px 0;border-bottom:1px solid var(--line)}ul.plain li:last-child{border:0}
-aside{display:flex;flex-direction:column;gap:16px;min-width:0}
-table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:500}
-td.num{text-align:right;font-family:var(--mono)}
-#log{max-height:420px;overflow:auto;font:11.5px/1.5 var(--mono)}#log div{display:grid;grid-template-columns:58px 118px minmax(0,1fr) auto;gap:6px;padding:2px 0;border-bottom:1px dashed var(--line)}#log span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ───────── Tokens ───────── */
+:root{
+  --bg:#f2f0e8;--surface:#fffefb;--surface-2:#f7f5ee;--surface-3:#efece2;
+  --line:#e3dfd2;--line-2:#d0cabb;
+  --ink:#0e1e2b;--ink-2:#3b4956;--muted:#697581;
+  --blue:#006aa7;--blue-ink:#004f7d;--blue-soft:#e1eff8;--blue-line:#b5d6ea;
+  --yellow:#fecc00;--yellow-ink:#6b5400;--yellow-soft:#fff3c4;
+  --ok:#157a4e;--ok-soft:#e0f2e8;--warn:#9a5b00;--warn-soft:#fcefd2;--bad:#b3252a;--bad-soft:#fae5e4;
+  --low:#1f9068;--mid:#9aa8b4;--high:#d5553f;
+  --sun:#f5b301;--cloud:#c3ced8;--cloud-2:#9fb0be;--rain:#3d8fd1;
+  --shadow:0 1px 0 rgba(14,30,43,.04),0 10px 28px -18px rgba(14,30,43,.28);
+  --pop:0 18px 50px -12px rgba(14,30,43,.35),0 2px 6px rgba(14,30,43,.08);
+  --font:"Inter var",Inter,system-ui,-apple-system,"Segoe UI Variable","Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"Cascadia Code","JetBrains Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#09121a;--surface:#101b27;--surface-2:#132130;--surface-3:#182a3b;
+  --line:#1e3144;--line-2:#2b445b;
+  --ink:#e8eef4;--ink-2:#b3c1ce;--muted:#7f90a1;
+  --blue:#4fa8e0;--blue-ink:#8fcdf3;--blue-soft:#10293b;--blue-line:#1f4a68;
+  --yellow:#ffd23f;--yellow-ink:#ffe27a;--yellow-soft:#3a3210;
+  --ok:#4cc18f;--ok-soft:#10301f;--warn:#f0b54c;--warn-soft:#3a2b0c;--bad:#ff7b78;--bad-soft:#3d1717;
+  --low:#3dbb8e;--mid:#5e7184;--high:#f0735c;
+  --sun:#ffc533;--cloud:#6a7f92;--cloud-2:#8aa0b3;--rain:#62adf0;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.8);--pop:0 18px 50px -12px rgba(0,0,0,.7);color-scheme:dark}}
+:root[data-theme=dark]{
+  --bg:#09121a;--surface:#101b27;--surface-2:#132130;--surface-3:#182a3b;
+  --line:#1e3144;--line-2:#2b445b;
+  --ink:#e8eef4;--ink-2:#b3c1ce;--muted:#7f90a1;
+  --blue:#4fa8e0;--blue-ink:#8fcdf3;--blue-soft:#10293b;--blue-line:#1f4a68;
+  --yellow:#ffd23f;--yellow-ink:#ffe27a;--yellow-soft:#3a3210;
+  --ok:#4cc18f;--ok-soft:#10301f;--warn:#f0b54c;--warn-soft:#3a2b0c;--bad:#ff7b78;--bad-soft:#3d1717;
+  --low:#3dbb8e;--mid:#5e7184;--high:#f0735c;
+  --sun:#ffc533;--cloud:#6a7f92;--cloud-2:#8aa0b3;--rain:#62adf0;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 30px -18px rgba(0,0,0,.8);--pop:0 18px 50px -12px rgba(0,0,0,.7);color-scheme:dark}
+
+/* ───────── Base ───────── */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--font);font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(1200px 380px at 70% -120px,color-mix(in srgb,var(--blue) 9%,transparent),transparent 70%)}
+h1,h2,h3,p{margin:0}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+code,pre,.mono{font-family:var(--mono)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+[hidden]{display:none!important}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ───────── Layout ───────── */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+@media (min-width:1380px){.app{grid-template-columns:240px minmax(0,1fr) 376px}}
+@media (max-width:980px){.app{grid-template-columns:minmax(0,1fr)}}
+.col{min-width:0}
+main{padding:22px 28px 80px;max-width:1500px}
+@media (max-width:640px){main{padding:16px 14px 80px}}
+
+/* Sidebar */
+.side{position:sticky;top:0;height:100vh;overflow:auto;padding:18px 14px;border-right:1px solid var(--line);background:color-mix(in srgb,var(--surface) 70%,transparent);display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;gap:11px;align-items:center;color:var(--ink);padding:2px 6px}
+.brand:hover{text-decoration:none}
+.brand svg{flex:none;border-radius:9px;box-shadow:0 4px 10px -4px color-mix(in srgb,var(--blue) 70%,transparent)}
+.brand b{display:block;font-size:14px;letter-spacing:-.01em;line-height:1.15}
+.brand small{color:var(--muted);font-size:11.5px;letter-spacing:.02em}
+.nav-g{margin-bottom:14px}
+.nav-g h4{margin:0 8px 4px;font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.nav a{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;color:var(--ink-2);font-size:13px}
+.nav a:hover{background:var(--surface-3);text-decoration:none;color:var(--ink)}
+.nav a.active{background:var(--blue-soft);color:var(--blue-ink)}
+.nav a .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav a .m{font:11px var(--mono);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line-2);flex:none;transition:background .2s}
+.dot[data-state=ok]{background:var(--ok)}.dot[data-state=bad]{background:var(--bad)}
+.dot[data-state=run]{background:var(--blue);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media (max-width:980px){.side{display:none}}
+.side-f{margin-top:auto;font-size:11.5px;color:var(--muted);padding:0 8px;line-height:1.5}
+
+/* Top bar */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:11px 28px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border-bottom:1px solid var(--line)}
+@media (max-width:640px){.top{padding:10px 14px;flex-wrap:wrap;position:static}.search kbd{display:none}.search input{padding-right:10px}}
+.search{position:relative;flex:1;max-width:340px;min-width:140px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search input{width:100%;height:34px;padding:0 34px 0 34px;border:1px solid var(--line-2);border-radius:9px;background:var(--surface);outline:0}
+.search input:focus{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 22%,transparent)}
+.search kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font:11px var(--mono);color:var(--muted);border:1px solid var(--line-2);border-radius:5px;padding:0 5px;background:var(--surface-2)}
+.spacer{flex:1}
+.conn{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);padding:0 4px}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+.conn[data-state=off] i{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 25%,transparent)}
+@media (max-width:760px){.conn span{display:none}}
+
+/* Buttons & controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 13px;border:1px solid var(--line-2);border-radius:9px;background:var(--surface);color:var(--ink);font-weight:550;transition:background .15s,border-color .15s,transform .05s}
+.btn:hover{background:var(--surface-3)}.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 6px 14px -8px var(--blue)}
+.btn.primary:hover{background:var(--blue-ink);border-color:var(--blue-ink)}
+:root[data-theme=dark] .btn.primary{color:#04131e}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .btn.primary{color:#04131e}}
+.btn.sm{height:28px;padding:0 10px;font-size:12.5px;border-radius:8px}
+.btn.icon{width:34px;padding:0}
+.btn:disabled{opacity:.55;cursor:default}
+.seg{display:inline-flex;padding:3px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-3);gap:2px}
+.seg button{height:26px;padding:0 11px;border:0;border-radius:7px;background:transparent;color:var(--ink-2);font-size:12.5px;font-weight:550}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(14,30,43,.18)}
+.seg button[data-mode=fake][aria-pressed=true]{background:var(--yellow);color:#2a2100}
+.fld{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 9px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);min-width:0}
+.fld:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 20%,transparent)}
+.fld>span{color:var(--muted);font-size:12px;white-space:nowrap}
+.fld input,.fld select{border:0;background:transparent;outline:0;height:30px;padding:0;min-width:0}
+.fld select{cursor:pointer}.fld select option{background:var(--surface);color:var(--ink)}
+.fld input[type=number]{width:52px}.fld input[type=date]{width:118px}
+.fld.grow{flex:1 1 180px}.fld.grow input{width:100%}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer;user-select:none;height:32px}
+.chk input{accent-color:var(--blue);width:15px;height:15px;margin:0}
+
+/* Popover */
+.pop{position:absolute;right:28px;top:56px;z-index:30;width:320px;padding:16px;border:1px solid var(--line-2);border-radius:14px;background:var(--surface);box-shadow:var(--pop)}
+@media (max-width:640px){.pop{right:14px;left:14px;width:auto}}
+.pop h3{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.pop .r{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.pop .r label{font-size:13px}.pop .r small{display:block;color:var(--muted);font-size:11.5px}
+.pop input[type=number]{width:96px;height:30px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);padding:0 8px;text-align:right}
+
+/* ───────── Intro ───────── */
+.intro{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.intro h1{font-size:26px;letter-spacing:-.025em;line-height:1.15;font-weight:700}
+.intro p{color:var(--ink-2);margin-top:6px;max-width:58ch}
+.kpis{display:flex;gap:10px;flex-wrap:wrap}
+.kpi{padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:92px}
+.kpi b{display:block;font-size:20px;letter-spacing:-.02em;line-height:1.2}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 14px;margin-bottom:18px;border-radius:12px;background:var(--yellow-soft);border:1px solid color-mix(in srgb,var(--yellow) 55%,transparent);color:var(--yellow-ink);font-size:13px}
+
+/* Groups & cards */
+.group{margin-bottom:34px}
+.group-h{display:flex;align-items:baseline;gap:12px;margin:0 2px 12px}
+.group-h h3{font-size:15px;letter-spacing:-.01em}
+.group-h p{font-size:12.5px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,390px),1fr));gap:16px;align-items:start;container-type:inline-size}
+@container (min-width:820px){.card.wide{grid-column:span 2}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);min-width:0;overflow:hidden}
+.card.flash{animation:flash 1.2s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 45%,transparent)}100%{box-shadow:var(--shadow)}}
+.card-h{display:flex;align-items:center;gap:11px;padding:14px 16px 4px}
+.ico{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);flex:none}
+.titles{min-width:0;flex:1}
+.titles h2{font-size:14.5px;letter-spacing:-.01em;line-height:1.25;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.titles code{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font:600 10px var(--font);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.status{font:600 11.5px var(--mono);padding:3px 9px;border-radius:999px;background:var(--surface-3);color:var(--muted);white-space:nowrap}
+.status[data-state=ok]{background:var(--ok-soft);color:var(--ok)}
+.status[data-state=bad]{background:var(--bad-soft);color:var(--bad)}
+.status[data-state=run]{background:var(--blue-soft);color:var(--blue)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px 12px}
+.controls .btn.run{margin-left:auto}
+.hint{padding:0 16px 10px;font-size:12px;color:var(--muted)}
+.view{padding:6px 16px 14px;min-height:60px}
+.empty{display:flex;align-items:center;gap:10px;padding:18px 14px;border:1px dashed var(--line-2);border-radius:12px;color:var(--muted);font-size:13px}
+.card-f{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line);background:var(--surface-2)}
+.linkbtn{border:0;background:none;color:var(--ink-2);font-size:12.5px;font-weight:550;display:inline-flex;gap:6px;align-items:center;padding:4px 6px;border-radius:7px}
+.linkbtn:hover{background:var(--surface-3);color:var(--ink)}
+.linkbtn svg{transition:transform .2s}.linkbtn[aria-expanded=true] svg{transform:rotate(90deg)}
+.raw{padding:12px 16px 16px;border-top:1px solid var(--line);background:var(--surface-2)}
+.raw h5{margin:0 0 6px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.raw h5+pre{margin-bottom:12px}
+pre{margin:0;padding:11px 12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;font-size:12px;line-height:1.55;tab-size:2}
+
+/* Loading & errors */
+.skel{display:grid;gap:10px;padding:6px 0}
+.skel i{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--surface-3) 25%,var(--line) 50%,var(--surface-3) 75%);background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+.skel i:nth-child(1){width:42%;height:30px}.skel i:nth-child(3){width:78%}.skel i:nth-child(4){height:90px}
+@keyframes shimmer{to{background-position:-200% 0}}
+.errbox{display:flex;gap:12px;padding:13px 14px;border-radius:12px;background:var(--bad-soft);border:1px solid color-mix(in srgb,var(--bad) 30%,transparent);color:var(--ink)}
+.errbox>svg{flex:none;color:var(--bad);margin-top:1px}
+.errbox b{display:block;color:var(--bad);font-size:13px}
+.errbox p{margin:3px 0 8px;font-size:13px;color:var(--ink-2);overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;font:550 11.5px var(--font);padding:2px 9px;border-radius:999px;background:var(--surface-3);color:var(--ink-2);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}.chip.bad{background:var(--bad-soft);color:var(--bad)}.chip.warn{background:var(--warn-soft);color:var(--warn)}.chip.blue{background:var(--blue-soft);color:var(--blue-ink)}
+.chip.mono{font-family:var(--mono);font-weight:500}
+
+/* Result building blocks */
+.hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.big{font-size:34px;font-weight:700;letter-spacing:-.035em;line-height:1.05;font-variant-numeric:tabular-nums}
+.big small{font-size:15px;font-weight:550;letter-spacing:0;color:var(--muted);margin-left:4px}
+.sub{color:var(--muted);font-size:12.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:12px}
+.tile{padding:9px 11px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line)}
+.tile small{display:block;color:var(--muted);font-size:11.5px}
+.tile b{display:block;font-size:15.5px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.tile span{font-size:11.5px;color:var(--ink-2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:13px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;gap:11px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+.list li:last-child{border:0}.list li:first-child{padding-top:2px}
+.list .pin{color:var(--blue);margin-top:2px;flex:none}
+.list .body{min-width:0;flex:1}.list b{font-weight:600}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.split{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:8px 26px;align-items:start}
+@container (max-width:819px){.split{grid-template-columns:minmax(0,1fr)}}
+.card:not(.wide) .split{grid-template-columns:minmax(0,1fr)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:4px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+details.more{margin-top:10px}details.more summary{cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:550}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-weight:550;font-size:11.5px}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border:0}
+
+/* Charts */
+.chart{display:block;width:100%;overflow:visible;touch-action:pan-y}
+.chart .grid{stroke:var(--line);stroke-width:1}.chart .zero{stroke:var(--line-2);stroke-width:1}
+.chart text{fill:var(--muted);font:11px var(--font);font-variant-numeric:tabular-nums}
+.chart .axis-y{text-anchor:end}.chart .axis-x{text-anchor:middle}
+.chart .sep{stroke:var(--line-2);stroke-dasharray:3 3}
+.chart .hl{fill:var(--ink);opacity:.06}
+.chart .cross{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3}
+.chart-host{width:100%;min-height:60px}
+.tip{position:fixed;z-index:60;pointer-events:none;padding:7px 10px;border-radius:9px;background:var(--ink);color:var(--bg);box-shadow:var(--pop);font-size:12px;line-height:1.35;max-width:240px}
+.tip b{display:block;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tip span{opacity:.75}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:70;padding:9px 16px;border-radius:999px;background:var(--ink);color:var(--bg);font-size:13px;box-shadow:var(--pop)}
+
+/* Forecast */
+.wx-days{display:grid;gap:2px;margin-top:6px}
+.wx-day{display:grid;grid-template-columns:44px 28px minmax(70px,1fr) minmax(110px,1.3fr) 54px;gap:8px;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid var(--line)}
+.wx-day:last-child{border:0}
+.wx-day .d{font-weight:600;text-transform:capitalize}.wx-day .l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wx-day .p{text-align:right;color:var(--rain);font-size:12px;font-variant-numeric:tabular-nums}
+.range{display:grid;grid-template-columns:34px 1fr 34px;gap:7px;align-items:center;font-size:12.5px;font-variant-numeric:tabular-nums}
+.range>span:first-child{text-align:right;color:var(--muted)}
+.track{position:relative;height:6px;border-radius:99px;background:var(--surface-3)}
+.track i{position:absolute;top:0;bottom:0;border-radius:99px;background-image:linear-gradient(90deg,#4fa8e0,#f2b705 55%,#e2603f);background-repeat:no-repeat}
+.track u{position:absolute;top:-2px;width:3px;height:10px;border-radius:2px;background:var(--ink);transform:translateX(-1px)}
+@container (max-width:520px){.wx-day{grid-template-columns:42px 26px 1fr 54px}.wx-day .l{display:none}}
+.wx-days.hist .wx-day{grid-template-columns:62px minmax(120px,1fr) 64px}
+.wx-day.partial{opacity:.5}
+
+/* Environment, alerts, plate, bars */
+.hbar{display:grid;grid-template-columns:62px 1fr 92px;gap:9px;align-items:center;font-size:12.5px;margin:5px 0}
+.hbar .t{height:8px;border-radius:99px;background:var(--surface-3);overflow:hidden}.hbar .t i{display:block;height:100%;border-radius:99px;background:var(--low)}
+.hbar .v{text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.alert{position:relative;padding:11px 13px 11px 16px;margin:0 0 9px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.alert::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:4px;border-radius:0 4px 4px 0;background:var(--mid)}
+.alert.yellow::before{background:#e5bb00}.alert.orange::before{background:#ee8631}.alert.red::before{background:var(--bad)}
+.alert h4{margin:0 0 4px;font-size:13.5px;line-height:1.35}
+.alert p{margin:6px 0 0;font-size:12.5px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.alert p.open{-webkit-line-clamp:unset;display:block}
+.alert .go{font-size:12px;margin-top:6px;display:inline-flex;gap:5px;align-items:center}
+.plate{display:inline-flex;align-items:stretch;height:46px;border:2px solid #1b1b1b;border-radius:7px;background:#fff;overflow:hidden;box-shadow:0 3px 8px -3px rgba(0,0,0,.4)}
+.plate b{display:grid;place-items:center;width:20px;background:#0a4fa3;color:#ffd400;font:700 11px var(--font)}
+.plate span{display:grid;place-items:center;padding:0 14px;color:#111;font:700 25px/1 var(--mono);letter-spacing:.07em}
+.dbar{display:inline-block;height:6px;border-radius:99px;background:var(--ok);vertical-align:middle}.dbar.neg{background:var(--high)}
+
+/* Inspector */
+.insp{position:sticky;top:0;height:100vh;overflow:auto;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column}
+@media (max-width:1379px){
+  .insp{position:fixed;z-index:50;right:0;top:0;bottom:0;width:min(400px,100vw);background:var(--surface);box-shadow:var(--pop);transform:translateX(105%);transition:transform .25s ease}
+  body.insp-open .insp{transform:none}
+  .backdrop{position:fixed;inset:0;z-index:45;background:rgba(5,12,18,.45)}
+}
+@media (min-width:1380px){.insp-btn,.backdrop{display:none!important}}
+.insp-h{display:flex;align-items:center;gap:8px;padding:14px 16px 0;position:sticky;top:0;background:var(--surface);z-index:2;min-height:48px}
+.tabs{display:flex;gap:4px;padding:10px 16px 0;border-bottom:1px solid var(--line);position:sticky;top:48px;background:var(--surface);z-index:2}
+.tabs button{border:0;background:none;padding:8px 10px 9px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--blue)}
+.tabs button .chip{margin-left:5px;padding:0 7px}
+.pane{padding:14px 16px 24px}
+.src{display:grid;grid-template-columns:minmax(0,1fr) 32px 30px 108px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.src.head{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding-top:0}
+.src .n{text-align:right;font-variant-numeric:tabular-nums}
+.src .name{display:flex;gap:8px;align-items:center;min-width:0}
+.src .name div{min-width:0;line-height:1.25}
+.src .name b{display:block;font:500 12px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src .name small{color:var(--muted);font-size:11px}
+.src select{width:100%;height:28px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);padding:0 4px;font-size:12px}
+.src.faulted select{border-color:var(--warn);background:var(--warn-soft)}
+.src .bad{color:var(--bad);font-weight:650}
+.gauge{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.gauge .g{position:relative;width:116px;height:116px;flex:none}
+.gauge .g b{position:absolute;inset:0;display:grid;place-items:center;font-size:23px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.gauge .g b small{display:block;font:550 10.5px var(--font);color:var(--muted);letter-spacing:.04em;text-align:center;margin-top:-6px}
+.gauge .tiles{grid-template-columns:1fr;flex:1;margin:0}
+.log-tools{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+#log{font:11.5px/1.5 var(--mono)}
+#log div{display:grid;grid-template-columns:58px 92px minmax(0,1fr) auto;gap:8px;padding:3px 0;border-bottom:1px dashed var(--line)}
+#log span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #log .cache{color:var(--muted)}#log .fail{color:var(--bad)}#log span:last-child{text-align:right}
-.smoke li{display:flex;gap:8px;align-items:center}.smoke li .mono{margin-left:auto}
+#log .s2{color:var(--ok)}#log .s4{color:var(--bad)}
+.log-empty{padding:26px 0;text-align:center;color:var(--muted);font-size:13px}
+
+/* Run summary */
+.summary{padding:14px 16px;margin-bottom:22px}
+.summary .bar{height:6px;border-radius:99px;background:var(--surface-3);overflow:hidden;margin:10px 0 12px}
+.summary .bar i{display:block;height:100%;width:0;background:var(--blue);border-radius:99px;transition:width .25s ease}
+.summary .bar.done i{background:var(--ok)}.summary .bar.fail i{background:var(--bad)}
+.summary .head{display:flex;align-items:center;gap:10px}.summary .head b{font-size:14px}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<header>
-  <h1>sweden-open-data <small>dev board</small></h1>
-  <div class="seg" id="mode"><button data-mode="live">Live sources</button><button data-mode="fake">Fake sources</button></div>
-  <label class="inline">timeout <input type="number" id="timeoutMs" min="100" step="500"> ms</label>
-  <label class="inline">retries <input type="number" id="retries" min="0" max="5"></label>
-  <label class="inline">stale-if-error <input type="number" id="staleIfErrorMs" min="0" step="60000"> ms</label>
-  <label class="inline"><input type="checkbox" id="cache"> cache</label>
-  <label class="inline">locale <select id="locale"><option>sv</option><option>en</option></select></label>
-  <span style="flex:1"></span>
-  <button id="runAll" class="primary">Run all</button>
-  <button id="clearCache">Clear cache</button>
-  <button id="resetStats">Reset stats</button>
-</header>
-<main>
-<section class="grid">
-  <div class="card" id="smokeCard" hidden><h2>Run all <span class="badge" id="smokeBadge"></span></h2><ul class="plain smoke" id="smoke"></ul></div>
+<div class="app" id="app">
 
-  <div class="card" data-call="spot.overview">
-    <h2>Spot prices <span class="badge"></span></h2>
-    <div class="row">
-      <select name="area"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select>
-      <label class="inline">window <input type="number" name="windowHours" value="3" min="1" max="12"> h</label>
-      <label class="inline"><input type="checkbox" id="vat" checked> incl. VAT</label>
-      <button class="primary run">Run</button>
+  <aside class="side" id="side">
+    <a class="brand" href="#top" aria-label="sweden-open-data dev board">
+      <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#006aa7"/><rect x="9" width="5" height="32" fill="#fecc00"/><rect y="13.5" width="32" height="5" fill="#fecc00"/></svg>
+      <div><b>sweden-open-data</b><small>dev board</small></div>
+    </a>
+    <nav class="nav" id="nav" aria-label="API calls"></nav>
+    <div class="side-f" id="sideNote"></div>
+  </aside>
+
+  <div class="col">
+    <header class="top">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="filter" type="search" placeholder="Filter calls…" aria-label="Filter calls" autocomplete="off">
+        <kbd>/</kbd>
+      </div>
+      <span class="spacer"></span>
+      <span class="conn" id="conn" data-state="off" title="Live connection to the dev server"><i></i><span>connecting…</span></span>
+      <div class="seg" id="mode" role="group" aria-label="Data source">
+        <button data-mode="live" aria-pressed="false">Live</button><button data-mode="fake" aria-pressed="false">Fake</button>
+      </div>
+      <button class="btn icon" id="settingsBtn" aria-label="Client settings" aria-expanded="false" title="Client settings"></button>
+      <button class="btn icon" id="themeBtn" aria-label="Toggle theme" title="Theme: auto"></button>
+      <button class="btn insp-btn" id="inspBtn">Inspector</button>
+      <button class="btn primary" id="runAll"></button>
+      <div class="pop" id="settingsPop" hidden>
+        <h3>Client settings</h3>
+        <div class="r"><label for="timeoutMs">Timeout<small>per request</small></label><span><input type="number" id="timeoutMs" min="100" max="120000" step="500"> <span class="muted">ms</span></span></div>
+        <div class="r"><label for="retries">Retries<small>transient failures</small></label><input type="number" id="retries" min="0" max="10"></div>
+        <div class="r"><label for="staleIfErrorMs">Stale if error<small>serve old data on failure</small></label><span><input type="number" id="staleIfErrorMs" min="0" step="60000"> <span class="muted">ms</span></span></div>
+        <div class="r"><label for="cache">Cache<small>shared by all calls</small></label><input type="checkbox" id="cache" style="accent-color:var(--blue);width:18px;height:18px"></div>
+        <div class="r" style="margin-bottom:0"><label>Locale<small>labels and descriptions</small></label>
+          <div class="seg" id="locale" role="group" aria-label="Locale"><button data-locale="sv" aria-pressed="false">sv</button><button data-locale="en" aria-pressed="false">en</button></div></div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="intro">
+        <div>
+          <h1>Every source, one board</h1>
+          <p>Call each part of the package against the real sources or generated data, break them on purpose with fault injection, and watch requests and the cache as they happen.</p>
+        </div>
+        <div class="kpis" id="kpis"></div>
+      </section>
+      <div class="banner" id="banner" hidden></div>
+      <section class="card summary" id="summaryCard" hidden></section>
+      <div id="groups"></div>
+    </main>
+  </div>
+
+  <aside class="insp" id="insp" aria-label="Inspector">
+    <div class="insp-h"><h3 style="font-size:14px">Inspector</h3><span class="spacer"></span><button class="btn sm icon" id="inspClose" aria-label="Close inspector" style="width:28px"></button></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="sources" aria-selected="true">Sources</button>
+      <button role="tab" data-tab="cache" aria-selected="false">Cache</button>
+      <button role="tab" data-tab="log" aria-selected="false">Log<span class="chip" id="logCount">0</span></button>
     </div>
-    <div class="view"></div><div class="extra"></div>
-  </div>
-
-  <div class="card" data-call="weather.forecast">
-    <h2>Weather <span class="badge"></span></h2>
-    <div class="row">
-      <select class="preset"><option value="59.33,18.07">Stockholm</option><option value="57.71,11.97">Göteborg</option><option value="55.60,13.00">Malmö</option><option value="56.10,13.91">Vinslöv</option><option value="67.86,20.23">Kiruna</option></select>
-      <input name="lat" value="59.33" size="6"><input name="lon" value="18.07" size="6">
-      <label class="inline">days <input type="number" name="days" value="7" min="1" max="16"></label>
-      <button class="primary run">Run</button>
+    <div class="pane" id="pane-sources">
+      <div id="sources"></div>
+      <p class="note">A fault applies to every request to that source until you switch it off. Try <b>hang</b> with a short timeout, or <b>offline</b> with stale-if-error turned on.</p>
     </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="alerts.near">
-    <h2>Alerts <span class="badge"></span></h2>
-    <div class="row">
-      <input name="p" value="56.10,13.91;59.33,18.07" size="22" title="lat,lon;lat,lon">
-      <label class="inline">days <input type="number" name="days" value="7" min="1" max="30"></label>
-      <label class="inline"><input type="checkbox" name="neighbors" value="1"> neighbours</label>
-      <select name="minLevel"><option value="">any level</option><option value="yellow">≥ yellow</option><option value="orange">≥ orange</option><option value="red">red</option></select>
-      <select name="kinds"><option value="">all kinds</option><option value="vma">VMA</option><option value="warning">warnings</option><option value="news">news</option><option value="vma,warning">VMA + warnings</option></select>
-      <button class="primary run">Run</button>
+    <div class="pane" id="pane-cache" hidden>
+      <div class="gauge"><div class="g" id="gauge"></div><div class="tiles" id="cacheTiles"></div></div>
+      <div class="chips" style="gap:8px"><button class="btn sm" id="clearCache">Clear cache</button><button class="btn sm" id="resetStats">Reset stats &amp; log</button></div>
+      <p class="note" id="since"></p>
     </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="geo.addresses">
-    <h2>Address search <span class="badge"></span></h2>
-    <div class="row">
-      <input name="q" value="Åraslöv 1105, 28890 Vinslöv" size="28">
-      <select name="country"><option value="SE">SE</option><option value="">anywhere</option></select>
-      <button class="primary run">Run</button>
+    <div class="pane" id="pane-log" hidden>
+      <div class="log-tools"><label class="chk"><input type="checkbox" id="hideCache"><span>Hide cache events</span></label></div>
+      <div id="log"></div><div class="log-empty" id="logEmpty">No requests yet.</div>
     </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="geo.places">
-    <h2>Place search <span class="badge"></span></h2>
-    <div class="row">
-      <input name="q" value="Kebnekaise" size="20">
-      <label class="inline"><input type="checkbox" name="poi" value="1" checked> points of interest</label>
-      <button class="primary run">Run</button>
-    </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="geo.region">
-    <h2>Region for a position <span class="badge"></span></h2>
-    <div class="row"><input name="lat" value="56.10" size="6"><input name="lon" value="13.91" size="6"><button class="primary run">Run</button></div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="spot.history">
-    <h2>Price history <span class="badge"></span></h2>
-    <div class="row">
-      <select name="area"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select>
-      <input type="date" name="from"><input type="date" name="to">
-      <button class="primary run">Run</button>
-    </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="weather.history">
-    <h2>Temperature history <span class="badge"></span></h2>
-    <div class="row">
-      <input name="lat" value="59.33" size="6"><input name="lon" value="18.07" size="6">
-      <input type="date" name="from"><input type="date" name="to">
-      <button class="primary run">Run</button>
-    </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="weather.environment">
-    <h2>UV, pollen &amp; air quality <span class="badge"></span></h2>
-    <div class="row">
-      <input name="lat" value="55.60" size="6"><input name="lon" value="13.00" size="6">
-      <label class="inline">days <input type="number" name="days" value="1" min="1" max="4"></label>
-      <button class="primary run">Run</button>
-    </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="economy.housing">
-    <h2>Huspriser · SCB <span class="badge"></span></h2>
-    <div class="row"><select name="frequency"><option value="quarter">Kvartal · region</option><option value="year">År · län</option></select><input name="region" value="00" size="8" title="SCB-kod: 00 Riket, RIKS4 Sydsverige (kvartal), 12 Skåne (år)"><button class="primary run">Run</button></div>
-    <p class="muted">Permanenta småhus. Kvartal: RIKS1–RIKS8 eller storstadsområden 0010–0030. År: länskod, t.ex. 12 för Skåne.</p><div class="view"></div>
-  </div>
-  <div class="card" data-call="economy.cpi">
-    <h2>Inflation (KPI) <span class="badge"></span></h2>
-    <div class="row">
-      <select name="index"><option>KPI</option><option>KPIF</option><option>KPIF-XE</option></select>
-      <label class="inline"><input type="number" name="amount" value="10000" size="7"> kr in</label>
-      <input name="from" value="2000-01" size="7" title="YYYY-MM">
-      <button class="primary run">Run</button>
-    </div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="sports.search">
-    <h2>Sports <span class="badge"></span></h2>
-    <div class="row"><input name="q" value="brott" size="16"><button class="primary run">Run</button></div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="education.search">
-    <h2>Universities &amp; colleges <span class="badge"></span></h2>
-    <div class="row"><input name="q" value="tekniska" size="16"><button class="primary run">Run</button></div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="investments.overview">
-    <h2>Investment companies <span class="badge warn">experimental</span> <span class="badge"></span></h2>
-    <div class="row"><button class="primary run">Run</button><span class="muted">IBIndex – no public API or agreement</span></div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="investments.company">
-    <h2>Investment company <span class="badge warn">experimental</span> <span class="badge"></span></h2>
-    <div class="row"><input name="product" placeholder="e.g. INVE B (empty: the first)" size="22"><button class="primary run">Run</button></div>
-    <div class="view"></div>
-  </div>
-
-  <div class="card" data-call="vehicles.free">
-    <h2>Vehicle lookup <span class="badge warn">experimental</span> <span class="badge"></span></h2>
-    <div class="row"><input name="plate" value="ABC123" size="8"><button class="primary run">Run</button><span class="muted">Transportstyrelsen's public page</span></div>
-    <div class="view"></div>
-  </div>
-</section>
-
-<aside>
-  <div class="card"><h2>Sources &amp; faults</h2><table id="sources"></table>
-    <p class="muted" style="font-size:12px;margin:8px 0 0">A fault applies to every request to that source until you switch it off – try <i>hang</i> with a short timeout, or <i>offline</i> with stale-if-error on.</p></div>
-  <div class="card"><h2>Cache <span class="badge" id="cacheBadge"></span></h2><div id="cacheStats" class="mono"></div></div>
-  <div class="card"><h2>Live log <span class="badge" id="logCount">0</span></h2><div id="log"></div></div>
-</aside>
-</main>
+  </aside>
+</div>
+<div class="backdrop" id="backdrop" hidden></div>
+<div class="tip" id="tip" hidden></div>
+<div class="toast" id="toast" hidden></div>
 
 <script>
-const $ = (s, el = document) => el.querySelector(s);
-const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-const h = (tag, attrs = {}, ...kids) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) k === "class" ? e.className = v : k.startsWith("on") ? e[k] = v : e.setAttribute(k, v); for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k))); return e; };
-const NS = "http://www.w3.org/2000/svg";
-const s = (tag, attrs = {}) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
-const clock = (iso) => new Date(iso).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Stockholm" });
-const ore = (sek) => `${(sek * 100).toFixed(Math.abs(sek) < 0.1 ? 1 : 0).replace(".", ",")} öre`;
-const deg = (c) => c == null ? "–" : `${Math.round(c)}°`;
-const FAULTS = { none: null, "slow 2 s": { delayMs: 2000 }, hang: { hang: true }, offline: { offline: true }, "HTTP 503": { status: 503 }, "429 + Retry-After 30": { status: 429, retryAfter: 30 }, "invalid JSON": { invalidJson: true }, "flaky 50 %": { offline: true, rate: 0.5 } };
-let state = null;
-
-async function api(path, init) { const r = await fetch(path, init); return r.json(); }
-const post = (path, body) => api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
-
-function params(card) {
-  const q = new URLSearchParams();
-  for (const el of $$("[name]", card)) {
-    if (el.type === "checkbox") { if (el.checked) q.set(el.name, el.value || "1"); }
-    else if (el.value !== "") q.set(el.name, el.value);
+"use strict";
+/* ───────── Helpers ───────── */
+const $ = (sel, el = document) => el.querySelector(sel);
+const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
+const h = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k.startsWith("on")) e[k] = v;
+    else e.setAttribute(k, v === true ? "" : v);
   }
-  return q;
-}
+  for (const k of kids.flat(Infinity)) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const SVGNS = "http://www.w3.org/2000/svg";
+const s = (tag, attrs = {}, ...kids) => {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  for (const k of kids.flat()) if (k) e.append(k);
+  return e;
+};
+const text = (str, attrs) => { const t = s("text", attrs); t.textContent = str; return t; };
 
-async function run(card) {
-  const call = card.dataset.call, badge = $("h2 .badge:last-of-type", card), view = $(".view", card);
-  badge.className = "badge"; badge.textContent = "…";
-  const res = await api(`/api/call/${call}?${params(card)}`);
-  badge.className = `badge ${res.ok ? "ok" : "bad"}`; badge.textContent = `${res.ok ? "ok" : res.error.code ?? res.error.name} · ${res.ms} ms`;
-  view.replaceChildren();
-  if (res.ok) view.append(RENDER[call](res.annotations ? { ...res.result, ...res.annotations } : res.result, card)); else view.append(h("div", { class: "err" }, h("b", {}, res.error.name, res.error.code ? ` · ${res.error.code}` : ""), " ", res.error.message, res.error.transient ? " (transient – worth retrying)" : "", res.error.retryAfterMs ? ` · Retry-After ${res.error.retryAfterMs / 1000} s` : ""));
-  view.append(h("details", {}, h("summary", {}, "code & raw result"), h("pre", {}, res.code), h("pre", {}, JSON.stringify(res.ok ? res.result : res.error, null, 2))));
-  refresh();
-  return res;
-}
-
-const RENDER = {
-  "weather.history"(r) {
-    const box = h("div"), byDay = new Map();
-    for (const x of r.hours) { const d = new Date(x.at).toISOString().slice(0, 10); byDay.set(d, [...(byDay.get(d) ?? []), x.celsius]); }
-    const days = [...byDay].map(([date, t]) => ({ date, min: Math.min(...t), max: Math.max(...t), avg: t.reduce((a, b) => a + b, 0) / t.length }));
-    box.append(h("table", {}, h("tr", {}, h("th", {}, "day"), h("th", {}, "min"), h("th", {}, "mean"), h("th", {}, "max")),
-      days.map((d) => h("tr", {}, h("td", {}, d.date), h("td", {}, deg(d.min)), h("td", {}, deg(d.avg)), h("td", {}, deg(d.max))))));
-    box.append(h("p", { class: "muted" }, `${r.hours.length} hours · ${r.source}`));
-    return box;
-  },
-  "weather.environment"(r) {
-    const max = (pick) => { const v = r.hours.map(pick).filter((x) => x != null); return v.length ? Math.max(...v) : "–"; };
-    const names = { alder: "Al", birch: "Björk", grass: "Gräs", mugwort: "Gråbo", olive: "Oliv", ragweed: "Ambrosia" };
-    return h("dl", { class: "kv" },
-      h("dt", {}, "UV index max"), h("dd", {}, max((x) => x.uvIndex)),
-      h("dt", {}, "European AQI max"), h("dd", {}, max((x) => x.europeanAqi)),
-      h("dt", {}, "PM2.5 / PM10 max"), h("dd", {}, `${max((x) => x.pm25)} / ${max((x) => x.pm10)} µg/m³`),
-      Object.entries(names).flatMap(([k, label]) => [h("dt", {}, label), h("dd", {}, `${max((x) => x.pollen[k])} grains/m³`)]));
-  },
-  "economy.housing"(r) {
-    const box=h("div"),pts=r.points,W=500,H=100,values=pts.map(p=>p.value),min=Math.min(...values),max=Math.max(...values),first=pts[0],last=pts.at(-1);
-    box.append(h("p",{},`${r.label} · ${first.period}–${last.period} · ${((last.value/first.value-1)*100).toFixed(1)} % · ${r.base}`));
-    const svg=s("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Husprisindex över tid"});svg.append(s("path",{d:pts.map((p,i)=>`${i?"L":"M"}${i/Math.max(1,pts.length-1)*W},${H-8-(p.value-min)/(max-min||1)*(H-16)}`).join(""),fill:"none",stroke:"var(--accent)","stroke-width":2}));box.append(svg);
-    box.append(h("p",{class:"muted"},`${r.source} · hämtat ${r.fetchedAt}${r.stale?" · sparad äldre serie":""}`));
-    box.append(h("table",{},h("tr",{},h("th",{},"Period"),h("th",{},"Index")),pts.slice(-16).map(p=>h("tr",{},h("td",{},p.period),h("td",{},p.value)))));for(const note of r.notes)box.append(h("p",{class:"muted"},note));return box;
-  },
-  "economy.cpi"(r) {
-    const box = h("div");
-    box.append(h("div", { class: "row" }, h("span", { class: "big" }, `${Math.round(r.adjusted.amount).toLocaleString("sv-SE")} kr`),
-      h("span", { class: "muted" }, `${r.adjusted.from} → ${r.adjusted.to} (+${(r.adjusted.change * 100).toFixed(1)} %)`)));
-    box.append(h("dl", { class: "kv" },
-      h("dt", {}, r.series.label), h("dd", {}, `${r.latest?.month}: ${r.latest?.value} (${r.series.base})${r.series.stale ? " · older copy" : ""}`),
-      h("dt", {}, "Annual inflation"), h("dd", {}, r.annualInflation == null ? "–" : `${(r.annualInflation * 100).toFixed(1)} %`)));
-    const pts = r.last24, W = 400, H = 60, v = pts.map((p) => p.value), min = Math.min(...v), mx = Math.max(...v);
-    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Index, last 24 months" });
-    svg.append(s("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${(i / Math.max(1, pts.length - 1)) * W},${H - ((p.value - min) / ((mx - min) || 1)) * (H - 8) - 4}`).join(""), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
-    box.append(svg);
-    return box;
-  },
-  "sports.search"(r) {
-    return h("div", {}, h("ul", { class: "plain" }, r.matches.map((x) => h("li", {}, `${x.emoji} ${x.name} `, h("span", { class: "muted mono" }, x.id)))),
-      h("p", { class: "muted" }, r.exact ? `exact match: ${r.exact.id}` : "no exact match"));
-  },
-  "education.search"(r) {
-    return h("ul", { class: "plain" }, r.map((x) => h("li", {}, h("a", { href: x.website, target: "_blank", rel: "noopener" }, x.name), " ", h("span", { class: "muted mono" }, `${x.id} · ${x.kind}`))));
-  },
-  "investments.overview"(r) {
-    const rows = [...r.companies].sort((a, b) => (b.reportedDiscount ?? -999) - (a.reportedDiscount ?? -999));
-    const pct = (v) => v == null ? "–" : v >= 0 ? `${v.toFixed(1)} %` : `premium ${(-v).toFixed(1)} %`;
-    return h("div", {}, h("table", {}, h("tr", {}, h("th", {}, "company"), h("th", {}, "price"), h("th", {}, "NAV"), h("th", {}, "discount")),
-      rows.map((c) => h("tr", {}, h("td", {}, c.name), h("td", {}, c.price.toFixed(1)), h("td", {}, c.reportedNav?.toFixed(1) ?? "–"), h("td", {}, pct(c.reportedDiscount))))),
-      h("p", { class: "muted" }, `${r.sourceUrl}${r.stale ? " · older copy" : ""}`));
-  },
-  "investments.company"(r) {
-    const last = r.history.at(-1);
-    return h("div", {}, h("div", { class: "row" }, h("span", { class: "big" }, r.company.name), h("span", { class: "muted" }, r.company.symbol)),
-      h("dl", { class: "kv" }, h("dt", {}, "Latest"), h("dd", {}, last ? `${last.date}: ${last.price} kr, NAV ${last.reportedNav ?? "–"}` : "–"),
-        h("dt", {}, "History"), h("dd", {}, `${r.history.length} days`), h("dt", {}, "Holdings"), h("dd", {}, `as of ${r.holdingsDate ?? "–"}`)),
-      h("ul", { class: "plain" }, r.holdings.slice(0, 8).map((x) => h("li", {}, `${x.name} `, h("span", { class: "muted" }, x.weightPct == null ? x.categoryName ?? x.category : `${x.weightPct.toFixed(1)} %`)))));
-  },
-  "vehicles.free"(v) {
-    if (!v) return h("p", { class: "muted" }, "No vehicle with that registration number.");
-    return h("dl", { class: "kv" }, h("dt", {}, "Vehicle"), h("dd", {}, `${v.registrationNumber} · ${v.make ?? ""} ${v.model ?? ""}`),
-      h("dt", {}, "Model year"), h("dd", {}, v.modelYear ?? "–"), h("dt", {}, "Odometer"), h("dd", {}, v.mileageKm == null ? "–" : `${v.mileageKm.toLocaleString("sv-SE")} km`),
-      h("dt", {}, "Annual tax"), h("dd", {}, v.annualTaxKr == null ? "–" : `${v.annualTaxKr} kr`), h("dt", {}, "Inspect by"), h("dd", {}, v.nextInspectionDeadline ?? "–"));
-  },
-  "spot.overview"(r, card) {
-    const vat = $("#vat").checked ? 1.25 : 1, box = h("div");
-    if (!r.today) return h("p", { class: "muted" }, "No prices for today.");
-    box.append(h("div", { class: "row" }, h("span", { class: "big" }, r.current ? ore(r.current.sek * vat) : "–"), h("span", { class: "muted" }, "/kWh now"), r.today.level && h("span", { class: `badge ${r.today.level === "low" ? "ok" : r.today.level === "high" ? "bad" : ""}` }, r.today.level)));
-    box.append(h("dl", { class: "kv" },
-      h("dt", {}, "Today min–max"), h("dd", {}, `${ore(r.today.min.sek * vat)} – ${ore(r.today.max.sek * vat)} · avg ${ore(r.today.average * vat)}`),
-      h("dt", {}, "Cheapest window"), h("dd", {}, r.today.cheapest ? `${clock(r.today.cheapest.start)}–${clock(r.today.cheapest.end)} · ${ore(r.today.cheapest.average * vat)}` : "–"),
-      h("dt", {}, "Tomorrow"), h("dd", {}, r.tomorrow ? `avg ${ore(r.tomorrow.average * vat)} · cheapest ${clock(r.tomorrow.cheapest.start)}` : "not published yet (≈ 13:00)")));
-    // chart: today and tomorrow hourly, from the full prices call
-    api(`/api/call/spot.prices?area=${r.area}`).then((p) => { if (p.ok) $(".extra", card).replaceChildren(chart([...(p.result.today?.points ?? []), ...(p.result.tomorrow?.points ?? [])], r, vat)); });
-    return box;
-  },
-  "weather.forecast"(w) {
-    const box = h("div");
-    box.append(h("div", { class: "row" }, h("span", { class: "big" }, deg(w.current.temperature)), h("span", {}, w.labels?.[w.current.code] ?? `code ${w.current.code}`), w.currentIsForecast && h("span", { class: "badge warn" }, "forecast"), h("span", { class: "muted" }, `wind ${w.current.wind ?? "–"} m/s · ${w.current.precipitation ?? 0} mm`)));
-    const hours = w.hours.slice(0, 48), W = 400, H = 70, t = hours.map((x) => x.temperature), min = Math.min(...t), max = Math.max(...t);
-    const svg = s("svg", { viewBox: `0 0 ${W} ${H + 14}`, role: "img", "aria-label": "Temperature, next 48 hours" });
-    svg.append(s("path", { d: hours.map((x, i) => `${i ? "L" : "M"}${(i / (hours.length - 1)) * W},${H - ((x.temperature - min) / ((max - min) || 1)) * (H - 8) - 4}`).join(""), fill: "none", stroke: "var(--accent)", "stroke-width": 2 }));
-    for (const [i, x] of hours.entries()) if (i % 12 === 0) { const tx = s("text", { x: (i / (hours.length - 1)) * W, y: H + 12, "font-size": 10, fill: "var(--muted)" }); tx.textContent = clock(x.time); svg.append(tx); }
-    box.append(svg);
-    box.append(h("ul", { class: "plain" }, w.days.map((d) => h("li", {}, h("b", {}, d.date), ` ${deg(d.min)} – ${deg(d.max)} · ${w.labels?.[d.code] ?? `code ${d.code}`}`, d.precipitation ? ` · ${d.precipitation} mm` : ""))));
-    return box;
-  },
-  "alerts.near"(r) {
-    const box = h("div");
-    box.append(h("p", { class: "muted" }, r.places.map((p, i) => `#${i} ${p.locality ?? p.municipality ?? ""} ${p.county ?? ""}${p.guessed ? " (guessed)" : ""}`).join(" · ")));
-    box.append(h("p", {}, r.sources.map((s) => h("span", { class: `badge ${s.ok ? "ok" : "bad"}`, style: "margin-right:6px" }, `${s.id} ${s.ok ? "✓" : "✗"}`))));
-    if (!r.alerts.length) box.append(h("p", { class: "muted" }, "Nothing that concerns these places."));
-    for (const a of r.alerts) box.append(h("div", { class: `alert ${a.level ?? ""}` }, h("b", {}, a.title), h("small", {}, `${a.kind}${a.national ? " · national" : ""} · places ${a.places.join(", ")} · ${new Date(a.published).toLocaleString("sv-SE")}`), a.summary && h("div", {}, a.summary)));
-    return box;
-  },
-  "geo.addresses"(list) {
-    if (!list.length) return h("p", { class: "muted" }, "No matches.");
-    return h("ul", { class: "plain" }, list.map((a) => h("li", {}, h("b", {}, a.label), " ", a.approximate ? h("span", { class: "badge warn" }, `approximate · near ${a.near}`) : h("span", { class: "badge" }, a.precision), h("div", { class: "muted mono" }, `${a.latitude}, ${a.longitude}`))));
-  },
-  "geo.places"(list) {
-    if (!list.length) return h("p", { class: "muted" }, "No matches.");
-    return h("ul", { class: "plain" }, list.map((p) => h("li", {}, h("b", {}, p.name), ` ${p.region} · ${p.countryCode}`, h("div", { class: "muted mono" }, `${p.latitude}, ${p.longitude} · ${p.source}`))));
-  },
-  "geo.region"(r) {
-    return h("dl", { class: "kv" }, ...["locality", "municipality", "county", "guessed", "latitude", "longitude"].flatMap((k) => r[k] === undefined ? [] : [h("dt", {}, k), h("dd", {}, String(r[k]))]));
-  },
-  "spot.history"(r) {
-    const box = h("div"), avg = r.days.map((d) => ({ date: d.date, v: d.points.reduce((a, p) => a + p.sek, 0) / d.points.length }));
-    if (avg.length) {
-      const W = 400, H = 90, max = Math.max(...avg.map((d) => d.v), 0.01), bw = W / avg.length;
-      const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Average price per day" });
-      avg.forEach((d, i) => { const bh = Math.max(1, (d.v / max) * (H - 4)); const r = s("rect", { x: i * bw + 1, y: H - bh, width: Math.max(1, bw - 2), height: bh, rx: 2, fill: "var(--accent)" }); const t = s("title"); t.textContent = `${d.date}: ${ore(d.v)}`; r.append(t); svg.append(r); });
-      box.append(svg);
-    }
-    box.append(h("p", { class: "muted" }, `${r.days.length} complete days`, r.missing.length ? ` · missing: ${r.missing.map((m) => `${m.date} (${m.reason})`).join(", ")}` : ""));
-    return box;
-  },
+/* Icons are static strings (never data), so innerHTML is safe here. */
+const ICONS = {
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  cloud: '<path d="M7 18a4 4 0 0 1-.4-7.98A6 6 0 0 1 18 9.6 4.2 4.2 0 0 1 17.5 18z"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/>',
+  trend: '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+  school: '<path d="m2 9 10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/>',
+  trophy: '<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/>',
+  car: '<path d="M5 17h14"/><path d="m3 13 2-6h14l2 6v4H3z"/><path d="M7 17v2M17 17v2"/>',
+  leaf: '<path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 16-9 0 9-3 16-9 16z"/><path d="M4 21c2-6 5-9 9-11"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15v3M12 10v8M17 6v12"/>',
+  coins: '<circle cx="9" cy="9" r="6"/><path d="M15.5 9.4A6 6 0 1 1 9.4 15.5"/>',
+  briefcase: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M3 13h18"/>',
+  alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  contrast: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/>',
+  play: '<path d="m7 4 13 8-13 8z" fill="currentColor"/>',
+  chevron: '<path d="m9 6 6 6-6 6"/>',
+  copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  check: '<path d="m5 12 5 5L20 7"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-1.5 5.4"/><path d="M20 4v7h-7"/>',
+};
+const icon = (name, size = 18, stroke = 1.8) => {
+  const svg = s("svg", { viewBox: "0 0 24 24", width: size, height: size, fill: "none", stroke: "currentColor", "stroke-width": stroke, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" });
+  svg.innerHTML = ICONS[name] ?? "";
+  return svg;
 };
 
-function chart(points, overview, vat) {
-  const hourly = [], byHour = new Map();
-  for (const p of points) { const k = Math.floor(Date.parse(p.start) / 3.6e6); (byHour.get(k) ?? byHour.set(k, []).get(k)).push(p); }
-  for (const [k, g] of byHour) hourly.push({ t: k * 3.6e6, sek: g.reduce((a, p) => a + p.sek, 0) / g.length });
-  const W = 420, H = 110, max = Math.max(...hourly.map((p) => p.sek), 0.01), min = Math.min(0, ...hourly.map((p) => p.sek)), bw = W / hourly.length;
-  const svg = s("svg", { viewBox: `0 0 ${W} ${H + 14}`, role: "img", "aria-label": "Hourly prices" });
-  const cheap = overview.today?.cheapest, now = Date.now();
-  if (cheap) svg.append(s("rect", { x: hourly.findIndex((p) => p.t >= Date.parse(cheap.start)) * bw, y: 0, width: ((Date.parse(cheap.end) - Date.parse(cheap.start)) / 3.6e6) * bw, height: H, fill: "var(--low)", opacity: 0.12 }));
-  const lo = overview.today ? overview.today.min.sek + (overview.today.max.sek - overview.today.min.sek) / 3 : 0, hi = overview.today ? overview.today.max.sek - (overview.today.max.sek - overview.today.min.sek) / 3 : 0;
-  hourly.forEach((p, i) => {
-    const y0 = H - ((0 - min) / (max - min)) * H, y = H - ((p.sek - min) / (max - min)) * H;
-    const r = s("rect", { x: i * bw + 0.5, y: Math.min(y, y0), width: Math.max(1, bw - 1), height: Math.max(1, Math.abs(y0 - y)), fill: p.sek <= lo ? "var(--low)" : p.sek >= hi ? "var(--high)" : "var(--mid)", opacity: p.t + 3.6e6 < now ? 0.45 : 1 });
-    if (p.t <= now && now < p.t + 3.6e6) { r.setAttribute("stroke", "var(--text)"); r.setAttribute("stroke-width", "1.5"); }
-    const t = s("title"); t.textContent = `${new Date(p.t).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })}: ${ore(p.sek * vat)}`; r.append(t); svg.append(r);
-    if (i % 6 === 0) { const tx = s("text", { x: i * bw, y: H + 12, "font-size": 10, fill: "var(--muted)" }); tx.textContent = clock(new Date(p.t).toISOString()); svg.append(tx); }
-  });
+/* Weather glyphs, drawn from a few primitives. */
+const WX = {
+  sun: { sun: 1 }, partly: { sun: 1, cloud: 1 }, cloud: { cloud: 1 }, fog: { cloud: 1, fog: 1 },
+  drizzle: { cloud: 1, rain: 1 }, rain: { cloud: 1, rain: 2 }, sleet: { cloud: 1, sleet: 1 }, snow: { cloud: 1, snow: 1 },
+  showers: { sun: 1, cloud: 1, rain: 2 }, snowshowers: { sun: 1, cloud: 1, snow: 1 }, thunder: { cloud: 1, bolt: 1, rain: 1 },
+};
+function wxIcon(kind, size = 28) {
+  const p = WX[kind] ?? WX.cloud, svg = s("svg", { viewBox: "0 0 48 48", width: size, height: size, "aria-hidden": "true" });
+  const sunOnly = p.sun && !p.cloud, cx = sunOnly ? 24 : 17, cy = sunOnly ? 24 : 17, r = sunOnly ? 8 : 6.5;
+  if (p.sun) {
+    const rays = s("g", { stroke: "var(--sun)", "stroke-width": 2.4, "stroke-linecap": "round" });
+    for (let a = 0; a < 8; a++) { const t = (a * Math.PI) / 4, r1 = r + 3.5, r2 = r + (sunOnly ? 8 : 6); rays.append(s("line", { x1: cx + Math.cos(t) * r1, y1: cy + Math.sin(t) * r1, x2: cx + Math.cos(t) * r2, y2: cy + Math.sin(t) * r2 })); }
+    svg.append(rays, s("circle", { cx, cy, r, fill: "var(--sun)" }));
+  }
+  if (p.cloud) {
+    const dy = p.sun ? 3 : 0;
+    svg.append(s("path", { d: "M14 35h21a7 7 0 0 0 .8-13.95A10 10 0 0 0 16.6 19.5 7.7 7.7 0 0 0 14 35z", transform: `translate(${p.sun ? 3 : 0} ${dy})`, fill: p.bolt ? "var(--cloud-2)" : "var(--cloud)", stroke: "var(--cloud-2)", "stroke-width": 1.2, "stroke-linejoin": "round" }));
+  }
+  const x0 = p.sun ? 14 : 12;
+  if (p.rain) for (let i = 0; i < (p.rain === 2 ? 4 : 3); i++) svg.append(s("line", { x1: x0 + 6 + i * 6.5, y1: 40, x2: x0 + 3.6 + i * 6.5, y2: 45, stroke: "var(--rain)", "stroke-width": 2.4, "stroke-linecap": "round" }));
+  if (p.snow) for (let i = 0; i < 3; i++) svg.append(s("circle", { cx: x0 + 8 + i * 8, cy: i % 2 ? 43.5 : 41.5, r: 2, fill: "var(--ink-2)", opacity: ".7" }));
+  if (p.sleet) { svg.append(s("line", { x1: x0 + 8, y1: 40, x2: x0 + 5.6, y2: 45, stroke: "var(--rain)", "stroke-width": 2.4, "stroke-linecap": "round" }), s("circle", { cx: x0 + 18, cy: 42.5, r: 2, fill: "var(--ink-2)", opacity: ".7" })); }
+  if (p.fog) for (let i = 0; i < 2; i++) svg.append(s("line", { x1: 12 + i * 4, y1: 40 + i * 4.5, x2: 36 - i * 4, y2: 40 + i * 4.5, stroke: "var(--cloud-2)", "stroke-width": 2.4, "stroke-linecap": "round" }));
+  if (p.bolt) svg.append(s("path", { d: "M25 31l-5 9h5l-2 7 8-11h-5l3-5z", fill: "var(--sun)", stroke: "var(--sun)", "stroke-width": 1, "stroke-linejoin": "round" }));
   return svg;
 }
 
-function renderState() {
-  for (const b of $$("#mode button")) b.classList.toggle("on", b.dataset.mode === state.config.mode);
-  for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) if (document.activeElement !== $(`#${k}`)) $(`#${k}`).value = state.config[k];
-  $("#cache").checked = state.config.cache; $("#locale").value = state.config.locale;
-  const rows = state.sources.map((id) => {
-    const st = state.stats.sources[id], current = state.faults[id], sel = h("select", { onchange: (e) => post("/api/fault", { source: id, fault: FAULTS[e.target.value] }).then(refresh) });
-    for (const name of Object.keys(FAULTS)) { const o = h("option", {}, name); if (JSON.stringify(FAULTS[name]) === JSON.stringify(current ?? null)) o.selected = true; sel.append(o); }
-    return h("tr", {}, h("td", {}, id), h("td", { class: "num" }, st?.requests ?? 0), h("td", { class: "num", style: st?.failures ? "color:var(--bad)" : "" }, st?.failures ?? 0), h("td", { class: "num" }, st ? `${st.averageMs} ms` : "–"), h("td", {}, sel));
-  });
-  $("#sources").replaceChildren(h("tr", {}, h("th", {}, "source"), h("th", {}, "req"), h("th", {}, "fail"), h("th", {}, "avg"), h("th", {}, "fault")), ...rows);
-  const c = state.stats.cache, total = c.hits + c.misses;
-  $("#cacheBadge").textContent = total ? `${Math.round((c.hits / total) * 100)} % hits` : "–";
-  $("#cacheStats").textContent = `hits ${c.hits} · misses ${c.misses} · stale served ${c.stale} · since ${new Date(state.stats.since).toLocaleTimeString("sv-SE")}`;
-}
-async function refresh() { state = await api("/api/state"); renderState(); }
+/* Formatting. Swedish locale and time zone, like the data. */
+const TZ = "Europe/Stockholm";
+const fmt = {
+  time: new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: TZ }),
+  date: new Intl.DateTimeFormat("sv-SE", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TZ }),
+  wd: new Intl.DateTimeFormat("sv-SE", { weekday: "short", timeZone: TZ }),
+  dm: new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short", timeZone: TZ }),
+  dt: new Intl.DateTimeFormat("sv-SE", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: TZ }),
+  clock: new Intl.DateTimeFormat("sv-SE", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+};
+const ms = (x) => (typeof x === "number" ? x : Date.parse(x));
+const clock = (x) => fmt.time.format(ms(x));
+const stockholmDay = (x) => fmt.date.format(ms(x));
+const nf = (n, d = 0) => (n == null || !Number.isFinite(n) ? "–" : n.toLocaleString("sv-SE", { minimumFractionDigits: d, maximumFractionDigits: d }).replace("-", "−"));
+const deg = (c) => (c == null || !Number.isFinite(c) ? "–" : `${Math.round(c)}°`.replace("-", "−"));
+const ore = (sek) => `${nf(sek * 100, Math.abs(sek) < 0.1 && sek !== 0 ? 1 : 0)} öre`;
+const ago = (t) => { const m = Math.round((Date.now() - ms(t)) / 60000); if (m < 1) return "just now"; if (m < 60) return `${m} min ago`; const hr = Math.round(m / 60); return hr < 48 ? `${hr} h ago` : `${Math.round(hr / 24)} d ago`; };
+const localIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const dayOffset = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return localIso(d); };
+const safeUrl = (u) => (typeof u === "string" && /^https?:\/\//i.test(u) ? u : null);
 
-function logLine(e) {
-  const el = h("div", { class: e.kind === "cache" ? "cache" : e.error ? "fail" : "" });
-  const time = new Date(e.at).toLocaleTimeString("sv-SE");
-  if (e.kind === "cache") el.append(h("span", {}, time), h("span", {}, `cache ${e.type}`), h("span", { title: e.key }, e.key), h("span", {}, ""));
-  else el.append(h("span", {}, time), h("span", {}, `${e.source}${e.attempt > 1 ? ` #${e.attempt}` : ""}`), h("span", { title: e.url }, e.error ? `${e.error.code}: ${e.error.message}` : (() => { const u = new URL(e.url); return u.pathname.split("/").filter(Boolean).slice(-1)[0] + u.search; })()), h("span", {}, `${e.status ?? "–"} ${e.ms} ms`));
-  const box = $("#log"); box.prepend(el); while (box.children.length > 300) box.lastChild.remove();
-  $("#logCount").textContent = box.children.length;
+function toast(message) {
+  const el = $("#toast"); el.textContent = message; el.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 1800);
 }
-const events = new EventSource("/api/events");
-let pending = null;
-events.onmessage = (m) => { const e = JSON.parse(m.data); if (e.kind === "hello") e.log.forEach(logLine); else logLine(e); clearTimeout(pending); pending = setTimeout(refresh, 300); };
+async function copy(textToCopy, what = "Copied") {
+  try { await navigator.clipboard.writeText(textToCopy); toast(what); } catch { toast("Copy failed – select the text manually"); }
+}
 
-async function runAll() {
-  const card = $("#smokeCard"), list = $("#smoke"); card.hidden = false; list.replaceChildren(); $("#smokeBadge").textContent = "…";
-  let ok = 0, n = 0;
-  for (const c of $$("[data-call]")) {
-    const li = h("li", {}, h("span", {}, "…"), h("b", {}, c.dataset.call)); list.append(li);
-    const r = await run(c); n++; if (r.ok) ok++;
-    li.replaceChildren(h("span", { class: r.ok ? "badge ok" : "badge bad" }, r.ok ? "✓" : "✗"), h("b", {}, c.dataset.call), r.ok ? "" : h("span", { class: "muted" }, ` ${r.error.code ?? r.error.name}: ${r.error.message}`), h("span", { class: "mono" }, `${r.ms} ms`));
+/* ───────── API ───────── */
+async function api(path, init) {
+  try {
+    const r = await fetch(path, init), body = await r.text();
+    let data;
+    try { data = JSON.parse(body); } catch { return { ok: false, ms: 0, error: { name: `HTTP ${r.status}`, message: body.slice(0, 160) || "Empty response" } }; }
+    if (!r.ok && data && typeof data.error === "string") return { ok: false, ms: 0, error: { name: `HTTP ${r.status}`, message: data.error } };
+    return data;
+  } catch {
+    return { ok: false, ms: 0, error: { name: "Network", message: "Cannot reach the dev server – is it still running?" } };
   }
-  $("#smokeBadge").className = `badge ${ok === n ? "ok" : "bad"}`; $("#smokeBadge").textContent = `${ok}/${n}`;
+}
+const post = (path, body) => api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) });
+
+/* ───────── Charts ───────── */
+let tipEl;
+function showTip(ev, title, value) {
+  tipEl ??= $("#tip");
+  tipEl.replaceChildren(h("b", {}, value), h("span", {}, title)); tipEl.hidden = false;
+  const r = tipEl.getBoundingClientRect();
+  tipEl.style.left = `${Math.min(innerWidth - r.width - 8, Math.max(8, ev.clientX + 14))}px`;
+  tipEl.style.top = `${Math.max(8, ev.clientY - r.height - 12)}px`;
+}
+const hideTip = () => { tipEl ??= $("#tip"); tipEl.hidden = true; };
+
+function mountChart(host, draw) {
+  let last = 0;
+  const paint = () => { const w = Math.floor(host.clientWidth); if (!w || w === last) return; last = w; host.replaceChildren(draw(w)); };
+  new ResizeObserver(paint).observe(host);
+  requestAnimationFrame(paint);
+  return host;
+}
+function niceTicks(min, max, n = 3) {
+  const span = max - min || 1, raw = span / n, mag = 10 ** Math.floor(Math.log10(raw)), norm = raw / mag;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * mag, out = [];
+  for (let v = Math.floor(min / step) * step; v <= Math.ceil(max / step) * step + step / 2; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+function frame(w, H, o) {
+  const padL = o.padL ?? 46, padR = 8, padT = 12, padB = 22, iw = w - padL - padR, ih = H - padT - padB;
+  const ticks = o.ticks, lo = ticks[0], hi = ticks.at(-1);
+  const y = (v) => padT + ih - ((v - lo) / (hi - lo || 1)) * ih;
+  const svg = s("svg", { class: "chart", viewBox: `0 0 ${w} ${H}`, width: w, height: H, role: "img", "aria-label": o.label });
+  for (const t of ticks) svg.append(s("line", { x1: padL, x2: w - padR, y1: y(t), y2: y(t), class: t === 0 && lo < 0 ? "zero" : "grid" }), text(o.yFmt(t), { x: padL - 7, y: y(t) + 3.5, class: "axis-y" }));
+  return { svg, padL, padR, padT, padB, iw, ih, y, w, H };
+}
+function hover(f, count, xAt, onMove, bandWidth) {
+  const rect = s("rect", { x: f.padL, y: f.padT, width: f.iw, height: f.ih, fill: "transparent" });
+  const mark = s("g", { "pointer-events": "none" }); mark.setAttribute("visibility", "hidden");
+  f.svg.append(mark, rect);
+  const move = (ev) => {
+    const box = f.svg.getBoundingClientRect(), scale = f.w / box.width, px = (ev.clientX - box.left) * scale;
+    let i = bandWidth ? Math.floor((px - f.padL) / bandWidth) : Math.round(((px - f.padL) / f.iw) * (count - 1));
+    i = Math.max(0, Math.min(count - 1, i));
+    mark.replaceChildren(); mark.setAttribute("visibility", "visible");
+    const [title, value] = onMove(i, mark, xAt(i));
+    showTip(ev, title, value);
+  };
+  rect.addEventListener("pointermove", move);
+  rect.addEventListener("pointerdown", move);
+  rect.addEventListener("pointerleave", () => { mark.setAttribute("visibility", "hidden"); hideTip(); });
 }
 
-for (const card of $$("[data-call]")) $(".run", card).onclick = () => run(card);
-$(".preset").onchange = (e) => { const [lat, lon] = e.target.value.split(","); const card = e.target.closest(".card"); $("[name=lat]", card).value = lat; $("[name=lon]", card).value = lon; run(card); };
-$("#vat").onchange = () => run($("[data-call='spot.overview']"));
-for (const b of $$("#mode button")) b.onclick = () => post("/api/config", { mode: b.dataset.mode }).then(refresh);
-for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) $(`#${k}`).onchange = (e) => post("/api/config", { [k]: Number(e.target.value) }).then(refresh);
-$("#cache").onchange = (e) => post("/api/config", { cache: e.target.checked }).then(refresh);
-$("#locale").onchange = (e) => post("/api/config", { locale: e.target.value }).then(refresh);
-$("#clearCache").onclick = () => post("/api/cache/clear").then(refresh);
-$("#resetStats").onclick = () => post("/api/stats/reset").then(() => { $("#log").replaceChildren(); refresh(); });
-$("#runAll").onclick = runAll;
-const today = new Date(), iso = (d) => d.toISOString().slice(0, 10);
-$("[data-call='spot.history'] [name=to]").value = iso(new Date(today - 86400000));
-$("[data-call='spot.history'] [name=from]").value = iso(new Date(today - 14 * 86400000));
-$("[data-call='weather.history'] [name=to]").value = iso(new Date(today - 7 * 86400000));
-$("[data-call='weather.history'] [name=from]").value = iso(new Date(today - 13 * 86400000));
-refresh().then(() => run($("[data-call='spot.overview']")));
+/** Bars: `items` = [{ v, fill, opacity, outline, tip: [title, value] }]. */
+function barChart(w, o) {
+  const H = o.h ?? 190, vals = o.items.map((i) => i.v);
+  const f = frame(w, H, { ticks: niceTicks(Math.min(0, ...vals), Math.max(0.0001, ...vals), 3), yFmt: o.yFmt, label: o.label, padL: o.padL });
+  const n = o.items.length, bw = f.iw / n, gap = Math.min(3, bw * 0.22), x0 = (i) => f.padL + i * bw;
+  if (o.band && o.band.from >= 0) f.svg.append(s("rect", { x: x0(o.band.from), y: f.padT, width: o.band.len * bw, height: f.ih, rx: 5, fill: "var(--low)", opacity: ".13" }), text(o.band.label, { x: x0(o.band.from) + 5, y: f.padT + 11, "text-anchor": "start", style: "fill:var(--low);font-weight:600" }));
+  for (const sep of o.seps ?? []) f.svg.append(s("line", { x1: x0(sep.i), x2: x0(sep.i), y1: f.padT, y2: f.padT + f.ih, class: "sep" }), text(sep.label, { x: x0(sep.i) + 5, y: f.padT + f.ih - 5, "text-anchor": "start" }));
+  o.items.forEach((it, i) => {
+    const yz = f.y(0), yv = f.y(it.v);
+    f.svg.append(s("rect", { x: x0(i) + gap / 2, y: Math.min(yz, yv), width: Math.max(1, bw - gap), height: Math.max(1.5, Math.abs(yz - yv)), rx: Math.min(3, (bw - gap) / 2), fill: it.fill, opacity: it.opacity ?? 1, stroke: it.outline ? "var(--yellow)" : null, "stroke-width": it.outline ? 2 : null }));
+  });
+  const step = Math.max(1, Math.ceil(52 / bw));
+  for (let i = 0; i < n; i += step) { const label = o.xLabel(i); if (label) f.svg.append(text(label, { x: x0(i) + bw / 2, y: f.H - 5, class: "axis-x" })); }
+  hover(f, n, (i) => x0(i) + bw / 2, (i, mark) => { mark.append(s("rect", { x: x0(i), y: f.padT, width: bw, height: f.ih, class: "hl" })); return o.items[i].tip; }, bw);
+  return f.svg;
+}
+
+/** Line: `pts` = [{ v, tip: [title, value] }], optional `bars` (same length) drawn faintly at the bottom. */
+function lineChart(w, o) {
+  const H = o.h ?? 170, vals = o.pts.map((p) => p.v), lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo || Math.abs(hi) || 1) * 0.08;
+  const f = frame(w, H, { ticks: niceTicks(o.zero ? Math.min(0, lo) : lo - pad, hi + pad, 3), yFmt: o.yFmt, label: o.label, padL: o.padL ?? 40 });
+  const n = o.pts.length, x = (i) => f.padL + (n === 1 ? f.iw / 2 : (i / (n - 1)) * f.iw);
+  if (o.bars) { const mx = Math.max(0.0001, ...o.bars); o.bars.forEach((b, i) => { if (b > 0) { const bh = (b / mx) * f.ih * 0.28; f.svg.append(s("rect", { x: x(i) - Math.max(1, f.iw / n / 2 - 1), y: f.padT + f.ih - bh, width: Math.max(2, f.iw / n - 2), height: bh, rx: 1.5, fill: "var(--rain)", opacity: ".38" })); } }); }
+  const d = o.pts.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${f.y(p.v).toFixed(1)}`).join("");
+  const color = o.color ?? "var(--blue)";
+  if (o.area !== false && n > 1) f.svg.append(s("path", { d: `${d}L${x(n - 1).toFixed(1)},${f.padT + f.ih}L${x(0).toFixed(1)},${f.padT + f.ih}Z`, fill: color, opacity: ".11" }));
+  f.svg.append(s("path", { d, fill: "none", stroke: color, "stroke-width": 2.2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+  const step = Math.max(1, Math.ceil(58 / (f.iw / Math.max(1, n - 1))));
+  for (let i = 0; i < n; i += step) { const label = o.xLabel?.(i); if (label) f.svg.append(text(label, { x: x(i), y: f.H - 5, class: "axis-x", "text-anchor": i === 0 ? "start" : "middle" })); }
+  hover(f, n, x, (i, mark) => {
+    mark.append(s("line", { x1: x(i), x2: x(i), y1: f.padT, y2: f.padT + f.ih, class: "cross" }), s("circle", { cx: x(i), cy: f.y(o.pts[i].v), r: 4.5, fill: color, stroke: "var(--surface)", "stroke-width": 2 }));
+    return o.pts[i].tip;
+  });
+  return f.svg;
+}
+/** A min–max bar whose gradient is anchored to the whole scale (colour = temperature, not bar length). */
+function rangeBar(min, max, gmin, gmax, mean) {
+  const span = gmax - gmin || 1, left = (min - gmin) / span, frac = Math.max(0.0001, (max - min) / span);
+  const pos = frac >= 1 ? 0 : (left / (1 - frac)) * 100;
+  return h("div", { class: "track" }, h("i", { style: `left:${left * 100}%;width:${Math.max(frac * 100, 1.2)}%;background-size:${100 / Math.max(frac, 0.0001)}% 100%;background-position:${pos}% 0` }),
+    mean != null && h("u", { style: `left:${((mean - gmin) / span) * 100}%` }));
+}
+const chartBox = (draw, minH = 150) => { const host = h("div", { class: "chart-host", style: `min-height:${minH}px` }); return mountChart(host, draw); };
+
+/* ───────── Small UI parts ───────── */
+const chip = (label, kind = "", title) => h("span", { class: `chip ${kind}`, title }, label);
+const empty = (msg) => h("div", { class: "empty" }, icon("search", 18), msg);
+const tile = (label, value, sub) => h("div", { class: "tile" }, h("small", {}, label), h("b", {}, value), sub && h("span", {}, sub));
+const kv = (pairs) => h("dl", { class: "kv" }, pairs.flatMap(([k, v]) => (v == null ? [] : [h("dt", {}, k), h("dd", {}, v)])));
+const skeleton = () => h("div", { class: "skel", "aria-hidden": "true" }, h("i"), h("i"), h("i"), h("i"));
+function errorBox(err, retry) {
+  return h("div", { class: "errbox", role: "alert" }, icon("alert", 20),
+    h("div", {}, h("b", {}, err.name, err.code ? ` · ${err.code}` : ""), h("p", {}, err.message),
+      h("div", { class: "chips" },
+        err.source && chip(err.source, "mono"), err.status && chip(`HTTP ${err.status}`, "bad"),
+        err.transient && chip("transient – worth retrying", "warn"), err.retryAfterMs && chip(`Retry-After ${err.retryAfterMs / 1000} s`, "warn"),
+        retry && h("button", { class: "btn sm", onclick: retry }, icon("refresh", 14), "Retry"))));
+}
+const levelKind = (l) => (l === "low" ? "ok" : l === "high" ? "bad" : "");
+
+/* ───────── Card definitions ───────── */
+const FLD = {
+  area: (name = "area") => `<label class="fld"><span>Area</span><select name="${name}"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select></label>`,
+  latlon: (lat, lon) => `<label class="fld"><span>Lat</span><input name="lat" value="${lat}" size="6" inputmode="decimal" style="width:62px"></label><label class="fld"><span>Lon</span><input name="lon" value="${lon}" size="6" inputmode="decimal" style="width:62px"></label>`,
+  dates: `<label class="fld"><span>From</span><input type="date" name="from"></label><label class="fld"><span>To</span><input type="date" name="to"></label>`,
+  text: (name, value, label, extra = "") => `<label class="fld grow"><span>${label}</span><input name="${name}" value="${value}" ${extra}></label>`,
+};
+
+const GROUPS = [
+  { id: "energy", title: "Electricity", note: "Nord Pool day-ahead prices via elprisetjustnu.se" },
+  { id: "weather", title: "Weather & environment", note: "Open-Meteo forecast, archive and air quality" },
+  { id: "alerts", title: "Alerts", note: "Krisinformation and SMHI warnings for your places" },
+  { id: "geo", title: "Geography", note: "Photon (OpenStreetMap) and Open-Meteo geocoding" },
+  { id: "economy", title: "Economy", note: "Official statistics from SCB" },
+  { id: "reference", title: "Reference data", note: "Offline catalogues, no requests" },
+  { id: "experimental", title: "Experimental", note: "Unofficial adapters – no public API or agreement" },
+];
+
+const CARDS = [
+  { id: "spot.overview", group: "energy", title: "Spot prices", icon: "bolt", wide: true, sig: "se.spot.overview(area, { windowHours })",
+    form: `${FLD.area()}<label class="fld"><span>Window</span><input type="number" name="windowHours" value="3" min="1" max="12"><span>h</span></label><label class="chk"><input type="checkbox" id="vat" checked><span>incl. VAT</span></label>`,
+    async render(r, card) {
+      if (!r.today) return empty("No prices for today.");
+      const vat = $("#vat").checked ? 1.25 : 1, t = r.today, cheap = t.cheapest;
+      const left = h("div", {},
+        h("div", { class: "hero" }, h("div", {}, h("div", { class: "big" }, r.current ? nf(r.current.sek * vat * 100, Math.abs(r.current.sek) < 0.1 ? 1 : 0) : "–", h("small", {}, "öre/kWh")), h("div", { class: "sub" }, `now · ${vat > 1 ? "incl." : "excl."} VAT`)), t.level && chip(t.level, levelKind(t.level))),
+        h("div", { class: "tiles" },
+          tile("Lowest", ore(t.min.sek * vat), `at ${clock(t.min.start)}`), tile("Highest", ore(t.max.sek * vat), `at ${clock(t.max.start)}`),
+          tile("Average", ore(t.average * vat), "rest of today"),
+          tile("Cheapest window", cheap ? ore(cheap.average * vat) : "–", cheap ? `${clock(cheap.start)}–${clock(cheap.end)}` : "none left"),
+          tile("Tomorrow", r.tomorrow ? ore(r.tomorrow.average * vat) : "–", r.tomorrow ? (r.tomorrow.cheapest ? `cheapest ${clock(r.tomorrow.cheapest.start)}` : "average") : "published ≈ 13:00")));
+      const right = h("div", {}, h("div", { class: "chart-host", style: "min-height:190px" }, skeleton()));
+      const p = await api(`/api/call/spot.prices?area=${encodeURIComponent(r.area)}`);
+      if (!p.ok) right.replaceChildren(errorBox(p.error));
+      else {
+        const hourly = [], byHour = new Map();
+        for (const pt of [...(p.result.today?.points ?? []), ...(p.result.tomorrow?.points ?? [])]) { const k = Math.floor(ms(pt.start) / 3.6e6); (byHour.get(k) ?? byHour.set(k, []).get(k)).push(pt.sek); }
+        for (const [k, g] of byHour) hourly.push({ t: k * 3.6e6, sek: g.reduce((a, b) => a + b, 0) / g.length });
+        hourly.sort((a, b) => a.t - b.t);
+        if (!hourly.length) right.replaceChildren(empty("No price points."));
+        else {
+          const vals = hourly.map((x) => x.sek), mn = Math.min(...vals), mx = Math.max(...vals), lo = mn + (mx - mn) / 3, hi = mx - (mx - mn) / 3, now = Date.now();
+          const items = hourly.map((x) => ({ v: x.sek * vat * 100, fill: x.sek <= lo ? "var(--low)" : x.sek >= hi ? "var(--high)" : "var(--mid)", opacity: x.t + 3.6e6 < now ? 0.38 : 1, outline: x.t <= now && now < x.t + 3.6e6, tip: [fmt.dt.format(x.t), ore(x.sek * vat)] }));
+          const from = cheap ? hourly.findIndex((x) => x.t >= ms(cheap.start)) : -1;
+          const seps = [], today = stockholmDay(hourly[0].t);
+          hourly.forEach((x, i) => { if (i && stockholmDay(x.t) !== stockholmDay(hourly[i - 1].t)) seps.push({ i, label: stockholmDay(x.t) === today ? "" : "Tomorrow" }); });
+          right.replaceChildren(chartBox((w) => barChart(w, { h: 268, items, yFmt: (v) => nf(v), label: "Hourly electricity price in öre per kWh", xLabel: (i) => (i % 3 === 0 ? clock(hourly[i].t) : ""), band: cheap && from >= 0 ? { from, len: (ms(cheap.end) - ms(cheap.start)) / 3.6e6, label: "cheapest" } : null, seps }), 268),
+            h("div", { class: "legend" }, h("span", {}, h("i", { style: "background:var(--low)" }), "low"), h("span", {}, h("i", { style: "background:var(--mid)" }), "mid"), h("span", {}, h("i", { style: "background:var(--high)" }), "high"), h("span", {}, h("i", { style: "background:transparent;border:2px solid var(--yellow)" }), "now"), h("span", {}, "öre/kWh · hover for details")));
+        }
+      }
+      return h("div", { class: "split" }, left, right);
+    } },
+
+  { id: "spot.history", group: "energy", title: "Price history", icon: "history", wide: true, sig: "se.spot.history(area, from, to)",
+    form: `${FLD.area()}${FLD.dates}`,
+    render(r) {
+      if (!r.days.length) return h("div", {}, empty("No complete days in this range."), r.missing.length ? h("p", { class: "note" }, `Missing: ${r.missing.map((m) => `${m.date} (${m.reason})`).join(", ")}`) : null);
+      const avg = r.days.map((d) => ({ date: d.date, v: d.points.reduce((a, p) => a + p.sek, 0) / d.points.length }));
+      const vs = avg.map((d) => d.v), mn = Math.min(...vs), mx = Math.max(...vs), items = avg.map((d) => ({ v: d.v * 100, fill: "var(--blue)", opacity: d.v === mx ? 1 : 0.72, tip: [d.date, ore(d.v)] }));
+      return h("div", {}, h("div", { class: "chips", style: "margin-bottom:8px" }, chip(`${r.days.length} days`, "blue"), chip(`low ${ore(mn)}`, "ok"), chip(`high ${ore(mx)}`, "bad"), chip(`mean ${ore(vs.reduce((a, b) => a + b, 0) / vs.length)}`)),
+        chartBox((w) => barChart(w, { h: 170, items, yFmt: (v) => nf(v), label: "Average price per day in öre per kWh", xLabel: (i) => (avg[i].date.slice(5)) }), 170),
+        r.missing.length ? h("p", { class: "note" }, `Missing: ${r.missing.map((m) => `${m.date} (${m.reason})`).join(", ")}`) : h("p", { class: "note" }, "Daily averages excl. VAT."));
+    } },
+
+  { id: "weather.forecast", group: "weather", title: "Forecast", icon: "cloud", wide: true, sig: "se.weather.forecast(position, { days })",
+    form: `<label class="fld"><span>Place</span><select class="preset"><option value="59.33,18.07">Stockholm</option><option value="57.71,11.97">Göteborg</option><option value="55.60,13.00">Malmö</option><option value="56.10,13.91">Vinslöv</option><option value="67.86,20.23">Kiruna</option></select></label>${FLD.latlon("59.33", "18.07")}<label class="fld"><span>Days</span><input type="number" name="days" value="7" min="1" max="16"></label>`,
+    render(w) {
+      const cur = w.current, label = (c) => w.labels?.[c] ?? `Code ${c}`, ic = (c, sz) => wxIcon(w.icons?.[c], sz);
+      const hours = w.hours.slice(0, 48);
+      const head = h("div", { class: "hero" }, ic(cur.code, 56), h("div", {}, h("div", { class: "big" }, deg(cur.temperature)), h("div", { class: "sub" }, `${label(cur.code)}${cur.feelsLike != null ? ` · feels ${deg(cur.feelsLike)}` : ""}`)),
+        h("div", { class: "chips" }, w.currentIsForecast && chip("forecast for this hour", "warn"), chip(`wind ${nf(cur.wind, 1)} m/s`), chip(`${nf(cur.precipitation ?? 0, 1)} mm`, "blue")));
+      const chartPart = hours.length ? chartBox((cw) => lineChart(cw, { h: 170, pts: hours.map((x) => ({ v: x.temperature, tip: [fmt.dt.format(ms(x.time)), `${deg(x.temperature)}${x.precipitation ? ` · ${nf(x.precipitation, 1)} mm` : ""}`] })), bars: hours.map((x) => x.precipitation ?? 0), yFmt: (v) => deg(v), label: "Temperature, next 48 hours", xLabel: (i) => (i % 6 === 0 ? (new Date(ms(hours[i].time)).getHours() === 0 || i === 0 ? `${fmt.wd.format(ms(hours[i].time))} ${clock(hours[i].time)}` : clock(hours[i].time)) : "") }), 170) : empty("No hourly data.");
+      const gmin = Math.min(...w.days.map((d) => d.min)), gmax = Math.max(...w.days.map((d) => d.max));
+      const days = h("div", { class: "wx-days" }, w.days.map((d, i) => h("div", { class: "wx-day" },
+        h("span", { class: "d" }, i === 0 ? "Today" : fmt.wd.format(Date.parse(`${d.date}T12:00:00Z`))), ic(d.code, 26), h("span", { class: "l" }, label(d.code)),
+        h("div", { class: "range" }, h("span", {}, deg(d.min)), rangeBar(d.min, d.max, gmin, gmax), h("span", {}, deg(d.max))),
+        h("span", { class: "p" }, d.precipitation ? `${nf(d.precipitation, 1)} mm` : ""))));
+      return h("div", {}, head, chartPart, h("div", { class: "legend" }, h("span", {}, h("i", { style: "background:var(--blue)" }), "temperature"), h("span", {}, h("i", { style: "background:var(--rain);opacity:.5" }), "precipitation")), days);
+    } },
+
+  { id: "weather.history", group: "weather", title: "Temperature history", icon: "history", sig: "se.weather.history(position, from, to)",
+    form: `${FLD.latlon("59.33", "18.07")}${FLD.dates}`,
+    render(r) {
+      if (!r.hours.length) return empty("No temperatures in this range.");
+      const byDay = new Map();
+      for (const x of r.hours) { const d = stockholmDay(x.at); (byDay.get(d) ?? byDay.set(d, []).get(d)).push(x.celsius); }
+      const days = [...byDay].map(([date, t]) => ({ date, min: Math.min(...t), max: Math.max(...t), avg: t.reduce((a, b) => a + b, 0) / t.length, n: t.length }));
+      const gmin = Math.min(...days.map((d) => d.min)), gmax = Math.max(...days.map((d) => d.max)), partial = days.filter((d) => d.n < 23).length;
+      return h("div", {}, h("div", { class: "chips", style: "margin-bottom:6px" }, chip(`${r.hours.length} hours`, "blue"), chip(`low ${deg(gmin)}`), chip(`high ${deg(gmax)}`), chip(r.source)),
+        h("div", { class: "wx-days hist" }, days.map((d) => h("div", { class: `wx-day${d.n < 23 ? " partial" : ""}`, title: d.n < 23 ? `Only ${d.n} hours with data for this Swedish calendar day` : `${d.n} hours with data` },
+          h("span", { class: "d" }, `${fmt.wd.format(Date.parse(`${d.date}T12:00:00Z`))} ${d.date.slice(8)}`),
+          h("div", { class: "range" }, h("span", {}, deg(d.min)), rangeBar(d.min, d.max, gmin, gmax, d.avg), h("span", {}, deg(d.max))),
+          h("span", { class: "p", style: "color:var(--ink-2)" }, `ø ${deg(d.avg)}`)))),
+        h("p", { class: "note" }, "Bars show min–max per Swedish calendar day; the tick is the mean.", partial ? ` ${partial} faded ${partial === 1 ? "day is" : "days are"} partial: the source delivers whole UTC days, which do not line up with Swedish days.` : ""));
+    } },
+
+  { id: "weather.environment", group: "weather", title: "UV, pollen & air quality", icon: "leaf", sig: "se.weather.environment(position, { days })",
+    form: `${FLD.latlon("55.60", "13.00")}<label class="fld"><span>Days</span><input type="number" name="days" value="1" min="1" max="4"></label>`,
+    render(r) {
+      const max = (pick) => { const v = r.hours.map(pick).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
+      const uv = max((x) => x.uvIndex), aqi = max((x) => x.europeanAqi), pm25 = max((x) => x.pm25), pm10 = max((x) => x.pm10);
+      const uvBand = uv == null ? ["–", ""] : uv < 3 ? ["Low", "ok"] : uv < 6 ? ["Moderate", "warn"] : uv < 8 ? ["High", "warn"] : ["Very high", "bad"];
+      const aqBand = aqi == null ? ["–", ""] : aqi <= 20 ? ["Good", "ok"] : aqi <= 40 ? ["Fair", "ok"] : aqi <= 60 ? ["Moderate", "warn"] : aqi <= 80 ? ["Poor", "bad"] : ["Very poor", "bad"];
+      const names = { alder: "Al", birch: "Björk", grass: "Gräs", mugwort: "Gråbo", olive: "Oliv", ragweed: "Ambrosia" };
+      const pollen = Object.entries(names).map(([k, label]) => [label, max((x) => x.pollen[k])]), top = Math.max(1, ...pollen.map((p) => p[1] ?? 0));
+      return h("div", {}, h("div", { class: "tiles" },
+        h("div", { class: "tile" }, h("small", {}, "UV index (max)"), h("b", {}, nf(uv, 1)), chip(uvBand[0], uvBand[1])),
+        h("div", { class: "tile" }, h("small", {}, "European AQI (max)"), h("b", {}, nf(aqi)), chip(aqBand[0], aqBand[1])),
+        tile("PM2.5 / PM10", `${nf(pm25, 1)} / ${nf(pm10, 1)}`, "µg/m³")),
+        h("div", { class: "sub", style: "margin:2px 0 4px" }, "Pollen, peak grains/m³"),
+        pollen.map(([label, v]) => h("div", { class: "hbar" }, h("span", {}, label), h("div", { class: "t" }, h("i", { style: `width:${((v ?? 0) / top) * 100}%;background:${(v ?? 0) > 50 ? "var(--high)" : (v ?? 0) > 10 ? "var(--sun)" : "var(--low)"}` })), h("span", { class: "v" }, v == null ? "–" : nf(v)))));
+    } },
+
+  { id: "alerts.near", group: "alerts", title: "Alerts near you", icon: "bell", sig: "se.alerts.near(places, options)",
+    form: `${FLD.text("p", "56.10,13.91;59.33,18.07", "Places", 'title="lat,lon;lat,lon"')}<label class="fld"><span>Days</span><input type="number" name="days" value="7" min="1" max="30"></label><label class="chk"><input type="checkbox" name="neighbors" value="1"><span>neighbours</span></label><label class="fld"><span>Level</span><select name="minLevel"><option value="">any</option><option value="yellow">≥ yellow</option><option value="orange">≥ orange</option><option value="red">red</option></select></label><label class="fld"><span>Kinds</span><select name="kinds"><option value="">all</option><option value="vma">VMA</option><option value="warning">warnings</option><option value="news">news</option><option value="vma,warning">VMA + warnings</option></select></label>`,
+    render(r) {
+      const name = (i) => { const p = r.places[i]; return p ? [p.locality ?? p.municipality, p.county].filter(Boolean).join(", ") || `#${i}` : `#${i}`; };
+      const box = h("div", {}, h("div", { class: "chips", style: "margin-bottom:6px" }, r.places.map((p, i) => chip(`${i}: ${name(i)}${p.guessed ? " (guessed)" : ""}`, "blue"))),
+        h("div", { class: "chips", style: "margin-bottom:12px" }, r.sources.map((x) => chip(`${x.ok ? "✓" : "✗"} ${x.id}`, x.ok ? "ok" : "bad", x.url))));
+      if (!r.alerts.length) box.append(empty("Nothing that concerns these places."));
+      for (const a of r.alerts) {
+        const p = h("p", { onclick: (e) => e.currentTarget.classList.toggle("open"), title: "Click to expand" }, a.summary), url = safeUrl(a.url);
+        box.append(h("div", { class: `alert ${a.level ?? ""}` },
+          h("div", { class: "chips", style: "margin-bottom:5px" }, a.level && chip(a.level, a.level === "red" ? "bad" : "warn"), chip(a.kind), a.national ? chip("national") : a.places.map((i) => chip(name(i).split(",")[0], "blue")), h("span", { class: "sub" }, `${a.source} · ${ago(a.published)}`)),
+          h("h4", {}, a.title), a.summary && p, url && h("a", { class: "go", href: url, target: "_blank", rel: "noopener noreferrer" }, "Read at source", icon("external", 13))));
+      }
+      return box;
+    } },
+
+  { id: "geo.addresses", group: "geo", title: "Address search", icon: "pin", sig: "se.geo.addresses(query, { country })",
+    form: `${FLD.text("q", "Åraslöv 1105, 28890 Vinslöv", "Address")}<label class="fld"><span>Country</span><select name="country"><option value="SE">SE</option><option value="">anywhere</option></select></label>`,
+    render(list) {
+      if (!list.length) return empty("No matches.");
+      return h("ul", { class: "list" }, list.map((a) => h("li", {}, icon("pin", 17), h("div", { class: "body" },
+        h("div", {}, h("b", {}, a.label), " ", a.approximate ? chip(`approximate · near ${a.near}`, "warn") : chip(a.precision)),
+        h("button", { class: "linkbtn mono", style: "padding:0;font-size:11.5px;color:var(--muted)", title: "Copy coordinates", onclick: () => copy(`${a.latitude}, ${a.longitude}`, "Coordinates copied") }, `${a.latitude}, ${a.longitude}`)))));
+    } },
+
+  { id: "geo.places", group: "geo", title: "Place search", icon: "map", sig: "se.geo.places(query, { pointsOfInterest })",
+    form: `${FLD.text("q", "Kebnekaise", "Place")}<label class="chk"><input type="checkbox" name="poi" value="1" checked><span>points of interest</span></label>`,
+    render(list) {
+      if (!list.length) return empty("No matches.");
+      return h("ul", { class: "list" }, list.map((p) => h("li", {}, icon("map", 17), h("div", { class: "body" }, h("b", {}, p.name), h("span", { class: "muted" }, ` ${p.region} · ${p.countryCode}`),
+        h("div", { class: "muted mono", style: "font-size:11.5px" }, `${p.latitude}, ${p.longitude} · ${p.source}`)))));
+    } },
+
+  { id: "geo.region", group: "geo", title: "Region for a position", icon: "pin", sig: "se.geo.region(position)",
+    form: FLD.latlon("56.10", "13.91"),
+    render(r) {
+      return h("div", {}, h("div", { class: "hero" }, h("div", {}, h("div", { class: "big", style: "font-size:24px" }, r.locality ?? r.municipality ?? "–"), h("div", { class: "sub" }, [r.municipality, r.county].filter(Boolean).join(" · "))), r.guessed && chip("guessed – reverse geocoding unavailable", "warn")),
+        kv([["Locality", r.locality], ["Municipality", r.municipality], ["County", r.county], ["Position", `${r.latitude}, ${r.longitude}`]]));
+    } },
+
+  { id: "economy.cpi", group: "economy", title: "Inflation (KPI)", icon: "trend", sig: "se.economy.cpi(index) → adjustForInflation()",
+    form: `<label class="fld"><span>Index</span><select name="index"><option>KPI</option><option>KPIF</option><option>KPIF-XE</option></select></label><label class="fld"><span>Amount</span><input type="number" name="amount" value="10000" style="width:84px"><span>kr</span></label><label class="fld"><span>Since</span><input name="from" value="2000-01" size="7" title="YYYY-MM" style="width:62px"></label>`,
+    render(r) {
+      const a = r.adjusted, pts = r.recent;
+      return h("div", {}, h("div", { class: "hero" }, h("div", {}, h("div", { class: "big" }, nf(a.amount), h("small", {}, "kr")), h("div", { class: "sub" }, `same purchasing power, ${a.from} → ${a.to}`)),
+        chip(`${a.change >= 0 ? "+" : ""}${nf(a.change * 100, 1)} %`, a.change >= 0 ? "bad" : "ok")),
+        h("div", { class: "tiles" }, tile("Annual inflation", r.annualInflation == null ? "–" : `${nf(r.annualInflation * 100, 1)} %`, r.latest ? `to ${r.latest.month}` : ""), tile(r.series.label.replace(/ \(.*/, ""), r.latest ? nf(r.latest.value, 2) : "–", `${r.series.base}${r.series.stale ? " · older copy" : ""}`), tile("Months of data", nf(r.series.months))),
+        pts?.length ? chartBox((w) => lineChart(w, { h: 150, pts: pts.map((p) => ({ v: p.value, tip: [p.month, nf(p.value, 2)] })), yFmt: (v) => nf(v), label: "Index, last five years", xLabel: (i) => (pts[i].month.endsWith("-01") || i === 0 ? pts[i].month.slice(0, 4) : "") }), 150) : null);
+    } },
+
+  { id: "economy.housing", group: "economy", title: "House prices", icon: "home", sig: "se.economy.housePrices(region, { frequency })",
+    form: `<label class="fld"><span>Frequency</span><select name="frequency"><option value="quarter">Quarter · region</option><option value="year">Year · county</option></select></label><label class="fld"><span>Region</span><input name="region" value="00" size="8" title="SCB code: 00 = whole country, RIKS4 = southern Sweden (quarter), 12 = Skåne (year)" style="width:70px"></label>`,
+    hint: "Detached houses. Quarter: 00, RIKS1–RIKS8 or 0010–0030. Year: county code, e.g. 12 for Skåne.",
+    render(r) {
+      const pts = r.points;
+      if (!pts.length) return empty("The series has no observations.");
+      const first = pts[0], last = pts.at(-1);
+      return h("div", {}, h("div", { class: "hero" }, h("div", {}, h("div", { class: "big" }, nf(last.value), h("small", {}, r.base)), h("div", { class: "sub" }, `${r.label} · ${last.period}`)), chip(`${last.value >= first.value ? "+" : ""}${nf((last.value / first.value - 1) * 100, 1)} % since ${first.period}`, last.value >= first.value ? "blue" : "bad")),
+        chartBox((w) => lineChart(w, { h: 160, pts: pts.map((p) => ({ v: p.value, tip: [p.period, nf(p.value, 1)] })), yFmt: (v) => nf(v), label: "House price index over time", xLabel: (i) => pts[i].period }), 160),
+        h("details", { class: "more" }, h("summary", {}, `Latest ${Math.min(16, pts.length)} observations`), h("table", {}, h("tr", {}, h("th", {}, "Period"), h("th", { class: "r" }, "Index")), pts.slice(-16).reverse().map((p) => h("tr", {}, h("td", {}, p.period), h("td", { class: "r" }, nf(p.value, 1)))))),
+        h("p", { class: "note" }, `${r.source} · fetched ${ago(r.fetchedAt)}${r.stale ? " · older copy" : ""}`), (r.notes ?? []).map((n) => h("p", { class: "note" }, n)));
+    } },
+
+  { id: "sports.search", group: "reference", title: "Sports", icon: "trophy", sig: "searchSports(query) · findSport(query)",
+    form: `${FLD.text("q", "brott", "Search")}`,
+    render(r) {
+      return h("div", {}, r.matches.length ? h("ul", { class: "list" }, r.matches.map((x) => h("li", {}, h("span", { style: "font-size:20px;line-height:1.2" }, x.emoji), h("div", { class: "body" }, h("b", {}, x.name), " ", chip(x.id, "mono"))))) : empty("No matches."),
+        r.exact ? h("p", { class: "note" }, `Exact match: ${r.exact.id}`) : h("p", { class: "note" }, "No exact match."));
+    } },
+
+  { id: "education.search", group: "reference", title: "Universities & colleges", icon: "school", sig: "searchSwedishInstitutions(query)",
+    form: `${FLD.text("q", "tekniska", "Search")}`,
+    render(r) {
+      if (!r.length) return empty("No matches.");
+      return h("ul", { class: "list" }, r.map((x) => { const url = safeUrl(x.website); return h("li", {}, icon("school", 17), h("div", { class: "body" }, url ? h("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, h("b", {}, x.name)) : h("b", {}, x.name), h("div", { class: "chips", style: "margin-top:3px" }, chip(x.kind, "blue"), chip(x.id, "mono")))); }));
+    } },
+
+  { id: "investments.overview", group: "experimental", title: "Investment companies", icon: "briefcase", tag: "experimental", sig: "createInvestmentClient().overview()",
+    form: "", hint: "IBIndex – no public API or agreement.",
+    render(r) {
+      const rows = [...r.companies].sort((a, b) => (b.reportedDiscount ?? -999) - (a.reportedDiscount ?? -999)), mx = Math.max(1, ...rows.map((c) => Math.abs(c.reportedDiscount ?? 0)));
+      return h("div", {}, h("table", {}, h("tr", {}, h("th", {}, "Company"), h("th", { class: "r" }, "Price"), h("th", { class: "r" }, "NAV"), h("th", {}, "Discount")),
+        rows.map((c) => { const d = c.reportedDiscount; return h("tr", {}, h("td", {}, c.name), h("td", { class: "r" }, nf(c.price, 1)), h("td", { class: "r" }, c.reportedNav == null ? "–" : nf(c.reportedNav, 1)),
+          h("td", {}, d == null ? "–" : [h("span", { class: `dbar ${d < 0 ? "neg" : ""}`, style: `width:${Math.max(3, (Math.abs(d) / mx) * 54)}px` }), " ", h("span", { class: "num" }, d >= 0 ? `${nf(d, 1)} %` : `premium ${nf(-d, 1)} %`)])); })),
+        h("p", { class: "note" }, `${r.sourceUrl}${r.stale ? " · older copy" : ""}`));
+    } },
+
+  { id: "investments.company", group: "experimental", title: "Investment company", icon: "coins", tag: "experimental", sig: "createInvestmentClient().company(product)",
+    form: `${FLD.text("product", "", "Product", 'placeholder="e.g. INVE B (empty: the first)"')}`,
+    render(r) {
+      const last = r.history.at(-1), hist = r.history;
+      return h("div", {}, h("div", { class: "hero" }, h("div", {}, h("div", { class: "big", style: "font-size:26px" }, r.company.name), h("div", { class: "sub" }, r.company.symbol)), last && chip(`${nf(last.price, 1)} kr`, "blue"), last?.reportedNav != null && chip(`NAV ${nf(last.reportedNav, 1)}`)),
+        hist.length > 1 ? chartBox((w) => lineChart(w, { h: 130, pts: hist.map((x) => ({ v: x.price, tip: [x.date, `${nf(x.price, 1)} kr`] })), yFmt: (v) => nf(v), label: "Share price history", xLabel: (i) => hist[i].date.slice(5) }), 130) : null,
+        h("p", { class: "sub", style: "margin:8px 0 2px" }, `Holdings as of ${r.holdingsDate ?? "–"}`),
+        r.holdings.slice(0, 8).map((x) => h("div", { class: "hbar", style: "grid-template-columns:1fr 1fr 54px" }, h("span", {}, x.name), h("div", { class: "t" }, h("i", { style: `width:${x.weightPct == null ? 0 : Math.min(100, x.weightPct)}%;background:var(--blue)` })), h("span", { class: "v" }, x.weightPct == null ? (x.categoryName ?? x.category ?? "") : `${nf(x.weightPct, 1)} %`))));
+    } },
+
+  { id: "vehicles.free", group: "experimental", title: "Vehicle lookup", icon: "car", tag: "experimental", sig: "createFreeVehicleClient().lookup(plate)",
+    form: `${FLD.text("plate", "ABC123", "Plate", 'maxlength="7" style="text-transform:uppercase"')}`, hint: "Transportstyrelsen's public page.",
+    render(v) {
+      if (!v) return empty("No vehicle with that registration number.");
+      return h("div", {}, h("div", { class: "hero" }, h("div", { class: "plate" }, h("b", {}, "S"), h("span", {}, v.registrationNumber)), h("div", {}, h("b", {}, `${v.make ?? ""} ${v.model ?? ""}`), h("div", { class: "sub" }, v.modelYear ?? ""))),
+        kv([["Odometer", v.mileageKm == null ? null : `${nf(v.mileageKm)} km`], ["Annual tax", v.annualTaxKr == null ? null : `${nf(v.annualTaxKr)} kr`], ["Inspect by", v.nextInspectionDeadline]]));
+    } },
+];
+
+/* ───────── Cards: build, run, render ───────── */
+const cards = new Map();
+function buildCard(def) {
+  const tpl = h("template"); tpl.innerHTML = def.form;
+  const el = h("article", { class: `card${def.wide ? " wide" : ""}`, id: `card-${def.id.replace(".", "-")}`, "data-call": def.id },
+    h("header", { class: "card-h" }, h("span", { class: "ico" }, icon(def.icon, 18)),
+      h("div", { class: "titles" }, h("h2", {}, def.title, def.tag && h("span", { class: "tag" }, def.tag)), h("code", {}, def.sig)),
+      h("span", { class: "status", "data-state": "idle", role: "status" }, "Idle")),
+    h("form", { class: "controls", autocomplete: "off" }, tpl.content, h("button", { class: "btn primary run", type: "submit" }, icon("play", 12), "Run")),
+    def.hint && h("p", { class: "hint" }, def.hint),
+    h("div", { class: "view" }, empty(`Press Run to call ${def.sig.split("(")[0]}()`)),
+    h("footer", { class: "card-f" }, h("button", { class: "linkbtn raw-toggle", type: "button", "aria-expanded": "false", disabled: true }, icon("chevron", 14, 2.2), "Code & result"), h("span", { class: "spacer" })),
+    h("div", { class: "raw", hidden: true }));
+  const entry = { def, el, seq: 0, last: null };
+  cards.set(def.id, entry);
+  $("form", el).addEventListener("submit", (e) => { e.preventDefault(); run(entry); });
+  $(".raw-toggle", el).addEventListener("click", (e) => { const open = e.currentTarget.getAttribute("aria-expanded") !== "true"; e.currentTarget.setAttribute("aria-expanded", open); $(".raw", el).hidden = !open; });
+  return el;
+}
+function params(el) {
+  const q = new URLSearchParams();
+  for (const input of $$("form [name]", el)) {
+    if (input.type === "checkbox") { if (input.checked) q.set(input.name, input.value || "1"); }
+    else if (input.value !== "") q.set(input.name, input.name === "plate" ? input.value.toUpperCase() : input.value);
+  }
+  return q;
+}
+function setStatus(entry, state, label) {
+  const st = $(".status", entry.el); st.dataset.state = state; st.textContent = label;
+  const dot = $(`#nav a[data-id="${entry.def.id}"] .dot`), m = $(`#nav a[data-id="${entry.def.id}"] .m`);
+  if (dot) dot.dataset.state = state;
+  if (m) m.textContent = state === "idle" || state === "run" ? "" : label.replace(/^.*· /, "");
+}
+function fillRaw(entry, res) {
+  const raw = $(".raw", entry.el), json = JSON.stringify(res.ok ? res.result : res.error, null, 2) ?? "null";
+  const shown = json.length > 80000 ? `${json.slice(0, 80000)}\n… ${json.length - 80000} more characters` : json;
+  raw.replaceChildren(
+    h("h5", {}, "Code", h("button", { class: "btn sm", type: "button", onclick: () => copy(res.code, "Code copied") }, icon("copy", 13), "Copy")), h("pre", {}, res.code || "(call was not built)"),
+    h("h5", {}, res.ok ? "Result" : "Error", h("button", { class: "btn sm", type: "button", onclick: () => copy(json, "JSON copied") }, icon("copy", 13), "Copy")), h("pre", {}, shown));
+  $(".raw-toggle", entry.el).disabled = false;
+}
+async function renderResult(entry) {
+  const { def, el, last: res } = entry, view = $(".view", el), seq = entry.seq;
+  if (!res) return;
+  if (!res.ok) { view.replaceChildren(errorBox(res.error, () => run(entry))); return; }
+  try {
+    const node = await def.render(res.annotations ? { ...res.result, ...res.annotations } : res.result, el);
+    if (seq === entry.seq) view.replaceChildren(node);
+  } catch (error) {
+    if (seq === entry.seq) view.replaceChildren(errorBox({ name: "Rendering failed", message: String(error?.message ?? error) }));
+    console.error(def.id, error);
+  }
+}
+async function run(entry) {
+  const seq = ++entry.seq, { def, el } = entry;
+  setStatus(entry, "run", "Running…");
+  const view = $(".view", el); if (!entry.last) view.replaceChildren(skeleton()); else view.style.opacity = ".55";
+  const res = await api(`/api/call/${def.id}?${params(el)}`);
+  if (seq !== entry.seq) return res;                     // a newer run of this card has started
+  entry.last = res; view.style.opacity = "";
+  setStatus(entry, res.ok ? "ok" : "bad", res.ok ? `OK · ${res.ms} ms` : `${res.error.code ?? res.error.name} · ${res.ms ?? 0} ms`);
+  fillRaw(entry, res);
+  await renderResult(entry);
+  scheduleRefresh();
+  return res;
+}
+
+/* Run all */
+let running = false;
+async function runAll() {
+  if (running) return; running = true;
+  const btn = $("#runAll"), box = $("#summaryCard"), list = [...cards.values()];
+  btn.disabled = true; box.hidden = false;
+  const chipsEl = h("div", { class: "chips" }), bar = h("div", { class: "bar" }, h("i")), head = h("div", { class: "head" }, h("b", {}, "Running every call…"), h("span", { class: "spacer" }), chip("0/" + list.length));
+  box.replaceChildren(head, bar, chipsEl);
+  let ok = 0, done = 0;
+  for (const entry of list) {
+    const res = await run(entry); done++; if (res.ok) ok++;
+    chipsEl.append(h("a", { class: `chip ${res.ok ? "ok" : "bad"}`, href: `#${entry.el.id}`, title: res.ok ? "" : res.error.message }, `${res.ok ? "✓" : "✗"} ${entry.def.id} · ${res.ms ?? 0} ms`));
+    $("i", bar).style.width = `${(done / list.length) * 100}%`; head.lastChild.textContent = `${done}/${list.length}`;
+  }
+  bar.classList.add(ok === list.length ? "done" : "fail");
+  head.firstChild.textContent = ok === list.length ? `All ${list.length} calls succeeded` : `${ok} of ${list.length} calls succeeded`;
+  btn.disabled = false; running = false; setRunAllLabel();
+}
+function setRunAllLabel() { const b = $("#runAll"); b.replaceChildren(icon("play", 12), "Run all"); }
+
+/* ───────── State, inspector, settings ───────── */
+let state = null, refreshTimer = null;
+const scheduleRefresh = () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 250); };
+async function refresh() {
+  const next = await api("/api/state");
+  if (!next.config) { setConn(false); return; }
+  state = next; renderState();
+}
+function setConn(on) { const c = $("#conn"); c.dataset.state = on ? "on" : "off"; $("span", c).textContent = on ? "live" : "reconnecting…"; }
+
+const FAULTS = { none: null, "slow 2 s": { delayMs: 2000 }, hang: { hang: true }, offline: { offline: true }, "HTTP 503": { status: 503 }, "429 + Retry-After": { status: 429, retryAfter: 30 }, "invalid JSON": { invalidJson: true }, "flaky 50 %": { offline: true, rate: 0.5 } };
+const faultName = (current) => Object.keys(FAULTS).find((k) => JSON.stringify(FAULTS[k]) === JSON.stringify(current ?? null)) ?? "none";
+
+function renderState() {
+  const { config, stats } = state, fake = config.mode === "fake";
+  for (const b of $$("#mode button")) b.setAttribute("aria-pressed", String(b.dataset.mode === config.mode));
+  for (const b of $$("#locale button")) b.setAttribute("aria-pressed", String(b.dataset.locale === config.locale));
+  for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) { const el = $(`#${k}`); if (document.activeElement !== el) el.value = config[k]; }
+  $("#cache").checked = config.cache;
+  const banner = $("#banner"); banner.hidden = !fake;
+  if (fake) banner.replaceChildren(icon("alert", 17), h("span", {}, h("b", {}, "Fake sources. "), "All data is generated for demonstration – nothing here is real statistics or prices."));
+  $("#sideNote").textContent = fake ? "Fake sources · no network" : "Live sources · real requests";
+
+  /* Sources: update rows in place so an open dropdown is never destroyed. */
+  const host = $("#sources");
+  if (!host.firstChild) host.append(h("div", { class: "src head" }, h("span", {}, "Source"), h("span", { class: "n" }, "Req"), h("span", { class: "n" }, "Fail"), h("span", {}, "Fault")));
+  for (const id of state.sources) {
+    let row = $(`.src[data-id="${id}"]`, host);
+    if (!row) {
+      const sel = h("select", { "aria-label": `Fault for ${id}`, onchange: async (e) => { const res = await post("/api/fault", { source: id, fault: FAULTS[e.target.value] }); if (res.error) toast(res.error.message ?? res.error); refresh(); } });
+      for (const name of Object.keys(FAULTS)) sel.append(h("option", {}, name));
+      row = h("div", { class: "src", "data-id": id }, h("span", { class: "name", title: id }, h("span", { class: "dot" }), h("div", {}, h("b", {}, id), h("small", { "data-c": "avg" }))), h("span", { class: "n", "data-c": "req" }), h("span", { class: "n", "data-c": "fail" }), sel);
+      host.append(row);
+    }
+    const st = stats.sources[id], f = faultName(state.faults[id]);
+    $('[data-c="req"]', row).textContent = st?.requests ?? 0;
+    const fail = $('[data-c="fail"]', row); fail.textContent = st?.failures ?? 0; fail.classList.toggle("bad", !!st?.failures);
+    $('[data-c="avg"]', row).textContent = st?.requests ? `avg ${st.averageMs} ms` : "no requests";
+    $(".dot", row).dataset.state = st?.failures ? "bad" : st?.requests ? "ok" : "";
+    row.classList.toggle("faulted", f !== "none");
+    const sel = $("select", row); if (document.activeElement !== sel) sel.value = f;
+  }
+  const c = stats.cache, total = c.hits + c.misses, rate = total ? c.hits / total : 0;
+  const R = 50, C = 2 * Math.PI * R;
+  $("#gauge").replaceChildren(s("svg", { viewBox: "0 0 116 116", width: 116, height: 116 }, s("circle", { cx: 58, cy: 58, r: R, fill: "none", stroke: "var(--surface-3)", "stroke-width": 11 }),
+    s("circle", { cx: 58, cy: 58, r: R, fill: "none", stroke: "var(--blue)", "stroke-width": 11, "stroke-linecap": "round", "stroke-dasharray": `${C * rate} ${C}`, transform: "rotate(-90 58 58)" })), h("b", {}, total ? `${Math.round(rate * 100)} %` : "–", h("small", {}, "hit rate")));
+  $("#cacheTiles").replaceChildren(tile("Hits", nf(c.hits)), tile("Misses", nf(c.misses)), tile("Stale served", nf(c.stale)));
+  $("#since").textContent = `Counting since ${fmt.clock.format(new Date(stats.since))}.`;
+  const failing = Object.values(stats.sources).reduce((n, x) => n + (x?.failures ?? 0), 0);
+  const kpi = (value, label, color) => h("div", { class: "kpi" }, h("b", color ? { style: `color:${color}` } : {}, value), h("span", {}, label));
+  $("#kpis").replaceChildren(...[kpi(cards.size, "calls"), kpi(state.sources.length, "sources"), kpi(total ? `${Math.round(rate * 100)} %` : "–", "cache hits"), failing ? kpi(failing, "failed requests", "var(--bad)") : null].filter(Boolean));
+}
+
+/* Live log */
+let logCount = 0;
+function addLog(e) {
+  const el = h("div", { class: e.kind === "cache" ? "cache" : e.error ? "fail" : "" });
+  const time = fmt.clock.format(new Date(e.at));
+  if (e.kind === "cache") el.append(h("span", {}, time), h("span", {}, `cache ${e.type}`), h("span", { title: e.key }, e.key), h("span", {}));
+  else {
+    let label; try { const u = new URL(e.url); label = u.pathname.split("/").filter(Boolean).slice(-1)[0] + u.search; } catch { label = e.url; }
+    el.append(h("span", {}, time), h("span", { title: e.source }, `${e.source}${e.attempt > 1 ? ` #${e.attempt}` : ""}`), h("span", { title: e.url }, e.error ? `${e.error.code}: ${e.error.message}` : label), h("span", { class: e.error || (e.status ?? 200) >= 400 ? "s4" : "s2" }, `${e.status ?? "–"} · ${e.ms} ms`));
+  }
+  if (e.kind === "cache") el.dataset.cache = "1";
+  const box = $("#log"); box.prepend(el);
+  while (box.children.length > 300) box.lastChild.remove();
+  logCount = box.children.length; $("#logCount").textContent = logCount; $("#logEmpty").hidden = logCount > 0;
+}
+function connectEvents() {
+  const events = new EventSource("/api/events");
+  events.onopen = () => setConn(true);
+  events.onerror = () => setConn(false);
+  events.onmessage = (m) => {
+    const e = JSON.parse(m.data);
+    if (e.kind === "hello") { $("#log").replaceChildren(); e.log.forEach(addLog); }   // a reconnect replays the log; start from empty to avoid duplicates
+    else addLog(e);
+    scheduleRefresh();
+  };
+}
+
+/* ───────── Wiring ───────── */
+function buildPage() {
+  const groups = $("#groups"), nav = $("#nav");
+  for (const g of GROUPS) {
+    const defs = CARDS.filter((c) => c.group === g.id);
+    groups.append(h("section", { class: "group", id: `g-${g.id}` }, h("div", { class: "group-h" }, h("h3", {}, g.title), h("p", {}, g.note)), h("div", { class: "grid" }, defs.map(buildCard))));
+    nav.append(h("div", { class: "nav-g" }, h("h4", {}, g.title), defs.map((d) => h("a", { href: `#card-${d.id.replace(".", "-")}`, "data-id": d.id, onclick: () => { const c = cards.get(d.id).el; c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); } }, h("span", { class: "dot" }), h("span", { class: "t" }, d.title), h("span", { class: "m" })))));
+  }
+}
+function wire() {
+  $("#settingsBtn").append(icon("settings", 17)); $("#inspClose").append(icon("x", 14)); setRunAllLabel();
+  for (const b of $$("#mode button")) b.onclick = async () => { const r = await post("/api/config", { mode: b.dataset.mode }); if (r.error) toast(r.error.message); refresh(); };
+  for (const b of $$("#locale button")) b.onclick = async () => { const r = await post("/api/config", { locale: b.dataset.locale }); if (r.error) toast(r.error.message); refresh(); };
+  for (const k of ["timeoutMs", "retries", "staleIfErrorMs"]) $(`#${k}`).onchange = async (e) => { const r = await post("/api/config", { [k]: Number(e.target.value) }); if (r.error) toast(r.error.message); refresh(); };
+  $("#cache").onchange = async (e) => { await post("/api/config", { cache: e.target.checked }); refresh(); };
+  $("#clearCache").onclick = async () => { await post("/api/cache/clear"); toast("Cache cleared"); refresh(); };
+  $("#resetStats").onclick = async () => { await post("/api/stats/reset"); $("#log").replaceChildren(); $("#logCount").textContent = "0"; $("#logEmpty").hidden = false; refresh(); };
+  $("#runAll").onclick = runAll;
+  $("#hideCache").onchange = (e) => { $("#log").dataset.hideCache = e.target.checked ? "1" : ""; };
+  const style = h("style", {}, '#log[data-hide-cache="1"] [data-cache]{display:none}'); document.head.append(style);
+
+  /* settings popover */
+  const pop = $("#settingsPop"), sbtn = $("#settingsBtn"), setPop = (open) => { pop.hidden = !open; sbtn.setAttribute("aria-expanded", String(open)); };
+  sbtn.onclick = (e) => { e.stopPropagation(); setPop(pop.hidden); };
+  document.addEventListener("click", (e) => { if (!pop.hidden && !pop.contains(e.target)) setPop(false); });
+
+  /* theme */
+  const themes = ["auto", "light", "dark"], themeIcons = { auto: "contrast", light: "sun", dark: "moon" };
+  let theme = "auto"; try { theme = localStorage.getItem("board-theme") || "auto"; } catch {}
+  const applyTheme = () => { if (theme === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = theme; $("#themeBtn").replaceChildren(icon(themeIcons[theme], 17)); $("#themeBtn").title = `Theme: ${theme}`; };
+  $("#themeBtn").onclick = () => { theme = themes[(themes.indexOf(theme) + 1) % 3]; try { localStorage.setItem("board-theme", theme); } catch {} applyTheme(); toast(`Theme: ${theme}`); };
+  applyTheme();
+
+  /* inspector */
+  const setInsp = (open) => { document.body.classList.toggle("insp-open", open); $("#backdrop").hidden = !open; };
+  $("#inspBtn").onclick = () => setInsp(true); $("#inspClose").onclick = () => setInsp(false); $("#backdrop").onclick = () => setInsp(false);
+  for (const t of $$(".tabs button")) t.onclick = () => { for (const x of $$(".tabs button")) x.setAttribute("aria-selected", String(x === t)); for (const p of $$(".pane")) p.hidden = p.id !== `pane-${t.dataset.tab}`; };
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { setPop(false); setInsp(false); if (document.activeElement === $("#filter")) { $("#filter").value = ""; $("#filter").dispatchEvent(new Event("input")); $("#filter").blur(); } }
+    if (e.key === "/" && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $("#filter").focus(); }
+  });
+
+  /* filter */
+  $("#filter").oninput = (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    for (const { def, el } of cards.values()) el.hidden = !!q && !`${def.id} ${def.title} ${def.sig} ${def.group}`.toLowerCase().includes(q);
+    for (const a of $$("#nav a")) a.hidden = !!q && cards.get(a.dataset.id).el.hidden;
+    for (const g of $$(".group")) g.hidden = !!q && !$$(".card", g).some((c) => !c.hidden);
+    for (const g of $$(".nav-g")) g.hidden = !!q && !$$("a", g).some((a) => !a.hidden);
+  };
+
+  /* card specifics */
+  const wx = cards.get("weather.forecast").el;
+  $(".preset", wx).onchange = (e) => { const [lat, lon] = e.target.value.split(","); $("[name=lat]", wx).value = lat; $("[name=lon]", wx).value = lon; run(cards.get("weather.forecast")); };
+  $("#vat").onchange = () => { const entry = cards.get("spot.overview"); if (entry.last?.ok) { entry.seq++; renderResult(entry); } };
+  for (const id of ["spot.history", "weather.history"]) {
+    const past = id === "spot.history" ? [-14, -1] : [-13, -7], el = cards.get(id).el;
+    $("[name=from]", el).value = dayOffset(past[0]); $("[name=to]", el).value = dayOffset(past[1]);
+  }
+
+  /* active nav item follows the scroll position */
+  const io = new IntersectionObserver((entries) => { for (const en of entries) if (en.isIntersecting) { for (const a of $$("#nav a")) a.classList.toggle("active", a.getAttribute("href") === `#${en.target.id}`); } }, { rootMargin: "-20% 0px -65% 0px" });
+  for (const { el } of cards.values()) io.observe(el);
+}
+
+buildPage(); wire(); connectEvents();
+refresh().then(() => run(cards.get("spot.overview")));
 </script>
 </body>
 </html>

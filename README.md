@@ -452,6 +452,8 @@ universities and the experimental investment and vehicle sources – against the
 and the raw result for each call, a live log of every request and cache decision, per-source statistics, and lets you
 switch faults on per source (slow, hang, offline, 503, 429 with Retry-After, invalid JSON, flaky) while you change the
 timeout, retries and stale-if-error, so you can watch the client cope. *Run all* is a one-click smoke test.
+Charts show the exact value on hover, the page follows the system light/dark theme (or the theme button), `/` filters
+the calls, and the inspector (sources, cache, log) is a docked panel on wide screens and a drawer on narrow ones.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Releases are published to JSR from GitHub Actions with provenance.
 

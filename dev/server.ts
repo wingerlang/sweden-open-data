@@ -45,7 +45,8 @@ import {
 } from "../src/testing.ts";
 
 const args = process.argv.slice(2);
-const port = Number(args[args.indexOf("--port") + 1]) || Number(process.env.PORT) || 5174;
+const portFlag = args.indexOf("--port");
+const port = (portFlag >= 0 ? Number(args[portFlag + 1]) : NaN) || Number(process.env.PORT) || 5174;
 const here = dirname(fileURLToPath(import.meta.url));
 // Only this computer can reach the board: it has no authentication and can switch sources and faults.
 const host = "127.0.0.1";
@@ -84,6 +85,9 @@ type LogEntry =
   | ({ kind: "cache"; at: string } & CacheEvent);
 const log: LogEntry[] = [];
 const listeners = new Set<ServerResponse>();
+setInterval(() => {
+  for (const res of listeners) res.write(": keep-alive\n\n");
+}, 20_000).unref();
 function push(entry: LogEntry): void {
   log.push(entry);
   if (log.length > 300) log.shift();
@@ -95,6 +99,7 @@ let faulty: FaultyFetch;
 let se: SwedenOpenData;
 let investments: InvestmentClient;
 let vehicles: VehicleClient;
+let clientOptions: ClientOptions;
 function build(keepFaults = true): void {
   const faults = keepFaults && faulty ? faulty.faults() : {};
   faulty = config.mode === "fake" ? createFakeSources() : withFaults(globalThis.fetch);
@@ -117,6 +122,7 @@ function build(keepFaults = true): void {
     },
     onCacheEvent: (e) => push({ kind: "cache", at: new Date().toISOString(), ...e }),
   };
+  clientOptions = options;
   se = createClient(options);
   // The experimental sources are separate clients; they share the log, the faults and the settings.
   investments = createInvestmentClient(options);
@@ -238,7 +244,7 @@ const CALLS: Record<string, (q: URLSearchParams) => [Promise<unknown>, string]> 
         latest,
         annualInflation: latest ? inflationRate(series, latest.month) : null,
         adjusted: adjustForInflation(series, amount, from),
-        last24: series.points.slice(-24),
+        recent: series.points.slice(-60),
       };
     });
     return [
@@ -276,6 +282,23 @@ const CALLS: Record<string, (q: URLSearchParams) => [Promise<unknown>, string]> 
     ];
   },
 };
+
+/** Labels and icon names for every weather code in a forecast, for display only. */
+function weatherAnnotations(forecast: Forecast): { labels: Record<number, string>; icons: Record<number, string> } {
+  const codes = new Set([
+    forecast.current.code,
+    ...forecast.days.map((d) => d.code),
+    ...forecast.hours.map((hour) => hour.code),
+  ]);
+  const labels: Record<number, string> = {};
+  const icons: Record<number, string> = {};
+  for (const code of codes) {
+    const { label, icon } = describeWeather(code, config.locale);
+    labels[code] = label;
+    icons[code] = icon;
+  }
+  return { labels, icons };
+}
 
 function describeError(error: unknown): Record<string, unknown> {
   if (error instanceof SourceError) {
@@ -338,10 +361,16 @@ function parseConfig(input: Record<string, unknown>): Partial<Config> {
         out.cache = value as boolean;
         break;
       case "timeoutMs":
+        if (typeof value !== "number" || !Number.isInteger(value) || value < 100 || value > 120_000) fail();
+        out.timeoutMs = value as number;
+        break;
       case "retries":
+        if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 10) fail();
+        out.retries = value as number;
+        break;
       case "staleIfErrorMs":
         if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 86_400_000) fail();
-        out[key] = value as number;
+        out.staleIfErrorMs = value as number;
         break;
       default:
         fail();
@@ -395,9 +424,10 @@ createServer(async (req, res) => {
         "cache-control": "no-store",
         connection: "keep-alive",
       });
-      res.write(`data: ${JSON.stringify({ kind: "hello", log })}\n\n`);
+      res.write(`retry: 2000\n\ndata: ${JSON.stringify({ kind: "hello", log })}\n\n`);
       listeners.add(res);
       req.on("close", () => listeners.delete(res));
+      res.on("error", () => listeners.delete(res));
       return;
     }
     if (url.pathname === "/api/state")
@@ -424,6 +454,8 @@ createServer(async (req, res) => {
     if (url.pathname === "/api/cache/clear" && req.method === "POST") {
       se.clearCache();
       vehicles.clearCache();
+      // The investment client has no clearCache(): a new client starts with an empty cache.
+      investments = createInvestmentClient(clientOptions);
       return json(res, 200, { ok: true });
     }
     if (url.pathname === "/api/stats/reset" && req.method === "POST") {
@@ -441,14 +473,7 @@ createServer(async (req, res) => {
         const result = await promise;
         // Extra data for display only, kept apart from the package's own result.
         const annotations = url.pathname.endsWith("weather.forecast")
-          ? {
-              labels: Object.fromEntries(
-                [(result as Forecast).current.code, ...(result as Forecast).days.map((d) => d.code)].map((c) => [
-                  c,
-                  describeWeather(c, config.locale).label,
-                ]),
-              ),
-            }
+          ? weatherAnnotations(result as Forecast)
           : undefined;
         return json(res, 200, { ok: true, ms: Math.round(performance.now() - started), code, result, annotations });
       } catch (error) {

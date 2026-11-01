@@ -3,6 +3,19 @@
 All notable changes are documented here. The project follows [Semantic Versioning](https://semver.org); until 1.0,
 minor versions may contain breaking changes, which are always listed.
 
+## Unreleased
+
+- Redesign the dev board: side navigation with per-call status, a docked inspector (sources and faults, cache gauge,
+  live log), interactive charts with hover values, weather icons, light/dark theme, skeleton loading and error states,
+  call filter (`/`) and a responsive layout down to phone width.
+- Dev board fixes: "Clear cache" now also clears the investment client; temperature history is grouped by Swedish
+  calendar day (partial days are marked); the log is no longer duplicated when the event stream reconnects; the sources
+  table no longer closes an open fault menu while it refreshes; no more stale results when a card is run twice in
+  quick succession; a tomorrow summary without a cheapest window and an empty house-price series no longer throw; a first
+  numeric command-line argument is no longer taken as the port.
+- Dev board server rejects timeouts below 100 ms and more than 10 retries, sends a keep-alive on the event stream and
+  provides weather icons and 60 months of CPI history for the page. New tests run every call on the fake sources.
+
 ## 0.14.0
 
 - Add official household mortgage rates to `/economy` (`mortgageRates()`, SCB/Riksbanken TAB5783): monthly averages
