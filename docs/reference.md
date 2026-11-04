@@ -1,0 +1,563 @@
+# sweden-open-data – fullständig referens (English)
+
+> Kort version och kom-igång: [README](../README.md). Den här filen är den detaljerade API-referensen.
+
+[![JSR](https://jsr.io/badges/@wingerlang/sweden-open-data)](https://jsr.io/@wingerlang/sweden-open-data)
+[![JSR score](https://jsr.io/badges/@wingerlang/sweden-open-data/score)](https://jsr.io/@wingerlang/sweden-open-data)
+[![CI](https://github.com/wingerlang/sweden-open-data/actions/workflows/ci.yml/badge.svg)](https://github.com/wingerlang/sweden-open-data/actions/workflows/ci.yml)
+
+Swedish open data in one small, typed, dependency-free package:
+
+| Area | What you get | Source |
+|---|---|---|
+| **Electricity** | Spot prices per price area (SE1–SE4), today, tomorrow and history; summaries, cheapest windows, price levels | [elprisetjustnu.se](https://www.elprisetjustnu.se) (Nord Pool day-ahead) |
+| **Weather** | Current conditions, 7-day hourly and daily forecast, weather codes in Swedish and English | [Open-Meteo](https://open-meteo.com) |
+| **Alerts** | VMA, news from authorities and SMHI weather warnings that concern *your* places | [Krisinformation.se](https://www.krisinformation.se), [SMHI](https://www.smhi.se) |
+| **Geo** | Address search that handles Swedish rural addresses, place search, county and municipality for a position | [Photon](https://photon.komoot.io) (OpenStreetMap), Open-Meteo geocoding |
+| **Inflation** | Consumer price indices KPI, KPIF and KPIF-XE month by month; amounts in today's money, inflation rates, salary vs prices, real values | [SCB](https://www.scb.se/kpi) (Statistikdatabasen) |
+
+The core sources need no API keys. The optional [vehicle lookup](#vehicle-lookup-optional-authenticated-source) requires a server-side Biluppgifter key. (Free does not always mean free for any use – see [Data and attribution](#data-and-attribution).) Works in Node.js, Deno, Bun and the browser (where the source allows CORS – see [Runtimes](#runtimes)).
+
+The client takes care of what production code needs: caching with sensible lifetimes, sharing of concurrent identical
+requests, timeouts, retries with backoff for transient failures, cancellation, typed errors, and rounding of positions
+to about 1 km before they leave your system.
+
+```ts
+import { createClient } from "@wingerlang/sweden-open-data";
+
+const se = createClient();
+
+const { today, tomorrow } = await se.spot.prices("SE3");
+const forecast = await se.weather.forecast({ latitude: 59.33, longitude: 18.07 });
+const { alerts } = await se.alerts.near([{ latitude: 59.33, longitude: 18.07 }]);
+const [address] = await se.geo.addresses("Åraslöv 1105, 28890 Vinslöv");
+const kpi = await se.economy.cpi("KPI");
+```
+
+Runnable examples for every feature – cancellation, history, air quality, autocomplete, storage and the optional
+modules – are in [`examples/`](../examples/README.md); they work offline and take `--live`.
+
+## Install
+
+```sh
+npx jsr add @wingerlang/sweden-open-data     # Node.js (npm, pnpm and yarn work too)
+deno add jsr:@wingerlang/sweden-open-data    # Deno
+bunx jsr add @wingerlang/sweden-open-data    # Bun
+```
+
+The package is published on JSR. An npm archive (`npm pack`) contains compiled JavaScript and `.d.ts` types, so it
+works in any TypeScript project without special compiler settings; `npm run check:package` verifies that.
+
+## Electricity spot prices
+
+```ts
+import { createSpotClient, summarizeSpotPrices, formatOre, withVat, stockholmClock } from "@wingerlang/sweden-open-data";
+
+const spot = createSpotClient();
+const { today, tomorrow } = await spot.prices("SE3");   // tomorrow is null until published (~13:00)
+
+const s = summarizeSpotPrices(today!.points);
+console.log(`Now ${formatOre(withVat(s!.current!.sek))} incl. VAT (${s!.level})`);
+console.log(`Cheapest 3 h: ${stockholmClock(s!.cheapest!.start)}–${stockholmClock(s!.cheapest!.end)}`);
+```
+
+| Function | Purpose |
+|---|---|
+| `spot.overview(area, { windowHours })` | The price now plus summaries of today and tomorrow – what a widget needs |
+| `spot.prices(area)` | Today and tomorrow in one call |
+| `spot.day(area, date)` | One Swedish calendar day, or `null` if not published |
+| `spot.history(area, from, to)` | A range of days; days that could not be fetched are listed in `missing` |
+| `summarizeSpotPrices(points, { now, windowHours })` | Current, next, min, max, average, level and cheapest window |
+| `cheapestWindow(points, hours, { from })` | Cheapest contiguous window – when to run the dishwasher |
+| `cheapestHours(points, count, { from })` | Cheapest hours, not necessarily contiguous – when to charge a battery |
+| `priceLevel(price, points)` | `"low"`, `"normal"` or `"high"` relative to the day |
+| `spotWindow(today, tomorrow, "day" \| "remaining" \| "rolling")` | The points a chart should show |
+| `hourlyAverages(points)` | Quarter-hour prices merged to hours |
+| `guessSpotArea(position)`, `SPOT_AREAS`, `toSpotArea("se3")` | Price areas |
+| `withVat(sek)`, `formatOre(sek)` | 25 % VAT and "46 öre" formatting |
+
+Prices are SEK and EUR per kWh **excluding** VAT, grid fees, energy tax and mark-up. Since 1 October 2025 prices are
+set per quarter hour; every function handles both quarter-hour and hourly days, including 23- and 25-hour days at
+daylight-saving changes. A known source quirk on the autumn DST day is corrected (`normalizeSpotDay`) without ever
+inventing a price.
+
+Complete past days never change. Give the client a `store` and they are kept across restarts:
+
+```ts
+import { fileStore } from "@wingerlang/sweden-open-data/node";
+const spot = createSpotClient({ store: fileStore("./.cache/prices") });
+```
+
+## Weather
+
+```ts
+import { createWeatherClient, describeWeather, formatTemperature } from "@wingerlang/sweden-open-data";
+
+const { current, hours, days } = await createWeatherClient().forecast({ latitude: 59.33, longitude: 18.07 });
+console.log(formatTemperature(current.temperature), describeWeather(current.code).label);       // "9° Lätt regn"
+console.log(describeWeather(current.code, "en"));                                               // { label: "Light rain", icon: "rain" }
+```
+
+All times are absolute (UTC ISO strings). `forecastAt(forecast, now)` re-bases a saved forecast on a later moment and
+returns `null` rather than presenting stale data as current – useful for offline caches.
+
+### Historical temperatures
+
+```ts
+const { hours } = await se.weather.history({ latitude: 59.33, longitude: 18.07 }, "2026-01-01", "2026-01-31");
+// [{ at: 1767225600000, celsius: -2.5 }, …] – hourly, 1–31 days per request, cached 6 h
+```
+
+ERA5 reanalysis from the [Open-Meteo archive](https://open-meteo.com/en/docs/historical-weather-api): a model of the
+past, not a station reading at the address. Also available on its own as `createWeatherHistoryClient()`.
+
+### Optional UV, pollen and air quality
+
+Ordinary forecasts make no additional requests. Opt in to environmental data separately:
+
+```ts
+import { createWeatherClient, pollenWarnings } from "@wingerlang/sweden-open-data";
+const weather = createWeatherClient();
+const environment = await weather.environment({ latitude: 59.33, longitude: 18.07 }, {
+  metrics: ["uv", "pollen", "airQuality"], days: 4,
+});
+const warnings = pollenWarnings(environment, 20); // caller's own grains/m³ threshold, next 24 h
+```
+
+Hourly values include UV index, alder/birch/grass/mugwort/olive/ragweed pollen (grains/m³), European AQI,
+PM2.5 and PM10 (µg/m³). Missing values remain null, including seasonal or geographic pollen gaps.
+These are model forecasts, not monitoring-station observations or official alerts. Pollen forecasts cover Europe
+and up to four days. Preserve fetchedAt and show the source attribution carried by the response.
+The endpoint is configurable with endpoints.airQuality. Requests reuse rounding, cache, retries and cancellation.
+Source and usage terms: [Open-Meteo Air Quality / CAMS](https://open-meteo.com/en/docs/air-quality-api).
+
+## Alerts: VMA, crisis information and warnings
+
+```ts
+import { createAlertsClient } from "@wingerlang/sweden-open-data";
+
+const { places, alerts, sources } = await createAlertsClient().near(
+  [{ latitude: 56.1, longitude: 13.91 }, { latitude: 59.33, longitude: 18.07 }],
+  { days: 7, neighbors: true },
+);
+for (const a of alerts) console.log(a.kind, a.level, a.title, "→ places", a.places);
+```
+
+An alert is included when it is national, or when it touches a place: inside an SMHI warning polygon, in the same
+county or municipality, or within 40 km of a point the authority gave. `neighbors: true` also includes alerts for
+bordering counties. Results are sorted VMA first, then warnings by severity, then newest. Each feed fails on its own –
+`sources` tells you which ones answered.
+
+Narrow it down when you only want what matters:
+
+```ts
+await alerts.near(places, { kinds: ["vma", "warning"], minLevel: "orange" }); // VMA and orange/red warnings only
+await alerts.near(places, { feeds: ["smhi"] });                                // only ask SMHI
+```
+
+The pure functions (`parseKrisinformation`, `parseSmhiWarnings`, `relevantAlerts`, `freshAlerts`, `alertPlaces`) work
+on data you already have.
+
+`summary` is the authority's text, not sanitised HTML: render it as text (`textContent`), never with `innerHTML`.
+Links (`url`) only ever go to krisinformation.se over `https://` (`TRUSTED_ALERT_HOSTS`); anything else becomes its
+front page.
+
+## Geo: addresses, places and regions
+
+```ts
+import { createGeoClient } from "@wingerlang/sweden-open-data";
+
+const geo = createGeoClient();
+await geo.addresses("Åraslöv 1105, 28890 Vinslöv");
+// [{ address: "Åraslöv 1105", city: "Vinslöv", postalCode: "288 90", approximate: true, near: "Åraslöv", … }, …]
+
+await geo.places("Kebnekaise", { pointsOfInterest: true });
+await geo.region({ latitude: 56.1, longitude: 13.91 });
+// { county: "Skåne län", municipality: "Hässleholms kommun", locality: "Vinslöv", … }
+```
+
+Both searches take `{ limit }`, and `addresses` takes `{ country }` (default `"SE"`, `null` for anywhere).
+
+Many Swedish rural addresses are missing from OpenStreetMap. Instead of returning a wrong address – another house
+number or a similarly named street – the search offers *the address as you typed it*, positioned at the village or town
+it found nearby, and marks it `approximate: true`. Nothing is invented.
+
+## Inflation: consumer price indices from SCB
+
+```ts
+import { createEconomyClient, adjustForInflation, realChange, inflationRate, latestCpi } from "@wingerlang/sweden-open-data/economy";
+
+const economy = createEconomyClient();
+const kpi = await economy.cpi("KPI");                    // every month since 1980, 2020=100
+
+adjustForInflation(kpi, 10_000, "2000-01").amount;       // 10 000 kr from January 2000 in today's money
+inflationRate(kpi, latestCpi(kpi)!.month);               // the latest annual (12-month) rate, 0.031 = 3.1 %
+realChange(kpi, { amount: 32_000, month: "2018-01" }, { amount: 41_000, month: "2026-09" }).real; // did the salary keep up?
+```
+
+| Function | Purpose |
+|---|---|
+| `economy.cpi(index)` | `"KPI"` (from 1980), `"KPIF"` or `"KPIF-XE"` (from 1987), monthly, 2020=100 |
+| `adjustForInflation(series, amount, from, to?)` | An amount in the prices of another month (default: the newest) |
+| `inflationRate(series, month, months = 12)` / `inflationRates(series)` | Inflation over a period; the annual rate for every month |
+| `averageAnnualInflation(series, from, to)` | Geometric average per year |
+| `realChange(series, earlier, later)` | Nominal and real change of an amount, and what keeps its purchasing power |
+| `deflate(series, values, to?)` | A nominal series (balance, price, index) in real terms |
+| `annualAverage`, `cpiAt`, `latestCpi`, `cpiRange`, `toMonth`, `addMonths` | Helpers |
+
+KPI is SCB's official ("fastställda") series. SCB changed the reference year from 1980 to 2020 in January 2026; the
+client joins the 1980 figures rebased to 2020=100 (until December 2025) with the new official figures, so there is no
+break. SCB publishes once a month: series are cached for 6 hours, and with a `store` the last good series is kept
+across restarts and returned (with `stale: true`) when SCB cannot be reached. All functions are pure and run in the
+browser on a series your server fetched.
+
+## Optional and experimental modules
+
+These live in their own entry points and are not part of `createClient()` unless noted.
+
+### Vehicle lookup (optional authenticated source)
+
+```ts
+import {createVehicleClient} from "@wingerlang/sweden-open-data/vehicles";
+const vehicles = createVehicleClient({apiKey: process.env.BILUPPGIFTER_API_KEY!, userAgent: "my-server/1.0"});
+const vehicle = await vehicles.lookup("ABC123"); // null on HTTP 404, SourceError for provider failures
+```
+
+**Server-side only.** Unlike the open sources this requires your own paid/provider agreement and API key.
+[Provider contract](https://apidocs.biluppgifter.se/): Biluppgifter v1 `basic,status,inspection` packages.
+`modelYear` prefers `model_year`; `vehicleYear` is a separate observation. Tax is SEK/year. `mileageKm` is the last
+recorded inspection odometer in kilometres, not live mileage. Source and `fetchedAt` accompany every result.
+Missing values stay undefined; owner, address, VIN and finance fields are excluded. No deadline is guessed.
+
+Instantiate once per credential scope. Positive answers live in a bounded private memory cache for 6h (override
+`ttlMs`); 404 answers for at most 5 minutes. No disk cache or public client's cache is used. `cache: false` disables
+reuse; concurrent identical requests still share a load. A caller's cancellation signal only
+ends that caller's wait; the shared lookup is aborted when every waiting caller has cancelled. `clearCache()`, `stats()` and `resetStats()` are available.
+Request/cache hooks and returned SourceErrors redact plates and credentials; your custom `fetch` can see the
+actual request, so do not log URLs or headers there. Authenticated redirects are rejected.
+
+Offline: use `createFakeSources()` from `/testing` with a dummy key; `fakeVehicleResponse()` exposes the source
+fixture. It is explicitly synthetic. A paid live test is **skipped by default**: only set both
+`BILUPPGIFTER_API_KEY` and `VEHICLE_LIVE_TEST_REGISTRATION` for a registration you may query, then run
+`node --test live/vehicles.test.ts`. The library never queries a default registration.
+
+#### Free vehicle lookup (experimental)
+
+> **Experimental.** Transportstyrelsen publishes this page for people, not as an API, and no agreement covers automated reading. Registration numbers can be personal data under GDPR. Until the terms are confirmed in writing it lives in its own entry point,
+> `@wingerlang/sweden-open-data/vehicles/free`, and is not exported from the main package or `/vehicles`.
+
+`createFreeVehicleClient()` from `/vehicles/free` reads Transportstyrelsen’s public HTML without an API key. It is best-effort, not an official API contract; no access challenge is bypassed. `vehicleLookupLinks(registrationNumber)` provides direct links for an ordinary browser tab if automatic reading fails. The parser retains labelled vehicle observations only and never assumes an odometer unit when none is displayed. For a contracted API, the optional `createVehicleClient({apiKey})` remains available.
+
+### Investment companies (IBIndex, experimental)
+
+> **Experimental.** IBIndex offers no public API or agreement for these endpoints; availability and data terms are decided by IBIndex. Until the terms are confirmed in writing it is only available from
+> `@wingerlang/sweden-open-data/investments` and is not part of `createClient()`.
+
+The optional `/investments` entry point provides `createInvestmentClient()`. Call `companies()` for stable IBIndex products and `company("INVE B")` for dated reported/estimated NAV, discount history and underlying holdings. A positive discount is below NAV; a negative discount is a premium. Holdings weights exclude the cash/debt categories, matching IBIndex's denominator. Missing NAV remains null.
+
+Responses share a six-hour cache and can persist in the existing store. Failed refreshes retain the last complete result marked stale. This is an unofficial adapter to public IBIndex read endpoints; availability and third-party data terms are determined by IBIndex, not this package's MIT source-code license. Always show source and dates. Reports are handled by the application's existing company-report source. No private portfolio inputs are accepted.
+
+### Higher education reference catalogue
+
+The optional `@wingerlang/sweden-open-data/education` export provides `getSwedishInstitutions()`, `searchSwedishInstitutions(query, limit)` and `SWEDISH_INSTITUTIONS_SOURCE`. It contains the 50 institutions listed by [UKÄ](https://www.uka.se/sa-fungerar-hogskolan/universitet-och-hogskolor/lista-over-universitet-hogskolor-och-enskilda-utbildningsanordnare), checked 2026-10-18. Names, websites and classifications follow that snapshot; aliases support abbreviations such as KTH and historical names such as MDH.
+
+This is a dated, immutable reference snapshot with stable IDs, not a live accreditation lookup. It makes no network calls and contains no students, relationships, private notes or graph nodes. Refresh the snapshot and review the source deliberately when publishing a new package version.
+
+```ts
+import {searchSwedishInstitutions} from "@wingerlang/sweden-open-data/education";
+const suggestions = searchSwedishInstitutions("kth");
+```
+
+### Sport reference catalogue
+
+The /sports export provides getSports(), findSport() and searchSports(): stable sport IDs, Swedish names, English/common aliases, categories and semantic emoji. This is a curated vocabulary of common sports and exercise, not an exhaustive RF membership list. Names may be entered freely by consumers. Person IDs, membership, club affiliations, dates, notes and training histories never belong in this public catalogue.
+
+## Options
+
+```ts
+const se = createClient({
+  userAgent: "my-app/1.0 (https://example.com)",  // be a good citizen towards free services
+  timeoutMs: 8000,           // per attempt (default 10000)
+  retries: 2,                // extra attempts for timeouts, network errors, 429 and 5xx (default 1)
+  retryDelayMs: 500,         // doubled per retry (default 500)
+  maxRetryDelayMs: 10_000,   // a longer Retry-After from a source is reported, not slept through
+  maxResponseBytes: 5_000_000, // larger answers are refused as invalid-response (default 5 MB)
+  limits: { photon: { concurrency: 4 }, "open-meteo": { perMinute: 500 } }, // per source; default: Photon 2 at a time
+  cache: {                   // or false
+    maxEntries: 1000,
+    archiveEntries: 400,     // past days kept by spot.history, in a cache of their own (default 400)
+    ttl: { weather: 10 * 60_000 },
+    staleIfErrorMs: 6 * 3_600_000,  // keep serving the last good result for 6 h if a source goes down
+  },
+  store: fileStore("./.cache"),                 // durable storage for immutable data
+  endpoints: { weather: "https://my-mirror/v1/forecast" },
+  coordinatePrecision: 2,    // decimals sent to sources (default 2 ≈ 1 km)
+  locale: "en",              // generated texts such as warning titles (default "sv")
+  fetch: myFetch,            // proxies, instrumentation, tests
+  onRequest: (e) => log(e.source, e.status, e.ms, e.attempt),
+  onCacheEvent: (e) => log(e.type, e.key),        // hit, miss or stale
+});
+```
+
+Default cache lifetimes (`DEFAULT_TTL`): published spot day 12 h, unpublished day 15 min, weather 20 min, alert feeds
+5 min, region 30 days, searches 1 h. Failures are never cached.
+
+Every method also accepts `{ signal }` to cancel. Concurrent identical requests share one load; cancelling only ends
+your own wait, and the load is aborted when every caller waiting for it has cancelled.
+
+### Being kind to free sources
+
+Requests beyond a source's limit wait in a queue instead of reaching the source, and can be cancelled while they wait.
+The only default is two concurrent requests to Photon, whose public instance asks for moderate use. Set limits that match
+each source's own terms for your traffic, for example `limits: { "open-meteo": { perMinute: 500 } }`. For autocomplete,
+wait about 300 ms after the last keystroke and cancel the previous request with its `signal`.
+
+### Staying up when a source is down
+
+With `cache.staleIfErrorMs`, an expired result is served again when refreshing it fails, for as long as you allow. The
+failing source is then asked at most once a minute. Every result that changes over time carries `fetchedAt`, so you
+can show "updated 2 h ago" instead of an error. A `429` or `503` with a `Retry-After` is honoured when it is short and
+reported (`error.retryAfterMs`) when it is longer than `maxRetryDelayMs`.
+
+### Persistent storage
+
+A `store` keeps data that does not change (complete past days of spot prices, kept until replaced) and the last good
+copy of slower sources (price indices, IBIndex; kept 30 days as a fallback for when the source is down). `fileStore`
+from `/node` writes one file per key; call `prune()` now and then to delete what has expired. Several servers can share
+a store such as Redis:
+
+```ts
+import { createClient, type PersistentStore } from "@wingerlang/sweden-open-data";
+import { createClient as createRedis } from "redis";
+
+const redis = await createRedis({ url: process.env.REDIS_URL }).connect();
+const store: PersistentStore = {
+  get: async (key) => (await redis.get(`sod:${key}`)) ?? undefined,
+  set: async (key, value, options) => {
+    await redis.set(`sod:${key}`, value, options?.ttlMs ? { PX: options.ttlMs } : {});
+  },
+};
+const se = createClient({ store });
+```
+
+### Health and metrics
+
+```ts
+se.stats();
+// { requests: 42, failures: 1, cache: { hits: 30, misses: 12, stale: 0 },
+//   sources: { "open-meteo": { requests: 5, failures: 0, retries: 0, averageMs: 210, lastStatus: 200, … }, … } }
+se.resetStats();
+```
+
+`onRequest` sees every attempt (with status, duration, attempt number and error), `onCacheEvent` every cache
+decision – enough for logging, Prometheus counters or OpenTelemetry spans.
+
+## Errors
+
+* Invalid arguments – an unknown price area, coordinates outside the globe, `2026-02-30` – reject with a `RangeError`
+  before any request is made.
+* Everything that goes wrong at a source rejects with a `SourceError` with a `code` (`"timeout"`, `"network"`,
+  `"http"`, `"rate-limited"`, `"invalid-response"`, `"aborted"`), the `source`, the HTTP `status` and `transient`, which
+  tells you whether trying again later makes sense.
+
+```ts
+try {
+  await se.weather.forecast(position);
+} catch (error) {
+  if (error instanceof SourceError && error.transient) return showStaleData();
+  throw error;
+}
+```
+
+## Entry points
+
+| Import | Contents |
+|---|---|
+| `@wingerlang/sweden-open-data` | Everything except the experimental sources, plus `createClient` |
+| `@wingerlang/sweden-open-data/spot` | Spot prices |
+| `@wingerlang/sweden-open-data/weather` | Weather |
+| `@wingerlang/sweden-open-data/alerts` | Alerts |
+| `@wingerlang/sweden-open-data/geo` | Geocoding and regions |
+| `@wingerlang/sweden-open-data/economy` | Consumer price indices and inflation arithmetic |
+| `@wingerlang/sweden-open-data/node` | `fileStore` (needs a file system) |
+| `@wingerlang/sweden-open-data/testing` | Fakes of every source and fault injection, for your own tests |
+| `@wingerlang/sweden-open-data/vehicles` | Authenticated vehicle lookup (Biluppgifter, needs an API key) |
+| `@wingerlang/sweden-open-data/vehicles/free` | **Experimental:** Transportstyrelsen public-page lookup |
+| `@wingerlang/sweden-open-data/investments` | **Experimental:** IBIndex investment companies |
+| `@wingerlang/sweden-open-data/education` | Swedish higher education institutions (offline reference data) |
+| `@wingerlang/sweden-open-data/sports` | A sport vocabulary for autocomplete (offline reference data) |
+
+## Testing your code
+
+You should not need the network – or this package's internals – to test code that uses it:
+
+```ts
+import { createClient } from "@wingerlang/sweden-open-data";
+import { createFakeSources } from "@wingerlang/sweden-open-data/testing";
+
+const fake = createFakeSources({ now: () => Date.parse("2026-10-14T10:00:00+02:00") });
+const se = createClient({ fetch: fake.fetch, now: () => Date.parse("2026-10-14T10:00:00+02:00"), retries: 0 });
+
+await se.spot.overview("SE3");             // realistic, deterministic prices; tomorrow appears after 13:00
+fake.setFault("smhi", { status: 503 });    // …or { offline }, { hang }, { delayMs }, { invalidJson }, { rate: 0.5 }
+fake.calls;                                 // every URL that was requested
+```
+
+`withFaults(fetch)` adds the same fault switches to any `fetch` – including the real one – and `fakeSpotDay`,
+`fakeForecast`, `fakeKrisinformation` and `fakeSmhiWarnings` give you the raw source formats. The generated data is for
+tests and demos only.
+
+## Runtimes
+
+Node.js ≥ 20, Deno, Bun and modern browsers. The package uses only web-standard APIs (`fetch`, `URL`, `AbortController`,
+`Intl`), except the `/node` entry point. In browsers, Open-Meteo and Photon allow cross-origin requests; for the other
+sources, call the package from your server and pass the results on.
+
+## Data and attribution
+
+The data belongs to its publishers. Show the source next to it – the `*_SOURCE` constants have names and links.
+
+| Source | Licence and terms (check them yourself before you ship) |
+|---|---|
+| Open-Meteo (weather, geocoding) | Data under CC BY 4.0. The free API is for **non-commercial use** (under 10 000 calls a day); commercial use needs a paid plan or your own instance. [Terms](https://open-meteo.com/en/terms) |
+| OpenStreetMap via Photon | Map data © OpenStreetMap contributors, [ODbL](https://www.openstreetmap.org/copyright). The public Photon instance is for fair use; self-host for heavy traffic. |
+| Krisinformation.se | [Terms of use for the API](https://www.krisinformation.se/globalassets/om-krisinformation.se/oppen-data/anvandarvillkor-for-krisinformations-api.pdf): no availability guarantee, cache responses, avoid unnecessary calls. |
+| SMHI | [CC BY 4.0 (Erkännande 4.0 SE)](https://www.smhi.se/data/om-smhis-data/villkor-for-anvandning). Warnings may be used commercially but must **not be altered** and SMHI must be credited – the parser keeps SMHI's texts as they are and only adds the level ("Gul varning: …"). |
+| elprisetjustnu.se | Free public API republishing Nord Pool day-ahead prices; see the site for terms and credit it. |
+| SCB | Open data, free to use including commercially ([CC0](https://www.scb.se/vara-tjanster/oppna-data/)). Credit SCB as the source. |
+
+## På svenska
+
+Elpriser, väder, VMA och varningar, adressökning och KPI/inflation för svenska förhållanden – utan nycklar och utan beroenden.
+Dokumentationen är på engelska, men allt som visas för användare (väderbeskrivningar, varningsrubriker) finns på svenska
+som standard.
+
+## Projektöversikt (på svenska)
+
+**Live:** paketet är publicerat på [JSR](https://jsr.io/@wingerlang/sweden-open-data); CI-status ovan. Kör `npm run dev` för en lokal demo-sida.
+
+### Vad det gör
+
+Ett litet TypeScript-bibliotek utan beroenden som hämtar svensk öppen data (elpriser, väder, VMA och varningar, adresser, KPI/inflation, bostadspriser, räntor) och ger den i typade, cachade och feltåliga anrop. Du anropar t.ex. `se.spot.prices("SE3")` och får dagens och morgondagens elpris, utan nycklar.
+
+### Kom igång
+
+- **Krav:** Node.js 22+ (eller Deno/Bun). Inga API-nycklar för kärnkällorna; bara den valfria fordonsuppslagningen kräver `BILUPPGIFTER_API_KEY`, som läses på serversidan.
+- **Installation:** `npx jsr add @wingerlang/sweden-open-data`, eller `git clone https://github.com/wingerlang/sweden-open-data && cd sweden-open-data && npm ci`.
+- **Konfiguration:** inga miljövariabler krävs. `PORT` styr dev-sidan (standard 5174). Klientens timeout, omförsök och cache ställs in via `createClient({...})`, se [Options](#options).
+- **Kör:** `npm run dev` (demo-sida), `npm test`, `npm run check` (typer, lint, täckning).
+
+### Arkitektur
+
+`src/core` har HTTP-klienten (timeout, omförsök, cache, delning av samtidiga anrop), och varje datakälla ligger i en egen modul (`src/spot`, `src/weather`, `src/alerts`, `src/geo`, `src/economy` m.fl.) med en egen ingång. `src/testing.ts` ger fejkade källor så att alla tester och exempel kan köras offline. `dev/` är webbsidan för att prova alla anrop, och `.github/workflows` har CI, veckovisa live-tester och publicering.
+
+### Teknisk stack
+
+| Komponent | Val | Anledning |
+|---|---|---|
+| Språk | TypeScript, inga runtime-beroenden | Liten att installera, fungerar i Node, Deno, Bun och webbläsare |
+| Tester | `node --test` med fejkade källor | Snabba, offline, täckningskrav per fil |
+| CI/CD | GitHub Actions | Tester på Node 22/24, Deno, Bun, lint, typer; JSR-publicering vid tagg |
+| Distribution | JSR (med provenance) | Publicering utan hemligheter via OIDC |
+
+### Begränsningar
+
+Källorna är tredjeparter och kan ändra format utan förvarning (därför finns veckovisa live-tester). Marknadsmodulen och investerings-/fordonsadaptrarna är experimentella och bygger på ickeofficiella källor. Alla källor har egna användarvillkor, se [Data and attribution](#data-and-attribution).
+
+### Utvecklat med
+
+Claude Code (agentdriven utveckling) som del av kursen Next-Generation Software Development with AI.
+
+## Development
+
+```sh
+npm run dev            # the dev board on this computer: http://localhost:5174 (-- --fake: no network, -- --port N)
+npm test               # node --test (Node ≥ 22.18 runs the TypeScript sources directly)
+npm run check          # typecheck + lint + export checks + coverage per file – run before every commit
+npm run fmt            # format with Prettier (fmt:check only checks)
+npm run lint           # project rules: line length, docs, shared helpers, no any, endpoints
+npm run coverage       # tests with coverage limits per file
+npm run check:package  # pack, install into a plain TypeScript project, type-check and import
+npm run load           # 100 concurrent callers per method against the fakes
+npm run test:live      # contract tests against the real sources (weekly in CI; LIVE_SCRAPED=1 adds the experimental ones)
+npm run smoke          # a small terminal dashboard: node examples/dashboard.ts [lat] [lon]
+npm run examples       # run every example in examples/ offline (see examples/README.md)
+```
+
+The **dev board** runs every call of the package from a browser page – spot prices with a chart, weather, alerts,
+address and place search, regions, price and temperature history, UV/pollen/air quality, inflation, sports,
+universities and the experimental investment and vehicle sources – against the real sources or the fakes. It shows the equivalent code
+and the raw result for each call, a live log of every request and cache decision, per-source statistics, and lets you
+switch faults on per source (slow, hang, offline, 503, 429 with Retry-After, invalid JSON, flaky) while you change the
+timeout, retries and stale-if-error, so you can watch the client cope. *Run all* is a one-click smoke test.
+Charts show the exact value on hover, the page follows the system light/dark theme (or the theme button), `/` filters
+the calls, and the inspector (sources, cache, log) is a docked panel on wide screens and a drawer on narrow ones.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md). Releases are published to JSR from GitHub Actions with provenance.
+
+## License
+
+[MIT](../LICENSE) © Johannes Winger-Lang
+
+### Wedding anniversary names
+
+```ts
+import { getWeddingName } from "@wingerlang/sweden-open-data/anniversaries";
+getWeddingName(10); // "Tennbröllop"
+```
+
+A small local catalogue of Swedish milestones, sourced from Svenska kyrkan. Names vary by tradition; unknown, fractional and invalid years return `undefined`. No network or personal dates are involved.
+
+## House-price development (0.12)
+
+```ts
+const se = createClient();
+const regional = await se.economy.housePrices("RIKS4"); // Sydsverige, quarterly, 1981=100
+const county = await se.economy.housePrices("12", {frequency:"year"}); // Skåne, annual, 1990=100
+```
+
+Permanent small houses from SCB: quarterly regional table TAB1150 and annual county table TAB1148. Use `HOUSING_REGIONS` from `/economy` for valid codes. Every point retains its observation period (`period`, `from`, `to`), rather than inventing a daily quote. The series includes source, update time, fetch time and SCB's revision notes. Requests share the normal bounded cache and durable last-good fallback. Regional figures do not value an individual property. No address or personal information is needed. The dev board includes a chart and table for `economy.housing`; fake mode uses explicit synthetic fixtures.
+## Policy rate (0.15)
+
+```ts
+import { createEconomyClient, policyRateAt } from "@wingerlang/sweden-open-data/economy";
+const policy = await createEconomyClient().policyRate();
+policy.points.at(-1);                       // { date: "2024-05-08", ratePct: 3.75 } – the latest change
+policyRateAt(policy, "2023-10-01");         // the rate that applied on that date, percent
+```
+
+The Riksbank's policy rate (styrräntan, series SECBREPOEFF) from its open SWEA API, reduced to the dates where the
+rate changed plus the latest observation. Cached like other monthly statistics, with the durable last-good fallback
+(`stale: true`) when the Riksbank cannot be reached. Credit Sveriges riksbank as the source.
+
+## Mortgage rates (0.14)
+
+```ts
+import { createEconomyClient, mortgageBindingFor, mortgageRateAt } from "@wingerlang/sweden-open-data/economy";
+const rates = await createEconomyClient().mortgageRates();
+const floating = rates.series.find((s) => s.agreement === "new" && s.binding === mortgageBindingFor(3));
+mortgageRateAt(floating!, "2024-06"); // average rate on new floating mortgages that month, percent
+```
+
+Official household mortgage rates from SCB/Riksbanken (table TAB5783, from 2005): monthly averages for new and
+renegotiated agreements and for all outstanding loans, per original fixed-rate band (floating, 3 months–1 year,
+1–3, 3–5 and over 5 years). Missing months stay missing. One request fetches the whole table; it shares the normal
+cache and durable last-good fallback.
+
+**Experimental bank rates.** `createBankRateClient().bankMortgageRates("handelsbanken")` reads the list rates and the
+monthly average rates (usually twelve months) that Handelsbanken publishes on its rate page. The JSON behind that page
+is not a documented API and no agreement covers automated reading, so it may change without notice; keep a store so
+the last good answer is served as `stale`. `bankListRateFor(rates, months)` picks the nearest published binding. No
+customer data is ever sent. Historical list rates are not published, so the package does not invent them.
+
+## Experimental market data
+
+Import public equities, indices, daily/intraday history, dividends, splits, company fundamentals and MFN reports from `@wingerlang/sweden-open-data/market`. These adapters reuse public web endpoints; their availability and redistribution terms remain the providers' decision. They are deliberately separate from the core open-data client. No personal holdings or transactions are accepted.
+
+`createMarketClient({store,fetch,now})` provides bounded memory, persistent snapshots, single-flight requests, stale-while-revalidate and failure backoff. Quotes keep separate quick/intraday/full cache keys. Full history is incrementally updated with the latest year; new splits force a full reload, and a full rebuild every 30 days admits older corrections. Adjusted closes are rescaled across the overlap after dividends. Explicit `fresh:true` awaits an actual refresh.
+
+`marketIndices` distinguishes price indices and gross total-return indices, including OMXS30, OMXSPI, OMXS30GI, Stockholm Small Cap, S&P 500 and Nasdaq 100. Prices retain their currency; no implicit FX conversion is made. Nasdaq is primary for Swedish indices, with FRED fallback only for an exact matching series.
+
+`movingAverage(points,50)` and `movingAverage(points,200)` require complete observation windows. `marketAnalytics(points,asOf)` calculates 1M/3M/6M/YTD/1Y/3Y/5Y/MAX price returns, total returns where provider-adjusted closes exist, annualised observed daily volatility and maximum drawdown. Missing coverage remains null. Derived analytics travel with the cached quote; no provider call is needed to change a chart period or MA overlay.
+
+Report publication markers preserve MFN links, and provider earnings dates remain explicitly preliminary. Ex-dividend dates and cash distributions are distinct from a user's received dividend transactions. The package never invents historical reports or future prices.
