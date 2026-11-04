@@ -6,7 +6,8 @@
  */
 import { distanceKm, fold } from "../core/geo.js";
 /** All 21 counties with approximate centres (for fallbacks, not for precise lookups). */
-export const COUNTIES = Object.freeze([
+export const COUNTIES = Object.freeze(
+  [
     ["Stockholms län", 59.4, 18.2],
     ["Uppsala län", 60.0, 17.6],
     ["Södermanlands län", 59.1, 16.6],
@@ -28,7 +29,8 @@ export const COUNTIES = Object.freeze([
     ["Jämtlands län", 63.2, 14.0],
     ["Västerbottens län", 64.8, 18.5],
     ["Norrbottens län", 66.8, 20.5],
-].map(([name, latitude, longitude]) => Object.freeze({ name, latitude, longitude })));
+  ].map(([name, latitude, longitude]) => Object.freeze({ name, latitude, longitude })),
+);
 /**
  * A comparison key for county and municipality names, so that different spellings of the same area match.
  *
@@ -39,71 +41,71 @@ export const COUNTIES = Object.freeze([
  * ```
  */
 export function regionKey(name) {
-    return fold(name)
-        .replace(/\b(lan|kommun|county|municipality)\b/g, "")
-        .replace(/[^a-z ]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .replace(/s$/, "");
+  return fold(name)
+    .replace(/\b(lan|kommun|county|municipality)\b/g, "")
+    .replace(/[^a-z ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/s$/, "");
 }
 /** The county whose centre is nearest – a fallback when reverse geocoding is unavailable. */
 export function nearestCounty(position) {
-    let best = COUNTIES[0];
-    let distance = Infinity;
-    for (const county of COUNTIES) {
-        const d = distanceKm(position, county);
-        if (d < distance) {
-            distance = d;
-            best = county;
-        }
+  let best = COUNTIES[0];
+  let distance = Infinity;
+  for (const county of COUNTIES) {
+    const d = distanceKm(position, county);
+    if (d < distance) {
+      distance = d;
+      best = county;
     }
-    return best.name;
+  }
+  return best.name;
 }
 // Source: SCB, https://www.scb.se/contentassets/1e02934987424259b730c5e9a82f7e74/lanskarta.pdf
 const BORDERS = [
-    ["Stockholm", "Uppsala"],
-    ["Stockholm", "Södermanland"],
-    ["Uppsala", "Södermanland"],
-    ["Uppsala", "Västmanland"],
-    ["Uppsala", "Dalarna"],
-    ["Uppsala", "Gävleborg"],
-    ["Södermanland", "Västmanland"],
-    ["Södermanland", "Örebro"],
-    ["Södermanland", "Östergötland"],
-    ["Östergötland", "Örebro"],
-    ["Östergötland", "Västra Götaland"],
-    ["Östergötland", "Jönköping"],
-    ["Östergötland", "Kalmar"],
-    ["Jönköping", "Västra Götaland"],
-    ["Jönköping", "Halland"],
-    ["Jönköping", "Kronoberg"],
-    ["Jönköping", "Kalmar"],
-    ["Kronoberg", "Halland"],
-    ["Kronoberg", "Skåne"],
-    ["Kronoberg", "Blekinge"],
-    ["Kronoberg", "Kalmar"],
-    ["Kalmar", "Blekinge"],
-    ["Blekinge", "Skåne"],
-    ["Skåne", "Halland"],
-    ["Halland", "Västra Götaland"],
-    ["Västra Götaland", "Värmland"],
-    ["Västra Götaland", "Örebro"],
-    ["Värmland", "Örebro"],
-    ["Värmland", "Dalarna"],
-    ["Örebro", "Västmanland"],
-    ["Örebro", "Dalarna"],
-    ["Västmanland", "Dalarna"],
-    ["Dalarna", "Gävleborg"],
-    ["Dalarna", "Jämtland"],
-    ["Gävleborg", "Jämtland"],
-    ["Gävleborg", "Västernorrland"],
-    ["Jämtland", "Västernorrland"],
-    ["Jämtland", "Västerbotten"],
-    ["Västernorrland", "Västerbotten"],
-    ["Västerbotten", "Norrbotten"],
+  ["Stockholm", "Uppsala"],
+  ["Stockholm", "Södermanland"],
+  ["Uppsala", "Södermanland"],
+  ["Uppsala", "Västmanland"],
+  ["Uppsala", "Dalarna"],
+  ["Uppsala", "Gävleborg"],
+  ["Södermanland", "Västmanland"],
+  ["Södermanland", "Örebro"],
+  ["Södermanland", "Östergötland"],
+  ["Östergötland", "Örebro"],
+  ["Östergötland", "Västra Götaland"],
+  ["Östergötland", "Jönköping"],
+  ["Östergötland", "Kalmar"],
+  ["Jönköping", "Västra Götaland"],
+  ["Jönköping", "Halland"],
+  ["Jönköping", "Kronoberg"],
+  ["Jönköping", "Kalmar"],
+  ["Kronoberg", "Halland"],
+  ["Kronoberg", "Skåne"],
+  ["Kronoberg", "Blekinge"],
+  ["Kronoberg", "Kalmar"],
+  ["Kalmar", "Blekinge"],
+  ["Blekinge", "Skåne"],
+  ["Skåne", "Halland"],
+  ["Halland", "Västra Götaland"],
+  ["Västra Götaland", "Värmland"],
+  ["Västra Götaland", "Örebro"],
+  ["Värmland", "Örebro"],
+  ["Värmland", "Dalarna"],
+  ["Örebro", "Västmanland"],
+  ["Örebro", "Dalarna"],
+  ["Västmanland", "Dalarna"],
+  ["Dalarna", "Gävleborg"],
+  ["Dalarna", "Jämtland"],
+  ["Gävleborg", "Jämtland"],
+  ["Gävleborg", "Västernorrland"],
+  ["Jämtland", "Västernorrland"],
+  ["Jämtland", "Västerbotten"],
+  ["Västernorrland", "Västerbotten"],
+  ["Västerbotten", "Norrbotten"],
 ];
 /** Counties that share a land border with `county` (short names, for example `["Kronoberg", "Blekinge", "Halland"]`). */
 export function neighboringCounties(county) {
-    const key = regionKey(county);
-    return BORDERS.flatMap(([a, b]) => (regionKey(a) === key ? [b] : regionKey(b) === key ? [a] : []));
+  const key = regionKey(county);
+  return BORDERS.flatMap(([a, b]) => (regionKey(a) === key ? [b] : regionKey(b) === key ? [a] : []));
 }

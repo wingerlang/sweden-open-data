@@ -15,7 +15,39 @@
  * @module
  */
 export { createEconomyClient, scbDataUrl } from "./client.js";
-export { addMonths, adjustForInflation, annualAverage, averageAnnualInflation, CPI_INDICES, CPI_SOURCE, CPI_TABLES, cpiAt, cpiRange, deflate, inflationRate, inflationRates, isCpiIndex, latestCpi, parseScbMonthly, realChange, spliceSeries, toMonth, } from "./cpi.js";
-export { createHousingClient, parseHousing, isHousingRegion, HOUSING_SOURCE, HOUSING_REGIONS, } from "./housing.js";
-export { createMortgageRateClient, parseMortgageRates, mortgageBindingFor, mortgageRateAt, MORTGAGE_BINDINGS, MORTGAGE_RATE_SOURCE, } from "./mortgage.js";
-export { createBankRateClient, parseHandelsbankenRates, bankListRateFor, isMortgageBank, MORTGAGE_BANKS, } from "./banks.js";
+export {
+  addMonths,
+  adjustForInflation,
+  annualAverage,
+  averageAnnualInflation,
+  CPI_INDICES,
+  CPI_SOURCE,
+  CPI_TABLES,
+  cpiAt,
+  cpiRange,
+  deflate,
+  inflationRate,
+  inflationRates,
+  isCpiIndex,
+  latestCpi,
+  parseScbMonthly,
+  realChange,
+  spliceSeries,
+  toMonth,
+} from "./cpi.js";
+export { createHousingClient, parseHousing, isHousingRegion, HOUSING_SOURCE, HOUSING_REGIONS } from "./housing.js";
+export {
+  createMortgageRateClient,
+  parseMortgageRates,
+  mortgageBindingFor,
+  mortgageRateAt,
+  MORTGAGE_BINDINGS,
+  MORTGAGE_RATE_SOURCE,
+} from "./mortgage.js";
+export {
+  createBankRateClient,
+  parseHandelsbankenRates,
+  bankListRateFor,
+  isMortgageBank,
+  MORTGAGE_BANKS,
+} from "./banks.js";

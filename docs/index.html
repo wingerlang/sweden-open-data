@@ -1,84 +1,193 @@
 <!doctype html>
 <html lang="sv">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
-<title>sweden-open-data – live demo</title>
-<style>
-:root{--bg:#f6f8fb;--fg:#14202e;--card:#fff;--muted:#5b6b7c;--blue:#006aa7;--yellow:#fecc00;--bar:#7fb3d5}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1621;--fg:#e7eef6;--card:#17222f;--muted:#9bb0c4;--bar:#3d7ca8}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
-main{max-width:760px;margin:0 auto;padding:24px 16px 48px}
-h1{margin:0 0 4px;font-size:1.6rem}.sub{color:var(--muted);margin:0 0 20px}
-.card{background:var(--card);border-radius:12px;padding:16px;margin:0 0 16px;border-top:4px solid var(--blue)}
-.big{font-size:2.2rem;font-weight:700}.muted{color:var(--muted)}
-select{font:inherit;padding:4px 8px}
-.bars{display:flex;align-items:flex-end;gap:1px;height:90px;margin-top:12px}
-.bars i{flex:1;background:var(--bar);min-height:2px}.bars i.now{background:var(--yellow)}
-code{background:var(--bg);padding:2px 6px;border-radius:4px}a{color:var(--blue)}
-.err{color:#b3261e}
-</style>
-</head>
-<body>
-<main>
-  <h1>🇸🇪 sweden-open-data</h1>
-  <p class="sub">Live-demo: svensk öppen data i ett litet, typat bibliotek. Datan hämtas direkt i din webbläsare via paketet.</p>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>sweden-open-data – live demo</title>
+    <style>
+      :root {
+        --bg: #f6f8fb;
+        --fg: #14202e;
+        --card: #fff;
+        --muted: #5b6b7c;
+        --blue: #006aa7;
+        --yellow: #fecc00;
+        --bar: #7fb3d5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1621;
+          --fg: #e7eef6;
+          --card: #17222f;
+          --muted: #9bb0c4;
+          --bar: #3d7ca8;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.6rem;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 20px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 16px;
+        margin: 0 0 16px;
+        border-top: 4px solid var(--blue);
+      }
+      .big {
+        font-size: 2.2rem;
+        font-weight: 700;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      select {
+        font: inherit;
+        padding: 4px 8px;
+      }
+      .bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 1px;
+        height: 90px;
+        margin-top: 12px;
+      }
+      .bars i {
+        flex: 1;
+        background: var(--bar);
+        min-height: 2px;
+      }
+      .bars i.now {
+        background: var(--yellow);
+      }
+      code {
+        background: var(--bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      a {
+        color: var(--blue);
+      }
+      .err {
+        color: #b3261e;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>🇸🇪 sweden-open-data</h1>
+      <p class="sub">
+        Live-demo: svensk öppen data i ett litet, typat bibliotek. Datan hämtas direkt i din webbläsare via paketet.
+      </p>
 
-  <section class="card">
-    <h2>Elpris <select id="area"><option>SE1</option><option>SE2</option><option selected>SE3</option><option>SE4</option></select></h2>
-    <div id="spot" class="muted">Hämtar …</div>
-  </section>
+      <section class="card">
+        <h2>
+          Elpris
+          <select id="area">
+            <option>SE1</option>
+            <option>SE2</option>
+            <option selected>SE3</option>
+            <option>SE4</option>
+          </select>
+        </h2>
+        <div id="spot" class="muted">Hämtar …</div>
+      </section>
 
-  <section class="card">
-    <h2>Väder i Stockholm</h2>
-    <div id="weather" class="muted">Hämtar …</div>
-  </section>
+      <section class="card">
+        <h2>Väder i Stockholm</h2>
+        <div id="weather" class="muted">Hämtar …</div>
+      </section>
 
-  <section class="card">
-    <h2>Använd i ditt projekt</h2>
-    <p><code>npx jsr add @wingerlang/sweden-open-data</code></p>
-    <p><a href="https://github.com/wingerlang/sweden-open-data">Källkod och README</a> ·
-       <a href="https://jsr.io/@wingerlang/sweden-open-data">JSR</a></p>
-    <p class="muted">Elpriser: elprisetjustnu.se (Nord Pool). Väder: Open-Meteo.</p>
-  </section>
-</main>
-<script type="module">
-import { createSpotClient, createWeatherClient, summarizeSpotPrices, formatOre, withVat, describeWeather, formatTemperature } from "./lib/mod.js";
+      <section class="card">
+        <h2>Använd i ditt projekt</h2>
+        <p><code>npx jsr add @wingerlang/sweden-open-data</code></p>
+        <p>
+          <a href="https://github.com/wingerlang/sweden-open-data">Källkod och README</a> ·
+          <a href="https://jsr.io/@wingerlang/sweden-open-data">JSR</a>
+        </p>
+        <p class="muted">Elpriser: elprisetjustnu.se (Nord Pool). Väder: Open-Meteo.</p>
+      </section>
+    </main>
+    <script type="module">
+      import {
+        createSpotClient,
+        createWeatherClient,
+        summarizeSpotPrices,
+        formatOre,
+        withVat,
+        describeWeather,
+        formatTemperature,
+      } from "./lib/mod.js";
 
-const spot = createSpotClient();
-const weather = createWeatherClient();
-const hhmm = (iso) => new Date(iso).toLocaleTimeString("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit" });
-const fail = (el, e) => { el.innerHTML = '<span class="err">Kunde inte hämta data just nu: ' + String(e && e.message || e).replace(/</g, "&lt;") + "</span>"; };
+      const spot = createSpotClient();
+      const weather = createWeatherClient();
+      const hhmm = (iso) =>
+        new Date(iso).toLocaleTimeString("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit" });
+      const fail = (el, e) => {
+        el.innerHTML =
+          '<span class="err">Kunde inte hämta data just nu: ' +
+          String((e && e.message) || e).replace(/</g, "&lt;") +
+          "</span>";
+      };
 
-async function loadSpot(area) {
-  const el = document.getElementById("spot");
-  el.textContent = "Hämtar …";
-  try {
-    const { today } = await spot.prices(area);
-    if (!today) throw new Error("Dagens priser är inte publicerade ännu.");
-    const s = summarizeSpotPrices(today.points);
-    const max = Math.max(...today.points.map((p) => p.sek), 0.01);
-    const nowIso = s && s.current ? s.current.start : null;
-    const bars = today.points.map((p) => `<i class="${p.start === nowIso ? "now" : ""}" style="height:${Math.max(2, (Math.max(p.sek, 0) / max) * 100)}%" title="${hhmm(p.start)}: ${formatOre(withVat(p.sek))}"></i>`).join("");
-    el.innerHTML = `<div class="big">${s && s.current ? formatOre(withVat(s.current.sek)) : "–"}</div>
+      async function loadSpot(area) {
+        const el = document.getElementById("spot");
+        el.textContent = "Hämtar …";
+        try {
+          const { today } = await spot.prices(area);
+          if (!today) throw new Error("Dagens priser är inte publicerade ännu.");
+          const s = summarizeSpotPrices(today.points);
+          const max = Math.max(...today.points.map((p) => p.sek), 0.01);
+          const nowIso = s && s.current ? s.current.start : null;
+          const bars = today.points
+            .map(
+              (p) =>
+                `<i class="${p.start === nowIso ? "now" : ""}" style="height:${Math.max(2, (Math.max(p.sek, 0) / max) * 100)}%" title="${hhmm(p.start)}: ${formatOre(withVat(p.sek))}"></i>`,
+            )
+            .join("");
+          el.innerHTML = `<div class="big">${s && s.current ? formatOre(withVat(s.current.sek)) : "–"}</div>
       <div class="muted">per kWh inkl. moms just nu${s && s.level ? " · nivå: " + s.level : ""}</div>
       ${s && s.cheapest ? `<p>Billigaste 3 timmarna: <b>${hhmm(s.cheapest.start)}–${hhmm(s.cheapest.end)}</b></p>` : ""}
       <div class="bars">${bars}</div>`;
-  } catch (e) { fail(el, e); }
-}
+        } catch (e) {
+          fail(el, e);
+        }
+      }
 
-async function loadWeather() {
-  const el = document.getElementById("weather");
-  try {
-    const { current } = await weather.forecast({ latitude: 59.33, longitude: 18.07 });
-    el.innerHTML = `<div class="big">${formatTemperature(current.temperature)}</div><div class="muted">${describeWeather(current.code).label}</div>`;
-  } catch (e) { fail(el, e); }
-}
+      async function loadWeather() {
+        const el = document.getElementById("weather");
+        try {
+          const { current } = await weather.forecast({ latitude: 59.33, longitude: 18.07 });
+          el.innerHTML = `<div class="big">${formatTemperature(current.temperature)}</div><div class="muted">${describeWeather(current.code).label}</div>`;
+        } catch (e) {
+          fail(el, e);
+        }
+      }
 
-document.getElementById("area").addEventListener("change", (ev) => loadSpot(ev.target.value));
-loadSpot("SE3");
-loadWeather();
-</script>
-</body>
+      document.getElementById("area").addEventListener("change", (ev) => loadSpot(ev.target.value));
+      loadSpot("SE3");
+      loadWeather();
+    </script>
+  </body>
 </html>

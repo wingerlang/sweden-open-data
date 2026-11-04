@@ -22,30 +22,32 @@
  * ```
  */
 export class SourceError extends Error {
-    /** Machine-readable reason. */
-    code;
-    /** Name of the source that failed, for example `"elprisetjustnu"`. */
-    source;
-    /** HTTP status, when the source answered. */
-    status;
-    /** The URL that was requested. */
-    url;
-    /** How long the source asked us to wait before trying again (`Retry-After`), in milliseconds. */
-    retryAfterMs;
-    constructor(message, options) {
-        super(message, options.cause === undefined ? undefined : { cause: options.cause });
-        this.name = "SourceError";
-        this.code = options.code;
-        this.source = options.source;
-        this.status = options.status;
-        this.url = options.url;
-        this.retryAfterMs = options.retryAfterMs;
-    }
-    /** `true` when the same request may well succeed later (timeouts, network errors, 429 and 5xx). */
-    get transient() {
-        return (this.code === "timeout" ||
-            this.code === "network" ||
-            this.code === "rate-limited" ||
-            (this.code === "http" && (this.status ?? 0) >= 500));
-    }
+  /** Machine-readable reason. */
+  code;
+  /** Name of the source that failed, for example `"elprisetjustnu"`. */
+  source;
+  /** HTTP status, when the source answered. */
+  status;
+  /** The URL that was requested. */
+  url;
+  /** How long the source asked us to wait before trying again (`Retry-After`), in milliseconds. */
+  retryAfterMs;
+  constructor(message, options) {
+    super(message, options.cause === undefined ? undefined : { cause: options.cause });
+    this.name = "SourceError";
+    this.code = options.code;
+    this.source = options.source;
+    this.status = options.status;
+    this.url = options.url;
+    this.retryAfterMs = options.retryAfterMs;
+  }
+  /** `true` when the same request may well succeed later (timeouts, network errors, 429 and 5xx). */
+  get transient() {
+    return (
+      this.code === "timeout" ||
+      this.code === "network" ||
+      this.code === "rate-limited" ||
+      (this.code === "http" && (this.status ?? 0) >= 500)
+    );
+  }
 }

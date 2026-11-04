@@ -52,24 +52,24 @@ import { createEconomyClient } from "./economy/client.js";
  * ```
  */
 export function createClient(options = {}) {
-    const ctx = createContext(options);
-    return Object.freeze({
-        spot: createSpotClient(ctx),
-        weather: createWeatherClient(ctx),
-        alerts: createAlertsClient(ctx),
-        geo: createGeoClient(ctx),
-        economy: createEconomyClient(ctx),
-        clearCache: () => {
-            ctx.cache.clear();
-            ctx.archive.clear();
-        },
-        stats: () => ctx.stats.snapshot(),
-        resetStats: () => ctx.stats.reset(),
-    });
+  const ctx = createContext(options);
+  return Object.freeze({
+    spot: createSpotClient(ctx),
+    weather: createWeatherClient(ctx),
+    alerts: createAlertsClient(ctx),
+    geo: createGeoClient(ctx),
+    economy: createEconomyClient(ctx),
+    clearCache: () => {
+      ctx.cache.clear();
+      ctx.archive.clear();
+    },
+    stats: () => ctx.stats.snapshot(),
+    resetStats: () => ctx.stats.reset(),
+  });
 }
 export * from "./core/errors.js";
-export { createContext, DEFAULT_ENDPOINTS, DEFAULT_TTL, } from "./core/context.js";
-export { createMemoryCache, memoryStore, } from "./core/cache.js";
+export { createContext, DEFAULT_ENDPOINTS, DEFAULT_TTL } from "./core/context.js";
+export { createMemoryCache, memoryStore } from "./core/cache.js";
 export { parseRetryAfter } from "./core/http.js";
 export { DEFAULT_LIMITS } from "./core/limit.js";
 export * from "./core/geo.js";
