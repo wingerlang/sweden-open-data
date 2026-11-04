@@ -1,193 +1,252 @@
 <!doctype html>
 <html lang="sv">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <title>sweden-open-data – live demo</title>
-    <style>
-      :root {
-        --bg: #f6f8fb;
-        --fg: #14202e;
-        --card: #fff;
-        --muted: #5b6b7c;
-        --blue: #006aa7;
-        --yellow: #fecc00;
-        --bar: #7fb3d5;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0e1621;
-          --fg: #e7eef6;
-          --card: #17222f;
-          --muted: #9bb0c4;
-          --bar: #3d7ca8;
-        }
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--fg);
-        font:
-          16px/1.5 system-ui,
-          sans-serif;
-      }
-      main {
-        max-width: 760px;
-        margin: 0 auto;
-        padding: 24px 16px 48px;
-      }
-      h1 {
-        margin: 0 0 4px;
-        font-size: 1.6rem;
-      }
-      .sub {
-        color: var(--muted);
-        margin: 0 0 20px;
-      }
-      .card {
-        background: var(--card);
-        border-radius: 12px;
-        padding: 16px;
-        margin: 0 0 16px;
-        border-top: 4px solid var(--blue);
-      }
-      .big {
-        font-size: 2.2rem;
-        font-weight: 700;
-      }
-      .muted {
-        color: var(--muted);
-      }
-      select {
-        font: inherit;
-        padding: 4px 8px;
-      }
-      .bars {
-        display: flex;
-        align-items: flex-end;
-        gap: 1px;
-        height: 90px;
-        margin-top: 12px;
-      }
-      .bars i {
-        flex: 1;
-        background: var(--bar);
-        min-height: 2px;
-      }
-      .bars i.now {
-        background: var(--yellow);
-      }
-      code {
-        background: var(--bg);
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-      a {
-        color: var(--blue);
-      }
-      .err {
-        color: #b3261e;
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>🇸🇪 sweden-open-data</h1>
-      <p class="sub">
-        Live-demo: svensk öppen data i ett litet, typat bibliotek. Datan hämtas direkt i din webbläsare via paketet.
-      </p>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>sweden-open-data – live demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23006aa7'/%3E%3Crect x='9' width='5' height='32' fill='%23fecc00'/%3E%3Crect y='13.5' width='32' height='5' fill='%23fecc00'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f3f6fa;--fg:#10202f;--card:#fff;--card2:#eef3f8;--muted:#5a6b7d;--line:#d6e0ea;--blue:#006aa7;--yellow:#fecc00;--bar:#8bbbdc;--accent:#006aa7;--good:#1a8f55;--bad:#c23a2b;--shadow:0 1px 2px #0001,0 8px 24px #0a2a4a14}
+@media (prefers-color-scheme:dark){:root{--bg:#0b121b;--fg:#e8eff7;--card:#141f2c;--card2:#1b2938;--muted:#93a8bd;--line:#26384a;--bar:#2f6d99;--accent:#5db4ee;--good:#4cc989;--bad:#ff7d6e;--shadow:0 1px 2px #0006,0 8px 24px #0006}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+.hero{background:linear-gradient(135deg,#004a78,#006aa7 55%,#0a7fc4);color:#fff;padding:40px 16px 88px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-40px;top:-40px;width:260px;height:260px;border-radius:50%;background:radial-gradient(#fecc0055,#fecc0000 70%)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}.hero .wrap{padding:0}
+.hero h1{margin:0 0 6px;font-size:clamp(1.8rem,5vw,2.8rem);letter-spacing:-.02em}
+.hero p{margin:0;max-width:640px;opacity:.9}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.badges span{background:#ffffff22;border:1px solid #ffffff33;border-radius:99px;padding:3px 12px;font-size:.85rem}
+.hero a.btn{display:inline-block;margin-top:18px;background:var(--yellow);color:#10202f;font-weight:600;text-decoration:none;padding:9px 18px;border-radius:10px}
+main{margin-top:-60px;padding-bottom:56px}
+.bar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:var(--card);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow);margin-bottom:16px}
+.bar label{color:var(--muted);font-size:.85rem}
+select,input,button{font:inherit;color:var(--fg);background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);grid-column:span 12;min-width:0}
+@media (min-width:860px){.s6{grid-column:span 6}.s4{grid-column:span 4}.s8{grid-column:span 8}}
+.card h2{margin:0 0 2px;font-size:1.05rem}.card .sub{margin:0 0 12px;color:var(--muted);font-size:.85rem}
+.kpis{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:6px}
+.kpi b{display:block;font-size:2rem;line-height:1.1;letter-spacing:-.02em}.kpi span{color:var(--muted);font-size:.8rem}
+.pill{display:inline-block;padding:1px 10px;border-radius:99px;font-size:.78rem;font-weight:600;background:var(--card2)}
+.pill.low{background:#1a8f5522;color:var(--good)}.pill.high{background:#c23a2b22;color:var(--bad)}
+svg.chart{width:100%;height:auto;display:block;overflow:visible;touch-action:none}
+.chart text{fill:var(--muted);font-size:11px}.chart .grid{stroke:var(--line)}
+.tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);font-size:.8rem;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-120%);opacity:0;transition:opacity .1s}
+.rel{position:relative}
+.days{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-top:12px}
+.day{background:var(--card2);border-radius:10px;padding:8px;text-align:center;font-size:.85rem}.day b{display:block;font-size:1.1rem}
+.legend{display:flex;gap:14px;font-size:.8rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.res{background:var(--card2);border-radius:10px;padding:12px;margin-top:8px}.res b{font-size:1.4rem}
+.alert{border-left:4px solid var(--yellow);background:var(--card2);padding:8px 12px;border-radius:0 8px 8px 0;margin:8px 0;font-size:.9rem}.alert a{color:var(--accent)}
+.skel{height:90px;border-radius:10px;background:linear-gradient(90deg,var(--card2),var(--line),var(--card2));background-size:200% 100%;animation:s 1.2s infinite}@keyframes s{to{background-position:-200% 0}}
+.err{color:var(--bad)}code{background:var(--card2);padding:2px 6px;border-radius:5px}
+footer{color:var(--muted);font-size:.85rem;text-align:center;padding:0 16px 32px}footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <h1>🇸🇪 sweden-open-data</h1>
+  <p>Elpriser, väder, varningar och inflation i ett litet, typat TypeScript-paket utan beroenden. Allt på den här sidan hämtas live i din webbläsare med paketet självt.</p>
+  <div class="badges"><span>0 beroenden</span><span>Node · Deno · Bun · webbläsare</span><span>Cache, omförsök, timeouts</span><span>166 tester</span></div>
+  <a class="btn" href="https://github.com/wingerlang/sweden-open-data">Källkod på GitHub →</a>
+</div></header>
 
-      <section class="card">
-        <h2>
-          Elpris
-          <select id="area">
-            <option>SE1</option>
-            <option>SE2</option>
-            <option selected>SE3</option>
-            <option>SE4</option>
-          </select>
-        </h2>
-        <div id="spot" class="muted">Hämtar …</div>
-      </section>
+<main class="wrap">
+  <div class="bar">
+    <label for="city">Plats</label><select id="city"></select>
+    <label for="area">Elområde</label><select id="area"><option>SE1</option><option>SE2</option><option>SE3</option><option>SE4</option></select>
+    <span class="pill" id="when"></span>
+  </div>
 
-      <section class="card">
-        <h2>Väder i Stockholm</h2>
-        <div id="weather" class="muted">Hämtar …</div>
-      </section>
+  <div class="grid">
+    <section class="card s8"><h2>Elpris idag</h2><p class="sub">Spotpris per kvart inkl. moms. Gult = nu, grönt = billigaste 3 timmarna.</p><div id="spot"><div class="skel"></div></div></section>
+    <section class="card s4"><h2>Väder nu</h2><p class="sub" id="wplace"></p><div id="wnow"><div class="skel"></div></div></section>
 
-      <section class="card">
-        <h2>Använd i ditt projekt</h2>
-        <p><code>npx jsr add @wingerlang/sweden-open-data</code></p>
-        <p>
-          <a href="https://github.com/wingerlang/sweden-open-data">Källkod och README</a> ·
-          <a href="https://jsr.io/@wingerlang/sweden-open-data">JSR</a>
-        </p>
-        <p class="muted">Elpriser: elprisetjustnu.se (Nord Pool). Väder: Open-Meteo.</p>
-      </section>
-    </main>
-    <script type="module">
-      import {
-        createSpotClient,
-        createWeatherClient,
-        summarizeSpotPrices,
-        formatOre,
-        withVat,
-        describeWeather,
-        formatTemperature,
-      } from "./lib/mod.js";
+    <section class="card s8"><h2>Prognos 7 dygn</h2><p class="sub">Temperatur (linje) och nederbörd (staplar), per timme.</p><div id="wchart"><div class="skel"></div></div><div class="days" id="wdays"></div></section>
+    <section class="card s4"><h2>Varningar</h2><p class="sub">VMA, Krisinformation och SMHI nära platsen.</p><div id="alerts"><div class="skel"></div></div></section>
 
-      const spot = createSpotClient();
-      const weather = createWeatherClient();
-      const hhmm = (iso) =>
-        new Date(iso).toLocaleTimeString("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit" });
-      const fail = (el, e) => {
-        el.innerHTML =
-          '<span class="err">Kunde inte hämta data just nu: ' +
-          String((e && e.message) || e).replace(/</g, "&lt;") +
-          "</span>";
-      };
+    <section class="card"><h2>Inflation i Sverige</h2><p class="sub">Årlig inflationstakt per månad enligt SCB.</p>
+      <div class="row" id="idx"></div>
+      <div class="kpis" id="infk"></div>
+      <div id="infchart"><div class="skel"></div></div>
+    </section>
 
-      async function loadSpot(area) {
-        const el = document.getElementById("spot");
-        el.textContent = "Hämtar …";
-        try {
-          const { today } = await spot.prices(area);
-          if (!today) throw new Error("Dagens priser är inte publicerade ännu.");
-          const s = summarizeSpotPrices(today.points);
-          const max = Math.max(...today.points.map((p) => p.sek), 0.01);
-          const nowIso = s && s.current ? s.current.start : null;
-          const bars = today.points
-            .map(
-              (p) =>
-                `<i class="${p.start === nowIso ? "now" : ""}" style="height:${Math.max(2, (Math.max(p.sek, 0) / max) * 100)}%" title="${hhmm(p.start)}: ${formatOre(withVat(p.sek))}"></i>`,
-            )
-            .join("");
-          el.innerHTML = `<div class="big">${s && s.current ? formatOre(withVat(s.current.sek)) : "–"}</div>
-      <div class="muted">per kWh inkl. moms just nu${s && s.level ? " · nivå: " + s.level : ""}</div>
-      ${s && s.cheapest ? `<p>Billigaste 3 timmarna: <b>${hhmm(s.cheapest.start)}–${hhmm(s.cheapest.end)}</b></p>` : ""}
-      <div class="bars">${bars}</div>`;
-        } catch (e) {
-          fail(el, e);
-        }
-      }
+    <section class="card s6"><h2>Pengar då och nu</h2><p class="sub">Vad är ett belopp värt i dagens penningvärde?</p>
+      <div class="row"><input id="amt" type="number" value="10000" min="1" style="width:110px"> <span>kr år</span> <select id="yr"></select></div>
+      <div class="res" id="adj">–</div>
+    </section>
+    <section class="card s6"><h2>Följde lönen med?</h2><p class="sub">Jämför löneökning med prisutvecklingen.</p>
+      <div class="row"><input id="s1" type="number" value="32000" style="width:100px"> <span>kr år</span> <select id="y1"></select></div>
+      <div class="row"><span>→</span> <input id="s2" type="number" value="41000" style="width:100px"> <span>kr idag</span></div>
+      <div class="res" id="real">–</div>
+    </section>
 
-      async function loadWeather() {
-        const el = document.getElementById("weather");
-        try {
-          const { current } = await weather.forecast({ latitude: 59.33, longitude: 18.07 });
-          el.innerHTML = `<div class="big">${formatTemperature(current.temperature)}</div><div class="muted">${describeWeather(current.code).label}</div>`;
-        } catch (e) {
-          fail(el, e);
-        }
-      }
+    <section class="card"><h2>Använd i ditt projekt</h2>
+      <p><code>npx jsr add @wingerlang/sweden-open-data</code></p>
+<pre style="overflow:auto;background:var(--card2);padding:12px;border-radius:10px;font-size:.85rem">import { createClient } from "@wingerlang/sweden-open-data";
+const se = createClient();
+const { today } = await se.spot.prices("SE3");
+const kpi = await se.economy.cpi("KPI");</pre>
+    </section>
+  </div>
+</main>
+<footer>Data: elprisetjustnu.se (Nord Pool), Open-Meteo, Krisinformation, SMHI och SCB. Byggd med agentdriven utveckling (Claude Code). · <a href="https://jsr.io/@wingerlang/sweden-open-data">JSR</a></footer>
 
-      document.getElementById("area").addEventListener("change", (ev) => loadSpot(ev.target.value));
-      loadSpot("SE3");
-      loadWeather();
-    </script>
-  </body>
+<script type="module">
+import { createSpotClient, createWeatherClient, summarizeSpotPrices, formatOre, withVat, describeWeather, formatTemperature } from "./lib/mod.js";
+import { createEconomyClient, adjustForInflation, inflationRates, inflationRate, latestCpi, realChange } from "./lib/economy/mod.js";
+import { createAlertsClient } from "./lib/alerts/mod.js";
+
+const $ = (id) => document.getElementById(id);
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fail = (id, e) => { $(id).innerHTML = '<span class="err">Kunde inte hämta data just nu: ' + esc((e && e.message) || e) + "</span>"; };
+const hhmm = (iso) => new Date(iso).toLocaleTimeString("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit" });
+const NS = "http://www.w3.org/2000/svg";
+
+const CITIES = [
+  { n: "Stockholm", lat: 59.33, lon: 18.07, a: "SE3" }, { n: "Göteborg", lat: 57.71, lon: 11.97, a: "SE3" },
+  { n: "Malmö", lat: 55.6, lon: 13.0, a: "SE4" }, { n: "Sundsvall", lat: 62.39, lon: 17.31, a: "SE2" },
+  { n: "Umeå", lat: 63.83, lon: 20.26, a: "SE2" }, { n: "Kiruna", lat: 67.86, lon: 20.23, a: "SE1" },
+];
+CITIES.forEach((c, i) => $("city").add(new Option(c.n, i)));
+
+/* ---------- Små SVG-diagram med hover ---------- */
+function chart(host, { w = 720, h = 240, pad = { l: 44, r: 12, t: 12, b: 26 } }, build, tipFor) {
+  host.innerHTML = "";
+  const wrap = document.createElement("div"); wrap.className = "rel"; host.append(wrap);
+  const svg = document.createElementNS(NS, "svg"); svg.setAttribute("viewBox", `0 0 ${w} ${h}`); svg.setAttribute("class", "chart"); wrap.append(svg);
+  const tip = document.createElement("div"); tip.className = "tip"; wrap.append(tip);
+  const el = (t, a, txt) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
+  const px = w - pad.l - pad.r, py = h - pad.t - pad.b;
+  const api = { el, w, h, pad, px, py, X: (f) => pad.l + f * px, Y: (f) => pad.t + (1 - f) * py };
+  const hit = build(api);
+  const cross = el("line", { y1: pad.t, y2: h - pad.b, stroke: css("--muted"), "stroke-dasharray": "3 3", opacity: 0 });
+  svg.addEventListener("pointermove", (ev) => {
+    const r = svg.getBoundingClientRect(), x = ((ev.clientX - r.left) / r.width) * w;
+    const f = Math.min(1, Math.max(0, (x - pad.l) / px)), i = hit(f);
+    if (i == null) return;
+    const t = tipFor(i); cross.setAttribute("x1", t.x); cross.setAttribute("x2", t.x); cross.setAttribute("opacity", 1);
+    tip.textContent = t.text; tip.style.left = (t.x / w) * 100 + "%"; tip.style.top = (t.y / h) * 100 + "%"; tip.style.opacity = 1;
+  });
+  svg.addEventListener("pointerleave", () => { cross.setAttribute("opacity", 0); tip.style.opacity = 0; });
+}
+const grid = (a, lo, hi, n, fmt) => { for (let i = 0; i <= n; i++) { const v = lo + ((hi - lo) * i) / n, y = a.Y(i / n); a.el("line", { x1: a.pad.l, x2: a.w - a.pad.r, y1: y, y2: y, class: "grid", stroke: css("--line") }); a.el("text", { x: a.pad.l - 6, y: y + 4, "text-anchor": "end" }, fmt(v)); } };
+const linePath = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
+
+/* ---------- Elpris ---------- */
+async function loadSpot(area) {
+  const host = $("spot"); host.innerHTML = '<div class="skel"></div>';
+  try {
+    const { today } = await spot.prices(area);
+    if (!today) throw new Error("Dagens priser är inte publicerade ännu.");
+    const pts = today.points, s = summarizeSpotPrices(pts);
+    const cheap = s && s.cheapest ? [new Date(s.cheapest.start).getTime(), new Date(s.cheapest.end).getTime()] : null;
+    const head = document.createElement("div");
+    head.innerHTML = `<div class="kpis"><div class="kpi"><b>${s && s.current ? formatOre(withVat(s.current.sek)) : "–"}</b><span>nu inkl. moms ${s && s.level ? `· <span class="pill ${s.level}">${esc(s.level)}</span>` : ""}</span></div>
+      <div class="kpi"><b>${s ? formatOre(withVat(s.average)) : "–"}</b><span>snitt idag</span></div>
+      <div class="kpi"><b>${cheap ? hhmm(s.cheapest.start) + "–" + hhmm(s.cheapest.end) : "–"}</b><span>billigaste 3 h</span></div></div>`;
+    const cv = document.createElement("div"); host.innerHTML = ""; host.append(head, cv);
+    const vals = pts.map((p) => withVat(p.sek) * 100), hi = Math.max(10, ...vals), lo = Math.min(0, ...vals);
+    chart(cv, { h: 230 }, (a) => {
+      grid(a, lo, hi, 4, (v) => Math.round(v) + "");
+      const bw = a.px / pts.length;
+      pts.forEach((p, i) => {
+        const t0 = new Date(p.start).getTime(), isNow = s && s.current && p.start === s.current.start, isCheap = cheap && t0 >= cheap[0] && t0 < cheap[1];
+        const y0 = a.Y((0 - lo) / (hi - lo)), y1 = a.Y((vals[i] - lo) / (hi - lo));
+        a.el("rect", { x: a.X(0) + i * bw + 0.5, width: Math.max(1, bw - 1), y: Math.min(y0, y1), height: Math.abs(y0 - y1) || 1, rx: 1.5, fill: isNow ? css("--yellow") : isCheap ? css("--good") : css("--bar") });
+      });
+      for (let i = 0; i < pts.length; i += Math.max(1, Math.round(pts.length / 6))) a.el("text", { x: a.X(0) + i * bw, y: a.h - 8 }, hhmm(pts[i].start));
+      a.el("text", { x: a.pad.l, y: 10 }, "öre/kWh");
+      return (f) => Math.min(pts.length - 1, Math.floor(f * pts.length));
+    }, (i) => ({ x: 44 + (i + 0.5) * (664 / pts.length), y: 40, text: hhmm(pts[i].start) + " · " + formatOre(withVat(pts[i].sek)) }));
+  } catch (e) { fail("spot", e); }
+}
+
+/* ---------- Väder ---------- */
+async function loadWeather(c) {
+  $("wplace").textContent = c.n; $("wnow").innerHTML = '<div class="skel"></div>'; $("wchart").innerHTML = '<div class="skel"></div>'; $("wdays").innerHTML = "";
+  try {
+    const f = await weather.forecast({ latitude: c.lat, longitude: c.lon });
+    const d = describeWeather(f.current.code);
+    $("wnow").innerHTML = `<div class="kpis"><div class="kpi"><b>${esc(formatTemperature(f.current.temperature))}</b><span>${esc(d.label)}</span></div></div>
+      <p class="sub">Känns som ${f.current.feelsLike != null ? esc(formatTemperature(f.current.feelsLike)) : "–"} · vind ${f.current.wind != null ? f.current.wind.toFixed(0) : "–"} m/s</p>`;
+    const hs = f.hours, T = hs.map((h) => h.temperature), P = hs.map((h) => h.precipitation || 0);
+    const tlo = Math.floor(Math.min(...T) - 1), thi = Math.ceil(Math.max(...T) + 1), pmax = Math.max(2, ...P);
+    chart($("wchart"), { h: 230 }, (a) => {
+      grid(a, tlo, thi, 4, (v) => Math.round(v) + "°");
+      const n = hs.length;
+      P.forEach((p, i) => { const hgt = (p / pmax) * a.py * 0.4; a.el("rect", { x: a.X(i / n), width: Math.max(1, a.px / n - 0.5), y: a.h - a.pad.b - hgt, height: hgt, fill: css("--bar"), opacity: 0.8 }); });
+      a.el("path", { d: linePath(T.map((t, i) => [a.X(i / (n - 1)), a.Y((t - tlo) / (thi - tlo))])), fill: "none", stroke: css("--accent"), "stroke-width": 2.2, "stroke-linejoin": "round" });
+      for (let i = 0; i < n; i += 24) a.el("text", { x: a.X(i / n), y: a.h - 8 }, new Date(hs[i].time).toLocaleDateString("sv-SE", { weekday: "short", day: "numeric" }));
+      return (fr) => Math.min(n - 1, Math.round(fr * (n - 1)));
+    }, (i) => ({ x: 44 + (i / (hs.length - 1)) * 664, y: 60, text: new Date(hs[i].time).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" }) + " · " + formatTemperature(T[i]) + " · " + P[i].toFixed(1) + " mm" }));
+    $("wdays").innerHTML = f.days.map((x) => `<div class="day">${new Date(x.date).toLocaleDateString("sv-SE", { weekday: "short" })}<b>${Math.round(x.max)}°</b><span style="color:var(--muted)">${Math.round(x.min)}°</span><br><span style="font-size:.75rem">${esc(describeWeather(x.code).label)}</span></div>`).join("");
+  } catch (e) { fail("wnow", e); $("wchart").innerHTML = ""; }
+}
+
+/* ---------- Varningar ---------- */
+async function loadAlerts(c) {
+  const host = $("alerts"); host.innerHTML = '<div class="skel"></div>';
+  try {
+    const { alerts } = await alertsClient.near([{ latitude: c.lat, longitude: c.lon }]);
+    host.innerHTML = alerts.length ? "" : '<p class="sub">✅ Inga aktuella varningar för platsen.</p>';
+    alerts.slice(0, 4).forEach((al) => { const d = document.createElement("div"); d.className = "alert"; const a = document.createElement("a"); a.href = al.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = al.title; d.append(a, document.createTextNode(" · " + al.source)); host.append(d); });
+  } catch (e) { fail("alerts", e); }
+}
+
+/* ---------- Inflation ---------- */
+let cpiIndex = "KPIF", series = {};
+async function loadCpi(idx) {
+  cpiIndex = idx;
+  document.querySelectorAll("#idx button").forEach((b) => b.classList.toggle("on", b.dataset.i === idx));
+  $("infchart").innerHTML = '<div class="skel"></div>';
+  try {
+    series[idx] = series[idx] || (await economy.cpi(idx));
+    const s = series[idx], rates = inflationRates(s).filter((p) => p.month >= "1995-01"), last = latestCpi(s);
+    const peak = rates.reduce((m, p) => (p.value > m.value ? p : m), rates[0]);
+    $("infk").innerHTML = `<div class="kpi"><b>${(rates[rates.length - 1].value * 100).toFixed(1)} %</b><span>senaste årstakten (${rates[rates.length - 1].month})</span></div>
+      <div class="kpi"><b>${(peak.value * 100).toFixed(1)} %</b><span>högsta sedan 1995 (${peak.month})</span></div>
+      <div class="kpi"><b>${last.value.toFixed(1)}</b><span>${idx}-index (2020=100)</span></div>`;
+    const V = rates.map((p) => p.value * 100), lo = Math.floor(Math.min(0, ...V)), hi = Math.ceil(Math.max(...V));
+    chart($("infchart"), { h: 260 }, (a) => {
+      grid(a, lo, hi, 4, (v) => v.toFixed(0) + " %");
+      const n = V.length, y0 = a.Y((0 - lo) / (hi - lo));
+      const line = V.map((v, i) => [a.X(i / (n - 1)), a.Y((v - lo) / (hi - lo))]);
+      a.el("path", { d: linePath(line) + `L${a.X(1)} ${y0}L${a.X(0)} ${y0}Z`, fill: css("--accent"), opacity: 0.15 });
+      a.el("path", { d: linePath(line), fill: "none", stroke: css("--accent"), "stroke-width": 2, "stroke-linejoin": "round" });
+      for (let y = 2000; y <= 2025; y += 5) { const i = rates.findIndex((p) => p.month === y + "-01"); if (i >= 0) a.el("text", { x: a.X(i / (n - 1)), y: a.h - 8, "text-anchor": "middle" }, y); }
+      return (f) => Math.min(n - 1, Math.round(f * (n - 1)));
+    }, (i) => ({ x: 44 + (i / (V.length - 1)) * 664, y: 60, text: rates[i].month + " · " + V[i].toFixed(1) + " %" }));
+    fillCalc();
+  } catch (e) { fail("infchart", e); $("infk").innerHTML = ""; }
+}
+function fillCalc() {
+  const s = series[cpiIndex]; if (!s) return;
+  try {
+    const last = latestCpi(s), a = adjustForInflation(s, +$("amt").value || 0, $("yr").value + "-01");
+    $("adj").innerHTML = `<b>${Math.round(a.amount).toLocaleString("sv-SE")} kr</b><br><span class="sub">i ${esc(last.month)} års priser (priserna har stigit ${(a.change * 100).toFixed(0)} %)</span>`;
+    const r = realChange(s, { amount: +$("s1").value, month: $("y1").value + "-01" }, { amount: +$("s2").value, month: last.month });
+    const pct = r.real * 100;
+    $("real").innerHTML = `<b style="color:${pct >= 0 ? "var(--good)" : "var(--bad)"}">${pct >= 0 ? "+" : ""}${pct.toFixed(1)} %</b> <span class="sub">i köpkraft. Nominellt ${(r.nominal * 100).toFixed(0)} %.</span>`;
+  } catch (e) { $("adj").textContent = "Kunde inte räkna: " + e.message; }
+}
+
+/* ---------- Start ---------- */
+const spot = createSpotClient(), weather = createWeatherClient(), economy = createEconomyClient(), alertsClient = createAlertsClient();
+for (let y = 2025; y >= 1990; y--) { $("yr").add(new Option(y, y)); $("y1").add(new Option(y, y)); }
+$("yr").value = 2010; $("y1").value = 2018;
+["KPI", "KPIF", "KPIF-XE"].forEach((i) => { const b = document.createElement("button"); b.textContent = i; b.dataset.i = i; b.onclick = () => loadCpi(i); $("idx").append(b); });
+["amt", "yr", "s1", "s2", "y1"].forEach((id) => $(id).addEventListener("input", fillCalc));
+$("when").textContent = new Date().toLocaleDateString("sv-SE", { weekday: "long", day: "numeric", month: "long" });
+function loadPlace() { const c = CITIES[$("city").value]; $("area").value = c.a; loadSpot(c.a); loadWeather(c); loadAlerts(c); }
+$("city").addEventListener("change", loadPlace);
+$("area").addEventListener("change", () => loadSpot($("area").value));
+loadPlace(); loadCpi("KPIF");
+</script>
+</body>
 </html>
