@@ -39,7 +39,8 @@ export type SourceId =
   | "nasdaq"
   | "fred"
   | "mfn"
-  | "handelsbanken";
+  | "handelsbanken"
+  | "riksbank";
 
 /** All sources. */
 export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
@@ -60,6 +61,7 @@ export const SOURCE_IDS: readonly SourceId[] = Object.freeze([
   "fred",
   "mfn",
   "handelsbanken",
+  "riksbank",
 ] as const);
 
 /** Which source a URL belongs to, by host name; `undefined` for anything else. */
@@ -81,6 +83,7 @@ export function sourceOf(url: string | URL): SourceId | undefined {
   if (host.endsWith("scb.se")) return "scb";
   if (host === "ibindex.se") return "ibindex";
   if (host === "www.handelsbanken.se") return "handelsbanken";
+  if (host === "api.riksbank.se") return "riksbank";
   if (host.endsWith("transportstyrelsen.se")) return "transportstyrelsen";
   return undefined;
 }
@@ -738,6 +741,10 @@ export function createFakeSources(options: FakeSourcesOptions = {}): FaultyFetch
         if (url.pathname.endsWith("/averagerates/")) return json(fakeBankAverageRates(now()));
         break;
       }
+      case "riksbank": {
+        if (url.pathname.includes("/Observations/SECBREPOEFF/")) return json(fakePolicyRate());
+        break;
+      }
       case "scb": {
         const m = url.pathname.match(/\/tables\/(TAB\d+)\/data$/);
         const content = p.get("valueCodes[ContentsCode]");
@@ -819,6 +826,17 @@ function fakeHousing(table: string, region: string): Record<string, unknown> {
     value: periods.map((_, i) => 100 + i * 5),
     note: ["Synthetic demo data, not statistics."],
   };
+}
+
+/** Synthetic policy-rate observations in the Riksbank's format; demo data, never statistics. */
+export function fakePolicyRate(): { date: string; value: number }[] {
+  return [
+    { date: "2020-01-01", value: 0 },
+    { date: "2020-06-01", value: 0 },
+    { date: "2022-05-05", value: 0.25 },
+    { date: "2023-09-28", value: 4 },
+    { date: "2024-05-08", value: 3.75 },
+  ];
 }
 
 /** Synthetic household mortgage rates in SCB's JSON-stat layout; demo data, never statistics. */

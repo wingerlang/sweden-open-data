@@ -69,6 +69,15 @@ export {
   type MortgageRateSeries,
 } from "./mortgage.ts";
 export {
+  POLICY_RATE_SOURCE,
+  createPolicyRateClient,
+  parsePolicyRate,
+  policyRateAt,
+  type PolicyRateClient,
+  type PolicyRatePoint,
+  type PolicyRateSeries,
+} from "./policyRate.ts";
+export {
   createBankRateClient,
   parseHandelsbankenRates,
   bankListRateFor,

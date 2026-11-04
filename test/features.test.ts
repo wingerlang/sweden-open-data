@@ -206,6 +206,7 @@ test("testing: faults – status, Retry-After, offline, invalid JSON, delay, han
       "fred",
       "mfn",
       "handelsbanken",
+      "riksbank",
     ],
   );
   assert.equal(sourceOf("https://www.handelsbanken.se/rsopdistresource/x"), "handelsbanken");

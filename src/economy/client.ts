@@ -8,6 +8,7 @@ import { type ClientOptions, type Context, createContext } from "../core/context
 import { cachedWithStore } from "../core/source.ts";
 import { createHousingClient, type HousingClient } from "./housing.ts";
 import { createMortgageRateClient, type MortgageRateClient } from "./mortgage.ts";
+import { createPolicyRateClient, type PolicyRateClient } from "./policyRate.ts";
 import {
   CPI_SOURCE,
   CPI_TABLES,
@@ -24,7 +25,7 @@ export interface CpiOptions {
 }
 
 /** Economic statistics. */
-export interface EconomyClient extends HousingClient, MortgageRateClient {
+export interface EconomyClient extends HousingClient, MortgageRateClient, PolicyRateClient {
   /**
    * A complete monthly consumer price index (2020=100). SCB publishes once a month, so the series is cached
    * ({@link CacheTtl.cpi}, default 6 h). With a store, the last good series is returned (marked `stale`) when SCB fails.
@@ -65,6 +66,7 @@ export function createEconomyClient(options: ClientOptions | Context = {}): Econ
   return {
     ...createHousingClient(ctx),
     ...createMortgageRateClient(ctx),
+    ...createPolicyRateClient(ctx),
     cpi(index = "KPI", options = {}) {
       if (!isCpiIndex(index)) return Promise.reject(new RangeError(`Unknown index ${String(index)}`));
       const key = `cpi:${index}`;

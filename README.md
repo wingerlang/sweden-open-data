@@ -515,6 +515,19 @@ const county = await se.economy.housePrices("12", {frequency:"year"}); // Skåne
 ```
 
 Permanent small houses from SCB: quarterly regional table TAB1150 and annual county table TAB1148. Use `HOUSING_REGIONS` from `/economy` for valid codes. Every point retains its observation period (`period`, `from`, `to`), rather than inventing a daily quote. The series includes source, update time, fetch time and SCB's revision notes. Requests share the normal bounded cache and durable last-good fallback. Regional figures do not value an individual property. No address or personal information is needed. The dev board includes a chart and table for `economy.housing`; fake mode uses explicit synthetic fixtures.
+## Policy rate (0.15)
+
+```ts
+import { createEconomyClient, policyRateAt } from "@wingerlang/sweden-open-data/economy";
+const policy = await createEconomyClient().policyRate();
+policy.points.at(-1);                       // { date: "2024-05-08", ratePct: 3.75 } – the latest change
+policyRateAt(policy, "2023-10-01");         // the rate that applied on that date, percent
+```
+
+The Riksbank's policy rate (styrräntan, series SECBREPOEFF) from its open SWEA API, reduced to the dates where the
+rate changed plus the latest observation. Cached like other monthly statistics, with the durable last-good fallback
+(`stale: true`) when the Riksbank cannot be reached. Credit Sveriges riksbank as the source.
+
 ## Mortgage rates (0.14)
 
 ```ts

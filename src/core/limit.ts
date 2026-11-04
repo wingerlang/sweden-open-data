@@ -25,6 +25,7 @@ export const DEFAULT_LIMITS: Readonly<Record<string, SourceLimit>> = Object.free
   mfn: Object.freeze({ concurrency: 2 }),
   photon: Object.freeze({ concurrency: 2 }),
   handelsbanken: Object.freeze({ concurrency: 1, perMinute: 10 }),
+  riksbank: Object.freeze({ concurrency: 1, perMinute: 5 }),
 });
 
 /** Gives out permission to start a request, per source. */

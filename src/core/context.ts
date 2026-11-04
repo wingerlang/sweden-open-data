@@ -36,6 +36,8 @@ export interface Endpoints {
   smhiWarnings: string;
   /** SCB Statistikdatabasen, PxWebApi v2. */
   scb: string;
+  /** The Riksbank's open SWEA API (policy rate in `/economy`). */
+  riksbank: string;
   /** Open-Meteo historical weather (ERA5 archive). */
   weatherArchive: string;
   /** IBIndex read endpoints (experimental `/investments`). */
@@ -68,6 +70,7 @@ export const DEFAULT_ENDPOINTS: Readonly<Endpoints> = Object.freeze({
   krisinformation: "https://api.krisinformation.se/v3",
   smhiWarnings: "https://opendata-download-warnings.smhi.se/ibww/api/version/1/warning.json",
   scb: "https://statistikdatabasen.scb.se/api/v2",
+  riksbank: "https://api.riksbank.se/swea/v1",
   weatherArchive: "https://archive-api.open-meteo.com/v1/archive",
   ibindex: "https://ibindex.se/ibi/",
   handelsbankenRates: "https://www.handelsbanken.se/rsopdistresource/slan/resource/open/v1/mortgagerates/",

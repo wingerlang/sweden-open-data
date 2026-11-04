@@ -5,6 +5,13 @@ minor versions may contain breaking changes, which are always listed.
 
 ## Unreleased
 
+## 0.15.0
+
+- Add the Riksbank policy rate to `/economy`: `policyRate()` (Riksbank SWEA, series SECBREPOEFF) returns the rate
+  at every change since 1985 with source and fetch time, `policyRateAt(series, date)` looks up a date, and
+  `parsePolicyRate()` validates the raw observations. New `riksbank` source with a fake, a conservative request limit
+  and last-good fallback through the store. This replaces a hand-written fetch in the Emergens server.
+
 - Redesign the dev board: side navigation with per-call status, a docked inspector (sources and faults, cache gauge,
   live log), interactive charts with hover values, weather icons, light/dark theme, skeleton loading and error states,
   call filter (`/`) and a responsive layout down to phone width.
