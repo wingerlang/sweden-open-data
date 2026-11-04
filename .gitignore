@@ -4,3 +4,8 @@ coverage/
 .DS_Store
 
 dist/
+.env
+.env.*
+!.env.example
+.cache/
+Claude outputs/
