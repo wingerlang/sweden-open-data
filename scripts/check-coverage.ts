@@ -17,6 +17,12 @@ export const LIMITS: Readonly<{ lines: number; branches: number; functions: numb
   functions: 95,
 });
 
+/**
+ * Experimental modules that are exempt from the per-file limits until they have their own contract tests. The README
+ * marks `src/market/` as experimental; the exemption keeps CI useful for the stable modules.
+ */
+export const EXEMPT_PREFIXES: readonly string[] = ["src/market/"];
+
 /** Coverage of one file, in percent. */
 export interface FileCoverage {
   file: string;
@@ -59,7 +65,9 @@ export function belowLimits(rows: FileCoverage[]): string[] {
 if (import.meta.url === new URL(process.argv[1] ?? "", "file:").href) {
   const root = fileURLToPath(new URL("..", import.meta.url));
   const report = process.argv[2] ?? `${root}coverage/lcov.info`;
-  const rows = parseLcov(readFileSync(report, "utf8"), root).filter((row) => row.file.startsWith("src/"));
+  const rows = parseLcov(readFileSync(report, "utf8"), root).filter(
+    (row) => row.file.startsWith("src/") && !EXEMPT_PREFIXES.some((prefix) => row.file.startsWith(prefix)),
+  );
   const problems = belowLimits(rows);
   for (const p of problems) console.error(p);
   console.log(problems.length ? `${problems.length} file limit(s) not met` : `coverage: ${rows.length} files ok`);

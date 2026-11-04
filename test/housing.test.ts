@@ -76,3 +76,17 @@ test("the shared economy client and dev-board fake include both housing frequenc
   assert.equal((await client.economy.housePrices("12", { frequency: "year" })).base, "1990=100");
   assert.ok((await client.economy.cpi()).points.length > 12);
 });
+test("housing parser accepts dimension categories given as an array of codes", () => {
+  const raw = {
+    ...sample(),
+    dimension: {
+      Tid: { category: { index: ["2025K1", "2025K2", "2025K3"] } },
+      Region: { category: { index: ["00", "RIKS4"] } },
+      ContentsCode: { category: { index: ["BO0501K2"] } },
+    },
+  };
+  assert.deepEqual(
+    parseHousing(raw as never, "RIKS4", "quarter").points.map((p) => p.value),
+    [200, 220],
+  );
+});
