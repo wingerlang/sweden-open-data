@@ -1,0 +1,16 @@
+ 1  2026-10-25T12:00:00.000Z INFO  cached quote {"price":100,"dividendPerShare":10,"ma200":100,"splits":0}
+ 2  2026-10-25T12:00:00.000Z INFO  fresh quote {"price":50,"dividendPerShare":null,"maxPoints":260,"splits":[{"date":1792756800,"numerator":2,"denominator":1}]}
+ 3  2026-10-25T12:00:00.000Z INFO  combined quote {"price":50,"dividendPerShare":10,"ma200":100,"dividendYieldPct":10}
+ 4  2026-10-25T12:00:00.000Z WARN  unit mismatch {"impliedYieldPct":20,"reportedYieldPct":10}
+ 5  node:internal/modules/run_main:123
+ 6      triggerUncaughtException(
+ 7      ^
+ 8  
+ 9  AssertionError [ERR_ASSERTION]: pre-split dividend leaked: 10 kr at price 50
+10  
+11  10 !== null
+12  
+13      at file://uppgifter/steg3-repro.mts:23:8 {
+14    generatedMessage: false,
+15    code: 'ERR_ASSERTION',
+16    actual: 10,

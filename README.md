@@ -430,6 +430,42 @@ Elpriser, väder, VMA och varningar, adressökning och KPI/inflation för svensk
 Dokumentationen är på engelska, men allt som visas för användare (väderbeskrivningar, varningsrubriker) finns på svenska
 som standard.
 
+## Projektöversikt (på svenska)
+
+**Live:** paketet är publicerat på [JSR](https://jsr.io/@wingerlang/sweden-open-data); CI-status ovan. Kör `npm run dev` för en lokal demo-sida.
+
+### Vad det gör
+
+Ett litet TypeScript-bibliotek utan beroenden som hämtar svensk öppen data (elpriser, väder, VMA och varningar, adresser, KPI/inflation, bostadspriser, räntor) och ger den i typade, cachade och feltåliga anrop. Du anropar t.ex. `se.spot.prices("SE3")` och får dagens och morgondagens elpris, utan nycklar.
+
+### Kom igång
+
+- **Krav:** Node.js 22+ (eller Deno/Bun). Inga API-nycklar för kärnkällorna; bara den valfria fordonsuppslagningen kräver `BILUPPGIFTER_API_KEY`, som läses på serversidan.
+- **Installation:** `npx jsr add @wingerlang/sweden-open-data`, eller `git clone https://github.com/wingerlang/sweden-open-data && cd sweden-open-data && npm ci`.
+- **Konfiguration:** inga miljövariabler krävs. `PORT` styr dev-sidan (standard 5174). Klientens timeout, omförsök och cache ställs in via `createClient({...})`, se [Options](#options).
+- **Kör:** `npm run dev` (demo-sida), `npm test`, `npm run check` (typer, lint, täckning).
+
+### Arkitektur
+
+`src/core` har HTTP-klienten (timeout, omförsök, cache, delning av samtidiga anrop), och varje datakälla ligger i en egen modul (`src/spot`, `src/weather`, `src/alerts`, `src/geo`, `src/economy` m.fl.) med en egen ingång. `src/testing.ts` ger fejkade källor så att alla tester och exempel kan köras offline. `dev/` är webbsidan för att prova alla anrop, och `.github/workflows` har CI, veckovisa live-tester och publicering.
+
+### Teknisk stack
+
+| Komponent | Val | Anledning |
+|---|---|---|
+| Språk | TypeScript, inga runtime-beroenden | Liten att installera, fungerar i Node, Deno, Bun och webbläsare |
+| Tester | `node --test` med fejkade källor | Snabba, offline, täckningskrav per fil |
+| CI/CD | GitHub Actions | Tester på Node 22/24, Deno, Bun, lint, typer; JSR-publicering vid tagg |
+| Distribution | JSR (med provenance) | Publicering utan hemligheter via OIDC |
+
+### Begränsningar
+
+Källorna är tredjeparter och kan ändra format utan förvarning (därför finns veckovisa live-tester). Marknadsmodulen och investerings-/fordonsadaptrarna är experimentella och bygger på ickeofficiella källor. Alla källor har egna användarvillkor, se [Data and attribution](#data-and-attribution).
+
+### Utvecklat med
+
+Claude Code (agentdriven utveckling) som del av kursen Next-Generation Software Development with AI.
+
 ## Development
 
 ```sh

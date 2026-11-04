@@ -5,6 +5,10 @@ import type { MarketCapitalization } from "./capitalization.ts";
 import { finiteNumber, text } from "../core/parse.ts";
 import type { MarketPayload } from "./types.ts";
 /** Convert source quote observations without inventing missing prices. */
+/** Time limit for one request to the quote provider, in milliseconds. */
+const QUOTE_TIMEOUT_MS = 6000;
+
+/** Fetches a quote and its history for one symbol from the provider and validates the response shape. */
 export async function fetchMarketQuote(
   symbol: string,
   range: string,
@@ -14,6 +18,7 @@ export async function fetchMarketQuote(
   now: () => number = Date.now,
   capitalization?: (symbol: string, meta: Record<string, unknown>) => Promise<MarketCapitalization>,
 ): Promise<MarketPayload> {
+  const timeoutMs = QUOTE_TIMEOUT_MS;
   const interval = range === "1d" ? "5m" : "1d";
   // Yahoo may silently aggregate range=max into monthly bars. Explicit dates
   // preserve daily observations and the dividend events needed for TTM yield.
@@ -22,11 +27,22 @@ export async function fetchMarketQuote(
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?${period}&interval=${interval}&events=div%2Csplits`,
     {
       headers: { Accept: "application/json", "User-Agent": "Emergens/1.0" },
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(6000)]) : AbortSignal.timeout(6000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     },
   );
-  if (!response.ok) throw new Error(`Provider status ${response.status}`);
-  const body = (await response.json()) as {
+  if (!response.ok)
+    throw new Error(
+      response.status === 404
+        ? `Unknown symbol "${symbol}" (quote provider returned 404). Check the ticker, e.g. "VOLV-B.ST".`
+        : `Quote provider failed for "${symbol}" with HTTP status ${response.status}. Try again later.`,
+    );
+  let parsed: unknown;
+  try {
+    parsed = await response.json();
+  } catch {
+    throw new Error(`Quote provider returned a response for "${symbol}" that is not valid JSON.`);
+  }
+  const body = parsed as {
     chart?: {
       result?: {
         meta?: {
@@ -72,7 +88,9 @@ export async function fetchMarketQuote(
     !m.currency ||
     !Number.isFinite(m.regularMarketTime)
   )
-    throw new Error("Invalid provider data");
+    throw new Error(
+      `Quote provider returned incomplete or mismatched data for "${symbol}" (missing price, currency or time, or another symbol).`,
+    );
   const stamps: number[] = result.timestamp || [];
   if (stamps.length > 50000) throw Error("Too many quote observations");
   const closes: (number | null)[] = result.indicators?.quote?.[0]?.close || [];
