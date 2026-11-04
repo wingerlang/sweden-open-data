@@ -1,8 +1,6 @@
 # sweden-open-data
 
 [![CI](https://github.com/wingerlang/sweden-open-data/actions/workflows/ci.yml/badge.svg)](https://github.com/wingerlang/sweden-open-data/actions/workflows/ci.yml)
-[![JSR](https://jsr.io/badges/@wingerlang/sweden-open-data)](https://jsr.io/@wingerlang/sweden-open-data)
-[![JSR score](https://jsr.io/badges/@wingerlang/sweden-open-data/score)](https://jsr.io/@wingerlang/sweden-open-data)
 
 Svensk öppen data i ett litet TypeScript-paket: elpriser, väder, varningar, adresser, inflation, räntor och huspriser. Ett anrop per datakälla, med cache, omförsök och tydliga fel, så att du slipper bygga och underhålla egna klienter mot källor som ändrar sig.
 
@@ -11,7 +9,7 @@ Svensk öppen data i ett litet TypeScript-paket: elpriser, väder, varningar, ad
 ## Vad det gör
 
 ```ts
-import { createClient } from "@wingerlang/sweden-open-data";
+import { createClient } from "./src/mod.ts";   // eller "@wingerlang/sweden-open-data" när paketet är installerat
 
 const se = createClient();
 
@@ -39,15 +37,7 @@ Fler exempel för varje funktion finns i [`examples/`](examples/README.md). Alla
 
 **Krav:** Node.js 22 eller senare (fungerar även i Deno, Bun och webbläsare). Inga API-nycklar behövs för kärnkällorna.
 
-**Installera i ditt projekt**
-
-```sh
-npx jsr add @wingerlang/sweden-open-data     # npm, pnpm och yarn fungerar också
-deno add jsr:@wingerlang/sweden-open-data    # Deno
-bunx jsr add @wingerlang/sweden-open-data    # Bun
-```
-
-**Eller hämta källkoden och prova den**
+**Hämta källkoden och prova den**
 
 ```sh
 git clone https://github.com/wingerlang/sweden-open-data
@@ -56,12 +46,14 @@ npm ci
 npm run dev        # startar en testsida på http://localhost:5174
 ```
 
+Använd det i ett annat projekt genom att bygga ett paket (`npm run build && npm pack`) och installera tarballen. Publicering på JSR är förberedd (`.github/workflows/publish.yml`) men paketet är ännu inte publicerat.
+
 ## Konfiguration
 
 Det krävs ingen konfiguration. Allt valfritt ställs in när du skapar klienten:
 
 ```ts
-import { createClient } from "@wingerlang/sweden-open-data";
+import { createClient } from "./src/mod.ts";   // eller "@wingerlang/sweden-open-data" när paketet är installerat
 import { fileStore } from "@wingerlang/sweden-open-data/node";
 
 const se = createClient({
@@ -115,12 +107,12 @@ Varje datakälla är en egen modul som bara pratar med sin källa och returnerar
 | Språk | TypeScript, inga beroenden vid körning | Litet att installera, fungerar överallt |
 | Tester | `node:test` mot fejkade källor | Snabba och deterministiska, kräver inget nätverk |
 | CI | GitHub Actions: Node 22/24, Deno, Bun, lint, typer, täckning | Fångar fel i alla körmiljöer |
-| Publicering | JSR (vid tagg `v*`), med proveniens | Ingen hemlig nyckel, bygget går att granska |
+| Publicering | Förberedd för JSR (vid tagg `v*`), ännu inte publicerad | Ingen hemlig nyckel behövs (OIDC) |
 | Demo | GitHub Pages från `docs/` | Gratis och utan server |
 
 ## CI/CD
 
-Vid push till `main` och vid pull requests körs tester, lint, typkontroll och täckningskontroll. En tagg som `v0.15.0` publicerar paketet på JSR. En schemalagd körning varje måndag testar de riktiga källorna så att formatändringar upptäcks tidigt. Demo-sidan publiceras från `docs/`.
+Vid push till `main` och vid pull requests körs tester, lint, typkontroll och täckningskontroll. En tagg som `v0.15.0` kör publiceringen till JSR (inte aktiverad än). En schemalagd körning varje måndag testar de riktiga källorna så att formatändringar upptäcks tidigt. Demo-sidan publiceras från `docs/`.
 
 ## Begränsningar
 

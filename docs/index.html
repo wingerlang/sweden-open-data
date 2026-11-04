@@ -438,9 +438,9 @@
 
         <section class="card">
           <h2>Använd i ditt projekt</h2>
-          <p><code>npx jsr add @wingerlang/sweden-open-data</code></p>
+          <p><code>git clone https://github.com/wingerlang/sweden-open-data</code></p>
           <pre style="overflow: auto; background: var(--card2); padding: 12px; border-radius: 10px; font-size: 0.85rem">
-import { createClient } from "@wingerlang/sweden-open-data";
+import { createClient } from "./src/mod.ts";
 const se = createClient();
 const { today } = await se.spot.prices("SE3");
 const kpi = await se.economy.cpi("KPI");</pre
@@ -450,7 +450,7 @@ const kpi = await se.economy.cpi("KPI");</pre
     </main>
     <footer>
       Data: elprisetjustnu.se (Nord Pool), Open-Meteo, Krisinformation, SMHI och SCB. Byggd med agentdriven utveckling
-      (Claude Code). · <a href="https://jsr.io/@wingerlang/sweden-open-data">JSR</a>
+      (Claude Code).
     </footer>
 
     <script type="module">
