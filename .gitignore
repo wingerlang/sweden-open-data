@@ -9,3 +9,6 @@ dist/
 !.env.example
 .cache/
 Claude outputs/
+
+# lokala anteckningar
+uppgifter/steg4-cv-och-demo.md
