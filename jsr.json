@@ -21,11 +21,6 @@
     "./market": "./src/market/mod.ts"
   },
   "publish": {
-    "include": [
-      "src/**/*.ts",
-      "README.md",
-      "LICENSE",
-      "CHANGELOG.md"
-    ]
+    "include": ["src/**/*.ts", "README.md", "LICENSE", "CHANGELOG.md"]
   }
 }

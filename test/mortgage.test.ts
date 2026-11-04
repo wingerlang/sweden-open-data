@@ -60,10 +60,16 @@ test("mortgage-rate parser follows advertised dimension order and keeps missing 
 });
 
 test("binding bands and month lookups never invent earlier observations", () => {
-  assert.deepEqual(
-    [0, 3, 6, 12, 24, 36, 60, 120].map(mortgageBindingFor),
-    ["floating", "floating", "3m-1y", "3m-1y", "1y-3y", "1y-3y", "3y-5y", "5y+"],
-  );
+  assert.deepEqual([0, 3, 6, 12, 24, 36, 60, 120].map(mortgageBindingFor), [
+    "floating",
+    "floating",
+    "3m-1y",
+    "3m-1y",
+    "1y-3y",
+    "1y-3y",
+    "3y-5y",
+    "5y+",
+  ]);
   assert.throws(() => mortgageBindingFor(-1));
   const floating = parseMortgageRates(sample()).series[0];
   assert.equal(mortgageRateAt(floating, "2026-05"), undefined);

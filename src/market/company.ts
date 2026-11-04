@@ -207,7 +207,8 @@ export async function fetchMarketReports(
     seen.add(url);
     const before = html.slice(Math.max(0, match.index! - 600), match.index!),
       dates = [...before.matchAll(/([0-9-]{10})(?:[ T](\d{2}:\d{2}))?/g)];
-    const d = dates.at(-1),day=isoDay(d?.[1]);
+    const d = dates.at(-1),
+      day = isoDay(d?.[1]);
     items.push({ title, date: day ? day + (d?.[2] ? " " + d[2] : "") : null, url });
     if (items.length >= limit) break;
   }

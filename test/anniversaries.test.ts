@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {getWeddingName, WEDDING_NAMES_SOURCE} from "../src/anniversaries/mod.ts";
+import { getWeddingName, WEDDING_NAMES_SOURCE } from "../src/anniversaries/mod.ts";
 test("Swedish wedding milestones are local, deterministic and reject invalid years", () => {
   assert.equal(getWeddingName(1), "Bomullsbröllop");
   assert.equal(getWeddingName(10), "Tennbröllop");
