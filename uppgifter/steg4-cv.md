@@ -1,0 +1,3 @@
+# Steg 4 – CV-punkt
+
+Designade och utvecklade ett typat TypeScript-bibliotek utan runtime-beroenden (Node/Deno/Bun, node:test, GitHub Actions, JSR, GitHub Pages) som hämtar svensk öppen data (elpriser, väder, VMA, adresser, SCB:s KPI, huspriser, bolåneräntor och Riksbankens styrränta) med cache, omförsök och felhantering, med hjälp av agentdriven utveckling (Claude Code). Projektet löser problemet att varje utvecklare annars bygger egna klienter mot instabila öppna källor, används i en egen app (Emergens) och är tillgängligt på https://wingerlang.github.io/sweden-open-data/ (kod: https://github.com/wingerlang/sweden-open-data, paket: https://jsr.io/@wingerlang/sweden-open-data).
