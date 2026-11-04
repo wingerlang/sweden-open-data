@@ -75,6 +75,14 @@ footer{color:var(--muted);font-size:.85rem;text-align:center;padding:0 16px 32px
       <div id="infchart"><div class="skel"></div></div>
     </section>
 
+    <section class="card s6"><h2>Huspriser</h2><p class="sub">Prisindex för permanenta småhus (SCB, 1981=100), per kvartal.</p>
+      <div class="row"><select id="hreg"></select></div>
+      <div class="kpis" id="hk"></div><div id="hchart"><div class="skel"></div></div><div class="legend" id="hleg"></div>
+    </section>
+    <section class="card s6"><h2>Bolåneräntor och inflation</h2><p class="sub">Snittränta för nya bolån (SCB/Riksbanken) mot inflationen (KPIF).</p>
+      <div class="kpis" id="mk"></div><div id="mchart"><div class="skel"></div></div><div class="legend" id="mleg"></div>
+    </section>
+
     <section class="card s6"><h2>Pengar då och nu</h2><p class="sub">Vad är ett belopp värt i dagens penningvärde?</p>
       <div class="row"><input id="amt" type="number" value="10000" min="1" style="width:110px"> <span>kr år</span> <select id="yr"></select></div>
       <div class="res" id="adj">–</div>
@@ -98,7 +106,7 @@ const kpi = await se.economy.cpi("KPI");</pre>
 
 <script type="module">
 import { createSpotClient, createWeatherClient, summarizeSpotPrices, formatOre, withVat, describeWeather, formatTemperature } from "./lib/mod.js";
-import { createEconomyClient, adjustForInflation, inflationRates, inflationRate, latestCpi, realChange } from "./lib/economy/mod.js";
+import { createEconomyClient, adjustForInflation, inflationRates, inflationRate, latestCpi, realChange, HOUSING_REGIONS, mortgageRateAt } from "./lib/economy/mod.js";
 import { createAlertsClient } from "./lib/alerts/mod.js";
 
 const $ = (id) => document.getElementById(id);
@@ -201,12 +209,14 @@ async function loadAlerts(c) {
 
 /* ---------- Inflation ---------- */
 let cpiIndex = "KPIF", series = {};
+const cpiPromises = {};
+const getCpi = (idx) => (cpiPromises[idx] = cpiPromises[idx] || economy.cpi(idx));
 async function loadCpi(idx) {
   cpiIndex = idx;
   document.querySelectorAll("#idx button").forEach((b) => b.classList.toggle("on", b.dataset.i === idx));
   $("infchart").innerHTML = '<div class="skel"></div>';
   try {
-    series[idx] = series[idx] || (await economy.cpi(idx));
+    series[idx] = await getCpi(idx);
     const s = series[idx], rates = inflationRates(s).filter((p) => p.month >= "1995-01"), last = latestCpi(s);
     const peak = rates.reduce((m, p) => (p.value > m.value ? p : m), rates[0]);
     $("infk").innerHTML = `<div class="kpi"><b>${(rates[rates.length - 1].value * 100).toFixed(1)} %</b><span>senaste årstakten (${rates[rates.length - 1].month})</span></div>
@@ -236,6 +246,60 @@ function fillCalc() {
   } catch (e) { $("adj").textContent = "Kunde inte räkna: " + e.message; }
 }
 
+
+/* ---------- Flera linjer ---------- */
+function multiLine(host, list, { fmt, zero = false, h = 240 }) {
+  const keys = [...new Set(list.flatMap((l) => l.pts.map((p) => p[0])))].sort();
+  const maps = list.map((l) => new Map(l.pts));
+  const all = list.flatMap((l) => l.pts.map((p) => p[1]));
+  let lo = Math.min(...all), hi = Math.max(...all); if (zero) lo = Math.min(0, lo);
+  const padv = (hi - lo) * 0.06 || 1; hi += padv; if (!zero || lo < 0) lo -= padv;
+  chart(host, { h }, (a) => {
+    grid(a, lo, hi, 4, fmt);
+    const n = keys.length;
+    list.forEach((l, k) => { const pts = keys.map((key, i) => (maps[k].has(key) ? [a.X(i / (n - 1)), a.Y((maps[k].get(key) - lo) / (hi - lo))] : null)).filter(Boolean);
+      a.el("path", { d: linePath(pts), fill: "none", stroke: l.color, "stroke-width": 2.2, "stroke-linejoin": "round", "stroke-dasharray": l.dash || "" }); });
+    const step = Math.max(1, Math.round(n / 6));
+    for (let i = 0; i < n; i += step) a.el("text", { x: a.X(i / (n - 1)), y: a.h - 8, "text-anchor": "middle" }, keys[i].slice(0, 4));
+    return (f) => Math.min(n - 1, Math.round(f * (n - 1)));
+  }, (i) => ({ x: 44 + (i / (keys.length - 1)) * 664, y: 50, text: keys[i] + " · " + list.map((l, k) => (maps[k].has(keys[i]) ? l.name + " " + fmt(maps[k].get(keys[i])) : "")).filter(Boolean).join(" · ") }));
+}
+const legend = (id, list) => { $(id).innerHTML = list.map((l) => `<span><i style="background:${l.color}"></i>${esc(l.name)}</span>`).join(""); };
+
+/* ---------- Huspriser ---------- */
+async function loadHouse() {
+  const region = $("hreg").value; $("hchart").innerHTML = '<div class="skel"></div>';
+  try {
+    const hs = await economy.housePrices(region), P = hs.points, last = P[P.length - 1], yearAgo = P[P.length - 5];
+    const peak = P.reduce((m, p) => (p.value > m.value ? p : m), P[0]);
+    $("hk").innerHTML = `<div class="kpi"><b>${last.value.toFixed(0)}</b><span>index ${esc(last.period)}</span></div>
+      <div class="kpi"><b>${yearAgo ? ((last.value / yearAgo.value - 1) * 100).toFixed(1) + " %" : "–"}</b><span>senaste året</span></div>
+      <div class="kpi"><b>${((last.value / peak.value - 1) * 100).toFixed(1)} %</b><span>mot toppen (${esc(peak.period)})</span></div>`;
+    const list = [{ name: hs.label, color: css("--accent"), pts: P.map((p) => [p.period, p.value]) }];
+    multiLine($("hchart"), list, { fmt: (v) => v.toFixed(0), h: 230 }); legend("hleg", list);
+  } catch (e) { fail("hchart", e); $("hk").innerHTML = ""; }
+}
+
+/* ---------- Bolåneräntor mot inflation ---------- */
+async function loadMortgage() {
+  $("mchart").innerHTML = '<div class="skel"></div>';
+  try {
+    const [rates, kpif] = await Promise.all([economy.mortgageRates(), getCpi("KPIF")]);
+    const pick = (b) => rates.series.find((s) => s.agreement === "new" && s.binding === b);
+    const fl = pick("floating"), fx = pick("5y+");
+    const from = "2005-01", infl = inflationRates(kpif).filter((p) => p.month >= from);
+    const list = [
+      { name: "Rörlig ränta", color: css("--accent"), pts: fl.points.filter((p) => p.month >= from).map((p) => [p.month, p.ratePct]) },
+      { name: "Bunden >5 år", color: css("--yellow"), pts: fx.points.filter((p) => p.month >= from).map((p) => [p.month, p.ratePct]) },
+      { name: "Inflation (KPIF)", color: css("--bad"), dash: "5 4", pts: infl.map((p) => [p.month, p.value * 100]) },
+    ];
+    const lastFl = fl.points[fl.points.length - 1], inflNow = infl.find((p) => p.month === lastFl.month) || infl[infl.length - 1];
+    $("mk").innerHTML = `<div class="kpi"><b>${lastFl.ratePct.toFixed(2)} %</b><span>rörlig ränta ${esc(lastFl.month)}</span></div>
+      <div class="kpi"><b>${(lastFl.ratePct - inflNow.value * 100).toFixed(2)}</b><span>realränta, procentenheter (ränta − inflation)</span></div>`;
+    multiLine($("mchart"), list, { fmt: (v) => v.toFixed(1) + " %", zero: true, h: 230 }); legend("mleg", list);
+  } catch (e) { fail("mchart", e); $("mk").innerHTML = ""; }
+}
+
 /* ---------- Start ---------- */
 const spot = createSpotClient(), weather = createWeatherClient(), economy = createEconomyClient(), alertsClient = createAlertsClient();
 for (let y = 2025; y >= 1990; y--) { $("yr").add(new Option(y, y)); $("y1").add(new Option(y, y)); }
@@ -246,7 +310,9 @@ $("when").textContent = new Date().toLocaleDateString("sv-SE", { weekday: "long"
 function loadPlace() { const c = CITIES[$("city").value]; $("area").value = c.a; loadSpot(c.a); loadWeather(c); loadAlerts(c); }
 $("city").addEventListener("change", loadPlace);
 $("area").addEventListener("change", () => loadSpot($("area").value));
-loadPlace(); loadCpi("KPIF");
+Object.entries(HOUSING_REGIONS.quarter).forEach(([k, v]) => $("hreg").add(new Option(v, k)));
+$("hreg").addEventListener("change", loadHouse);
+loadPlace(); loadCpi("KPIF"); loadHouse(); loadMortgage();
 </script>
 </body>
 </html>
